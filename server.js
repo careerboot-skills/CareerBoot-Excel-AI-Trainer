@@ -226,12 +226,12 @@ app.get('/', (req, res) => {
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css" />
-  <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/assets/iconfont/iconfont.css" />
+  <script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -246,7 +246,6 @@ app.get('/', (req, res) => {
     }
     #toast-notification.success { border-color: #10b981; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25); }
 
-    /* --- LOGIN PORTAL SCREEN --- */
     #entry-screen {
       min-height: 100vh; width: 100vw; display: flex; flex-direction: column;
       background: linear-gradient(135deg, #070d19 0%, #0f172a 100%);
@@ -304,7 +303,6 @@ app.get('/', (req, res) => {
     .eco-text h4 { font-size: 13px; color: #fff; margin-bottom: 2px; font-weight: 700; }
     .eco-text p { font-size: 11px; color: #64748b; }
 
-    /* --- RESPONSIVE MAIN APP LAYOUT --- */
     #app-container { display: none; height: 100vh; width: 100vw; overflow: hidden; }
 
     sidebar {
@@ -342,12 +340,11 @@ app.get('/', (req, res) => {
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
     th { background: #1e293b; color: #38bdf8; }
 
-    /* LUCKEYSHEET FULL INTERACTIVE STYLING */
+    /* LUCKEYSHEET CORE ENGINE WRAPPER STYLES */
+    #luckysheet { width: 100% !important; height: 100% !important; }
     .luckysheet-toolbar { overflow-x: auto !important; white-space: nowrap !important; }
-    .luckysheet-input-box { z-index: 10000 !important; }
-    .luckysheet-cell-input { color: #000 !important; background: #fff !important; }
+    .luckysheet-wa-editor { background: #fff !important; color: #000 !important; }
 
-    /* MOBILE BREAKPOINT CSS */
     @media (max-width: 768px) {
       #app-container { flex-direction: column; }
       sidebar { position: fixed; top: 0; left: -260px; height: 100vh; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.8); }
@@ -441,7 +438,7 @@ app.get('/', (req, res) => {
       </div>
 
       <div id="live-excel" class="tab-content" style="position: relative; width: 100%; height: calc(100vh - 55px); overflow: hidden;">
-        <div id="luckysheet" style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left:0px;top:0px;"></div>
+        <div id="luckysheet"></div>
       </div>
 
       <div id="practice-sheets" class="tab-content" style="padding: 15px; overflow-y: auto;">
@@ -512,6 +509,34 @@ app.get('/', (req, res) => {
       });
     }
 
+    function initLuckysheetEngine() {
+      document.getElementById('luckysheet').innerHTML = '';
+      luckysheet.create({
+        container: 'luckysheet',
+        title: 'CareerBoot Practice Sheet',
+        lang: 'en',
+        showtoolbar: true,
+        showinfobar: true,
+        showsheetbar: true,
+        allowEdit: true,
+        enableAddRow: true,
+        data: [{
+          "name": "Practice Sheet 1",
+          "color": "",
+          "status": "1",
+          "order": "0",
+          "data": [
+            [{"v":"Data Item"},{"v":"Category"},{"v":"Value"}],
+            [{"v":"Sales Revenue"},{"v":"Financial"},{"v":"150000"}],
+            [{"v":"Marketing Cost"},{"v":"Expense"},{"v":"35000"}]
+          ],
+          "config": {},
+          "index": 0
+        }]
+      });
+      luckysheetInitialized = true;
+    }
+
     function switchTab(tabId) {
       document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
@@ -523,57 +548,11 @@ app.get('/', (req, res) => {
       if (tabId === 'live-excel') {
         setTimeout(function() {
           if (!luckysheetInitialized) {
-            luckysheet.create({
-              container: 'luckysheet',
-              title: 'Live Workspace',
-              lang: 'en',
-              allowEdit: true,
-              showtoolbar: true,
-              showtoolbarConfig: {
-                undoRedo: true,
-                paintFormat: true,
-                currencyFormat: true,
-                percentage: true,
-                numberDecrease: true,
-                numberIncrease: true,
-                font: true,
-                fontSize: true,
-                bold: true,
-                italic: true,
-                underline: true,
-                strikeThrough: true,
-                color: true,
-                background: true,
-                border: true,
-                merge: true,
-                align: true,
-                textWrap: true,
-                image: true,
-                link: true,
-                chart: true,
-                postil: true,
-                pivotTable: true,
-                function: true,
-                frozen: true,
-                sortAndFilter: true,
-                conditionalFormat: true,
-                dataVerification: true,
-                splitColumn: true,
-                screenshot: true,
-                findAndReplace: true,
-                protection: true,
-                print: true
-              },
-              showinfobar: true,
-              showsheetbar: true,
-              enableAddRow: true
-            });
-            luckysheetInitialized = true;
+            initLuckysheetEngine();
+          } else {
+            luckysheet.resize();
           }
-          if (window.luckysheet) {
-            window.luckysheet.resize();
-          }
-        }, 300);
+        }, 200);
       }
     }
 
