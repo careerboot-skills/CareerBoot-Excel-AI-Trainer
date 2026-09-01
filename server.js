@@ -15,10 +15,10 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 }
 });
 
-// Environment Configurations
+// Environment Variables
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6KhgrYIkFjHgeEzQDdjkYVW5VNLlCTsSqlWtBbs2ik5OQ";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6IFft0bnldVNuw4C1Qv6GV0W7RuxNzqjYL3oPv7Hfi50g";
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "ADMIN123KEY";
 const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_SECURE_JWT_SECRET_2026";
 
@@ -26,7 +26,7 @@ const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_SECURE_JWT_SECRET_2026"
 if (MONGO_URI) {
     mongoose.connect(MONGO_URI)
         .then(() => console.log("MongoDB Connected Successfully"))
-        .catch(err => console.error("MongoDB Connection Failed:", err));
+        .catch(err => console.error("MongoDB Connection Error:", err));
 }
 
 // Schemas
@@ -56,16 +56,12 @@ const Key = mongoose.model('Key', KeySchema);
 const Chat = mongoose.model('Chat', ChatSchema);
 const PracticeSheet = mongoose.model('PracticeSheet', PracticeSheetSchema);
 
-// Setup Gemini AI
+// Gemini AI Config
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ 
-    model: "gemini-1.5-flash",
-    systemInstruction: "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Keep responses clear and step-by-step."
-});
 
 app.use(express.json({ limit: '20mb' }));
 
-// Auth Middleware supporting Header & Query Token
+// Auth Middleware
 const authMiddleware = (req, res, next) => {
     let token = req.headers.authorization?.split(' ')[1] || req.query.token;
     if (!token) return res.status(401).json({ success: false, message: "Unauthorized access" });
@@ -79,7 +75,7 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// --- API ROUTES ---
+// API ROUTES
 
 app.post('/api/login', async (req, res) => {
     try {
@@ -155,6 +151,7 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
+// AI Chat Endpoint with Dynamic Model Allocation
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
@@ -169,7 +166,19 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
                 }
             });
         }
-        if (message) contents.push(message);
+        
+        const systemPrompt = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Keep responses clear and step-by-step.";
+        if (message) {
+            contents.push(`${systemPrompt}\n\nUser Question: ${message}`);
+        }
+
+        // Try gemini-1.5-flash, fallback to gemini-pro if needed
+        let model;
+        try {
+            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        } catch(e) {
+            model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        }
 
         const result = await model.generateContent(contents);
         const reply = result.response.text();
@@ -179,8 +188,11 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
         res.json({ success: true, reply });
     } catch (err) {
-        console.error("AI Error:", err);
-        res.status(500).json({ success: false, reply: "AI Processing Error. Check Google AI Studio API Key & Quota." });
+        console.error("Gemini API Exec Error Log:", err?.message || err);
+        res.status(500).json({ 
+            success: false, 
+            reply: "AI Processing Error: Please verify GEMINI_API_KEY in Render Environment Variables." 
+        });
     }
 });
 
@@ -229,7 +241,7 @@ app.get('*', (req, res) => {
         .typing-anim-container { width: 200px; height: 200px; }
         .status-badge { display: none; font-size: 50px; }
 
-        /* Chat Screen Layout Fix */
+        /* Chat Layout */
         .chat-header { height: 55px; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
         .chat-title { font-weight: 700; font-size: 15px; color: var(--primary); }
 
@@ -245,7 +257,6 @@ app.get('*', (req, res) => {
         .chat-input { flex: 1; background: var(--bg-dark); border: 1px solid #334155; padding: 10px 12px; border-radius: 8px; color: white; font-size: 14px; outline: none; }
         .icon-btn { background: none; border: none; color: var(--text-main); font-size: 18px; cursor: pointer; padding: 4px; }
 
-        /* Drawer Page 3 */
         .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
         .drawer-menu { position: fixed; right: -280px; top: 0; width: 260px; height: 100%; background: var(--card-dark); transition: right 0.3s ease; z-index: 100; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .drawer-menu.open { right: 0; }
@@ -256,7 +267,6 @@ app.get('*', (req, res) => {
 </head>
 <body>
 
-    <!-- PAGE 1: LOGIN -->
     <div id="page1" class="page active">
         <div class="login-top">
             <div class="brand-logo">CareerBoot</div>
@@ -279,7 +289,6 @@ app.get('*', (req, res) => {
         </div>
     </div>
 
-    <!-- PAGE 2: USER AI CHAT -->
     <div id="page2" class="page">
         <div class="chat-header">
             <div class="chat-title">CareerBoot Excel AI Trainer</div>
@@ -308,7 +317,6 @@ app.get('*', (req, res) => {
         </div>
     </div>
 
-    <!-- PAGE 3: DRAWER PAGE -->
     <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
     <div class="drawer-menu" id="drawerMenu">
         <h3 style="color: var(--primary);">Menu</h3>
@@ -316,7 +324,6 @@ app.get('*', (req, res) => {
         <button class="btn-unlock" onclick="closeDrawer()" style="background: #ef4444; margin-top: auto;">Close</button>
     </div>
 
-    <!-- ADMIN PANEL -->
     <div id="adminPage" class="page" style="padding: 20px; overflow-y: auto;">
         <h2 style="color: var(--primary); margin-bottom: 20px;">Admin Panel</h2>
         <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 12px;">
@@ -336,7 +343,6 @@ app.get('*', (req, res) => {
         </div>
     </div>
 
-    <!-- SYSTEM MODAL -->
     <div class="modal-overlay" id="modalOverlay">
         <div class="modal-box">
             <p id="modalMessage" style="font-size: 14px; margin-bottom: 15px;"></p>
