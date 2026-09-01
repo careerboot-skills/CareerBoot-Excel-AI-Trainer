@@ -2,28 +2,15 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
-const { OAuth2Client } = require('google-auth-library');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const multer = require('multer');
 
 const app = express();
 
-// --- CORS & SECURITY HEADERS FOR GOOGLE OAUTH POPUPS ---
-app.use(cors({
-  origin: ['https://careerboot-excel-ai-trainer.onrender.com', 'http://localhost:10000', 'http://localhost:3000'],
-  credentials: true
-}));
-
+app.use(cors());
 app.use(express.json());
 
-app.use((req, res, next) => {
-  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
-  res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
-  next();
-});
-
-// --- 1. MONGODB CONNECTION ---
+// --- 1. MONGODB CONNECTION & SCHEMAS ---
 const MONGO_URI = process.env.MONGO_URI;
 if (MONGO_URI) {
   mongoose.connect(MONGO_URI)
@@ -33,65 +20,178 @@ if (MONGO_URI) {
   console.warn("WARNING: MONGO_URI environment variable missing.");
 }
 
+const keySchema = new mongoose.Schema({
+  key: { type: String, required: true, unique: true },
+  label: { type: String, default: "User Key" },
+  isActive: { type: Boolean, default: true },
+  boundSessionId: { type: String, default: null },
+  createdAt: { type: Date, default: Date.now }
+});
+const SecretKey = mongoose.model('SecretKey', keySchema);
+
 const chatSchema = new mongoose.Schema({
-  userEmail: { type: String, required: true },
+  userKey: { type: String, required: true },
   message: { type: String, required: true },
   sender: { type: String, enum: ['user', 'bot'], required: true },
   createdAt: { type: Date, default: Date.now, expires: 86400 }
 });
 const Chat = mongoose.model('Chat', chatSchema);
 
-// --- 2. AUTH & AI CONFIGURATION ---
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com";
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
+const sheetSchema = new mongoose.Schema({
+  title: { type: String, required: true },
+  category: { type: String, default: "General Practice" },
+  fileName: { type: String, required: true },
+  fileData: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  uploadedAt: { type: Date, default: Date.now }
+});
+const PracticeSheet = mongoose.model('PracticeSheet', sheetSchema);
+
+// --- 2. CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const upload = multer({ storage: multer.memoryStorage() });
+const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || "t-for-topa/420";
 
-// --- 3. API ENDPOINTS ---
-app.post('/api/auth/google', async (req, res) => {
-  const { credential } = req.body;
-  if (!credential) {
-    return res.status(400).json({ success: false, error: "Missing credential token." });
+function generateRandomKey() {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let result = 'CB-';
+  for (let i = 0; i < 8; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+// --- 3. AUTHENTICATION ---
+app.post('/api/auth/key-login', async (req, res) => {
+  const { secretKey, sessionId } = req.body;
+  if (!secretKey || !sessionId) {
+    return res.status(400).json({ success: false, error: "Secret Key and Session Identification are required." });
   }
 
   try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: GOOGLE_CLIENT_ID
-    });
-    const payload = ticket.getPayload();
-    return res.json({ 
-      success: true, 
-      user: { name: payload.name, email: payload.email, picture: payload.picture } 
-    });
-  } catch (error) {
-    console.error("Google Auth Verification Error:", error.message);
-    return res.status(401).json({ success: false, error: "Google verification failed: " + error.message });
+    const formattedKey = secretKey.trim().toUpperCase();
+    const foundKey = await SecretKey.findOne({ key: formattedKey, isActive: true });
+
+    if (!foundKey) {
+      return res.status(401).json({ success: false, error: "Invalid or Deactivated Secret Key." });
+    }
+
+    if (foundKey.boundSessionId && foundKey.boundSessionId !== sessionId) {
+      return res.status(403).json({ success: false, error: "Key already in use on another device/browser session." });
+    }
+
+    if (!foundKey.boundSessionId) {
+      foundKey.boundSessionId = sessionId;
+      await foundKey.save();
+    }
+
+    return res.json({ success: true, userKey: foundKey.key, label: foundKey.label });
+  } catch (err) {
+    return res.status(500).json({ success: false, error: "Database error during authentication." });
   }
+});
+
+// --- 4. ADMIN PANEL ENDPOINTS ---
+app.post('/api/admin/keys', async (req, res) => {
+  const { adminCode } = req.body;
+  if (adminCode !== ADMIN_PASSCODE) return res.status(403).json({ success: false, error: "Unauthorized Admin Access." });
+  try {
+    const keys = await SecretKey.find().sort({ createdAt: -1 });
+    return res.json({ success: true, keys });
+  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/admin/generate-key', async (req, res) => {
+  const { adminCode, label } = req.body;
+  if (adminCode !== ADMIN_PASSCODE) return res.status(403).json({ success: false, error: "Unauthorized Admin Access." });
+  try {
+    const newKeyStr = generateRandomKey();
+    const newKey = await SecretKey.create({ key: newKeyStr, label: label || "Standard Candidate" });
+    return res.json({ success: true, key: newKey });
+  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/admin/toggle-key', async (req, res) => {
+  const { adminCode, keyId } = req.body;
+  if (adminCode !== ADMIN_PASSCODE) return res.status(403).json({ success: false, error: "Unauthorized Admin Access." });
+  try {
+    const existingKey = await SecretKey.findById(keyId);
+    if (!existingKey) return res.status(404).json({ success: false, error: "Key not found." });
+    existingKey.isActive = !existingKey.isActive;
+    await existingKey.save();
+    return res.json({ success: true, isActive: existingKey.isActive });
+  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/admin/reset-session', async (req, res) => {
+  const { adminCode, keyId } = req.body;
+  if (adminCode !== ADMIN_PASSCODE) return res.status(403).json({ success: false, error: "Unauthorized Admin Access." });
+  try {
+    const existingKey = await SecretKey.findById(keyId);
+    if (!existingKey) return res.status(404).json({ success: false, error: "Key not found." });
+    existingKey.boundSessionId = null;
+    await existingKey.save();
+    return res.json({ success: true, message: "Session unbound successfully." });
+  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.post('/api/admin/upload-sheet', upload.single('sheetFile'), async (req, res) => {
+  const { adminCode, title, category } = req.body;
+  if (adminCode !== ADMIN_PASSCODE) return res.status(403).json({ success: false, error: "Unauthorized Admin Access." });
+  if (!req.file) return res.status(400).json({ success: false, error: "No sheet file uploaded." });
+
+  try {
+    const sheet = await PracticeSheet.create({
+      title: title || req.file.originalname,
+      category: category || "General Practice",
+      fileName: req.file.originalname,
+      fileData: req.file.buffer.toString('base64'),
+      mimeType: req.file.mimetype
+    });
+    return res.json({ success: true, sheet });
+  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
+});
+
+// --- 5. USER PRACTICE SHEETS & AI CHAT API ---
+app.get('/api/practice-sheets', async (req, res) => {
+  try {
+    const sheets = await PracticeSheet.find({}, { fileData: 0 }).sort({ uploadedAt: -1 });
+    return res.json({ success: true, sheets });
+  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
+});
+
+app.get('/api/practice-sheets/download/:id', async (req, res) => {
+  try {
+    const sheet = await PracticeSheet.findById(req.params.id);
+    if (!sheet) return res.status(404).json({ success: false, error: "Sheet file not found." });
+
+    const fileBuffer = Buffer.from(sheet.fileData, 'base64');
+    res.setHeader('Content-Type', sheet.mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${sheet.fileName}"`);
+    return res.send(fileBuffer);
+  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
 });
 
 app.post('/api/chat', upload.single('file'), async (req, res) => {
   try {
-    const { userEmail, text } = req.body;
-    if (!userEmail) return res.status(401).json({ success: false, error: "Unauthorized access" });
+    const { userKey, text } = req.body;
+    if (!userKey) return res.status(401).json({ success: false, error: "Unauthorized Access" });
+
+    const validKey = await SecretKey.findOne({ key: userKey, isActive: true });
+    if (!validKey) return res.status(401).json({ success: false, error: "Invalid Key Session." });
 
     if (mongoose.connection.readyState === 1) {
-      await Chat.create({ userEmail, message: text || '[File/Image Attached]', sender: 'user' });
+      await Chat.create({ userKey, message: text || '[File Attached]', sender: 'user' });
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    let promptContents = [
-      "You are CareerBoot AI Excel Trainer. Provide exact MS Excel formulas, VBA macros, or step-by-step error solutions (#REF!, #N/A, VLOOKUP, XLOOKUP)."
-    ];
+    let systemInstruction = "You are CareerBoot AI Excel Trainer. Provide comprehensive, structured Excel resources. If user requests shortcuts or formulas, output them clearly formatted inside Markdown Code Blocks (`...`) categorized from A to Z (Basic to Advanced).";
 
+    let promptContents = [systemInstruction];
     if (text) promptContents.push(text);
-
     if (req.file) {
       promptContents.push({
-        inlineData: {
-          data: req.file.buffer.toString("base64"),
-          mimeType: req.file.mimetype
-        }
+        inlineData: { data: req.file.buffer.toString("base64"), mimeType: req.file.mimetype }
       });
     }
 
@@ -99,7 +199,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
     const botAnswer = aiResult.response.text();
 
     if (mongoose.connection.readyState === 1) {
-      await Chat.create({ userEmail, message: botAnswer, sender: 'bot' });
+      await Chat.create({ userKey, message: botAnswer, sender: 'bot' });
     }
 
     res.json({ success: true, answer: botAnswer });
@@ -109,7 +209,167 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
   }
 });
 
-// --- 4. FRONTEND UI EMBEDDED ---
+// --- 6. ADMIN UI FRONTEND (/admin) ---
+app.get('/admin', (req, res) => {
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Dashboard - CareerBoot Excel Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }
+    body { background: #070d19; color: #fff; padding: 30px 20px; display: flex; justify-content: center; }
+    .admin-card { background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; width: 100%; max-width: 850px; padding: 30px; }
+    h2 { color: #38bdf8; margin-bottom: 20px; text-align: center; }
+    .form-group { display: flex; gap: 10px; margin-bottom: 20px; }
+    input { background: #070d19; border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 12px; border-radius: 8px; flex: 1; outline: none; }
+    button { background: #0284c7; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    th { background: #1e293b; color: #38bdf8; }
+    .status-active { color: #10b981; font-weight: bold; }
+    .status-inactive { color: #ef4444; font-weight: bold; }
+    .status-bound { color: #f59e0b; font-weight: bold; }
+    .btn-sm { padding: 6px 10px; font-size: 11px; margin-right: 4px; border-radius: 4px; }
+    .section-title { margin-top: 30px; margin-bottom: 10px; color: #38bdf8; font-size: 16px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="admin-card">
+    <h2>CAREERBOOT ADMIN CONTROL PANEL</h2>
+    <div class="form-group" id="auth-box">
+      <input type="password" id="adminCode" placeholder="Enter Admin Passcode">
+      <button onclick="authenticateAdmin()">Login as Admin</button>
+    </div>
+    <div id="admin-controls" style="display: none;">
+      <div class="section-title">1. Secret Key Management</div>
+      <div class="form-group">
+        <input type="text" id="keyLabel" placeholder="Candidate Name / Description">
+        <button onclick="generateKey()">Generate Secret Key</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>Secret Key</th><th>Label</th><th>Status</th><th>Bound Device</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="keys-list"></tbody>
+      </table>
+
+      <div class="section-title">2. Upload Practice Sheets</div>
+      <form id="uploadForm" class="form-group" style="flex-direction: column;">
+        <input type="text" id="sheetTitle" placeholder="Sheet Title">
+        <input type="text" id="sheetCategory" placeholder="Category">
+        <input type="file" id="sheetFile" accept=".xlsx,.xls,.csv" required>
+        <button type="button" onclick="uploadSheet()">Upload Template Sheet</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    function authenticateAdmin() {
+      const adminCode = document.getElementById('adminCode').value;
+      fetch('/api/admin/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminCode })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          document.getElementById('auth-box').style.display = 'none';
+          document.getElementById('admin-controls').style.display = 'block';
+          renderTable(data.keys);
+        } else { alert("Error: " + data.error); }
+      });
+    }
+
+    function generateKey() {
+      const adminCode = document.getElementById('adminCode').value;
+      const label = document.getElementById('keyLabel').value;
+      fetch('/api/admin/generate-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminCode, label })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          document.getElementById('keyLabel').value = '';
+          authenticateAdmin();
+        } else alert(data.error);
+      });
+    }
+
+    function toggleKey(keyId) {
+      const adminCode = document.getElementById('adminCode').value;
+      fetch('/api/admin/toggle-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminCode, keyId })
+      }).then(() => authenticateAdmin());
+    }
+
+    function unbindSession(keyId) {
+      const adminCode = document.getElementById('adminCode').value;
+      fetch('/api/admin/reset-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminCode, keyId })
+      }).then(() => authenticateAdmin());
+    }
+
+    function uploadSheet() {
+      const adminCode = document.getElementById('adminCode').value;
+      const title = document.getElementById('sheetTitle').value;
+      const category = document.getElementById('sheetCategory').value;
+      const fileInput = document.getElementById('sheetFile');
+      if (!fileInput.files[0]) return alert("Please select a file.");
+
+      const formData = new FormData();
+      formData.append('adminCode', adminCode);
+      formData.append('title', title);
+      formData.append('category', category);
+      formData.append('sheetFile', fileInput.files[0]);
+
+      fetch('/api/admin/upload-sheet', { method: 'POST', body: formData })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert("Practice Sheet Uploaded!");
+          document.getElementById('sheetTitle').value = '';
+          document.getElementById('sheetCategory').value = '';
+          fileInput.value = '';
+        } else alert("Upload Failed: " + data.error);
+      });
+    }
+
+    function renderTable(keys) {
+      const tbody = document.getElementById('keys-list');
+      tbody.innerHTML = '';
+      keys.forEach(k => {
+        const tr = document.createElement('tr');
+        const boundStatus = k.boundSessionId ? '<span class="status-bound">Bound</span>' : 'Unbound';
+        tr.innerHTML = \`
+          <td><b style="color:#38bdf8">\${k.key}</b></td>
+          <td>\${k.label}</td>
+          <td class="\${k.isActive ? 'status-active' : 'status-inactive'}">\${k.isActive ? 'Active' : 'Disabled'}</td>
+          <td>\${boundStatus}</td>
+          <td>
+            <button class="btn-sm" style="background:#334155;" onclick="toggleKey('\${k._id}')">\${k.isActive ? 'Disable' : 'Enable'}</button>
+            <button class="btn-sm" style="background:#0284c7;" onclick="unbindSession('\${k._id}')">Reset Device</button>
+          </td>
+        \`;
+        tbody.appendChild(tr);
+      });
+    }
+  </script>
+</body>
+</html>
+  `);
+});
+
+// --- 7. MAIN USER APPLICATION UI (/) ---
 app.get('/', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -117,12 +377,10 @@ app.get('/', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CareerBoot AI - Complete Excel Mastery Hub</title>
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+  <title>CareerBoot AI - Excel Hub</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- Luckysheet CDN -->
   <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css' />
   <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css' />
   <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
@@ -132,24 +390,69 @@ app.get('/', (req, res) => {
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-    body { background: #070d19; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+    body, html { height: 100%; background: #070d19; color: #fff; overflow: hidden; }
 
-    #login-overlay {
-      position: fixed; inset: 0; background: #070d19; z-index: 99999;
-      display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
+    #entry-screen {
+      height: 100vh; width: 100vw; display: flex; flex-direction: column;
+      background: linear-gradient(135deg, #070d19 0%, #0f172a 100%);
     }
-    .login-card {
-      background: rgba(15, 23, 42, 0.95); border: 1px solid rgba(56, 189, 248, 0.3);
-      border-radius: 20px; padding: 40px; text-align: center; max-width: 440px; width: 100%;
-      box-shadow: 0 25px 50px rgba(0,0,0,0.8);
+
+    .entry-top {
+      height: 35vh; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.15); position: relative; overflow: hidden;
     }
-    .g-btn-container {
-      margin-top: 20px;
-      display: flex;
-      justify-content: center;
-      min-height: 44px;
+    .branding-box { display: flex; flex-direction: column; gap: 8px; max-width: 45%; z-index: 2; }
+    .brand-svg { width: 220px; height: auto; }
+    .welcome-note { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+
+    .walk-animation-container {
+      width: 50%; height: 100%; display: flex; align-items: center; justify-content: space-around;
+      position: relative; z-index: 2;
     }
+    .stage-node { text-align: center; font-size: 12px; font-weight: 700; color: #38bdf8; }
+    .path-line { flex: 1; height: 3px; background: linear-gradient(90deg, #38bdf8, #10b981); margin: 0 15px; position: relative; border-radius: 2px; }
+
+    .walker-icon {
+      position: absolute; top: -20px; left: 0%; transform: translateX(-50%);
+      font-size: 24px; color: #38bdf8; animation: walkAlong 6s infinite ease-in-out;
+    }
+    @keyframes walkAlong {
+      0% { left: 0%; color: #38bdf8; }
+      50% { left: 50%; color: #f59e0b; }
+      100% { left: 100%; color: #10b981; }
+    }
+
+    .entry-middle {
+      height: 15vh; display: flex; justify-content: center; align-items: center;
+      background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+    }
+    .key-portal-form { display: flex; gap: 12px; width: 100%; max-width: 550px; padding: 0 20px; }
+    .key-portal-input {
+      flex: 1; background: #070d19; border: 1px solid rgba(56, 189, 248, 0.4);
+      color: #38bdf8; font-size: 15px; font-weight: 700; padding: 12px 18px; border-radius: 8px;
+      outline: none; text-transform: uppercase; letter-spacing: 2px; text-align: center;
+    }
+    .key-portal-btn {
+      background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; border: none;
+      padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.3s;
+    }
+
+    .entry-bottom {
+      height: 50vh; padding: 24px 40px; display: flex; flex-direction: column; align-items: center; overflow-y: auto;
+    }
+    .bottom-title { color: #94a3b8; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 18px; }
     
+    .ecosystem-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; width: 100%; max-width: 1100px;
+    }
+    .eco-card {
+      background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2);
+      border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px;
+    }
+    .eco-icon { width: 36px; height: 36px; fill: #38bdf8; }
+    .eco-text h4 { font-size: 13px; color: #fff; margin-bottom: 2px; }
+    .eco-text p { font-size: 11px; color: #64748b; }
+
     #app-container { display: none; flex: 1; height: 100vh; flex-direction: row; }
     
     sidebar { width: 260px; background: #0f172a; border-right: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; }
@@ -164,43 +467,77 @@ app.get('/', (req, res) => {
     .tab-content { display: none; padding: 24px; height: 100%; }
     .tab-content.active { display: flex; flex-direction: column; }
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 15px; }
-    .card { background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.2); border-radius: 12px; padding: 18px; }
-    .card h3 { color: #38bdf8; margin-bottom: 8px; font-size: 15px; display: flex; align-items: center; gap: 8px; }
-    .card code { background: #1e293b; color: #38bdf8; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
-
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #0f172a; border-radius: 8px; overflow: hidden; }
-    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
-    th { background: #1e293b; color: #38bdf8; }
-
-    pre { background: #070d19; padding: 12px; border-radius: 6px; border: 1px solid rgba(56, 189, 248, 0.2); font-size: 12px; color: #38bdf8; overflow-x: auto; margin-top: 8px; }
-
     .chat-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .msg { max-width: 80%; padding: 14px 18px; border-radius: 12px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+    .msg { max-width: 85%; padding: 14px 18px; border-radius: 12px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
     .msg.bot { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); align-self: flex-start; }
     .msg.user { background: #0284c7; align-self: flex-end; }
+    
+    /* CODE BOX STYLING FOR AI RESPONSES */
+    .msg pre {
+      background: #030712; border: 1px solid #38bdf8; border-radius: 8px;
+      padding: 12px; margin-top: 10px; font-family: monospace; font-size: 13px;
+      color: #38bdf8; overflow-x: auto; white-space: pre;
+    }
+
+    /* QUICK ACTION BUTTONS BAR */
+    .quick-actions {
+      display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px;
+      background: #0f172a; border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+    }
+    .action-btn {
+      background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
+      color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-size: 12px;
+      font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .action-btn:hover { background: #0284c7; color: #fff; border-color: #0284c7; }
+
     .controls { padding: 16px; background: #0f172a; border-top: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; gap: 10px; }
     .row { display: flex; gap: 10px; }
     input[type="text"] { flex: 1; background: #070d19; border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 12px; border-radius: 8px; outline: none; }
     button { background: #0284c7; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
     .file-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; color: #fff; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #0f172a; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    th { background: #1e293b; color: #38bdf8; }
   </style>
 </head>
 <body>
 
-  <div id="login-overlay">
-    <div class="login-card">
-      <h2 style="margin-bottom: 15px; color: #38bdf8;">CAREERBOOT EXCEL HUB</h2>
-      <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Verification required to access Excel Platform.</p>
-      
-      <div class="g-btn-container">
-        <div id="g_id_onload"
-             data-client_id="720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com"
-             data-callback="handleCredentialResponse"
-             data-auto_select="false"
-             data-itp_support="true">
+  <div id="entry-screen">
+    <div class="entry-top">
+      <div class="branding-box">
+        <svg class="brand-svg" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <text x="0" y="42" fill="#38bdf8" font-size="30" font-weight="800">CAREERBOOT</text>
+          <text x="215" y="42" fill="#10b981" font-size="30" font-weight="800">AI</text>
+        </svg>
+        <p class="welcome-note">Empowering your career growth with real-time AI Excel intelligence, VBA automation, and practice environments.</p>
+      </div>
+      <div class="walk-animation-container">
+        <div class="stage-node"><i class="fa-solid fa-lightbulb"></i><br>INTEREST</div>
+        <div class="path-line"><i class="fa-solid fa-person-walking walker-icon"></i></div>
+        <div class="stage-node" style="color:#10b981;"><i class="fa-solid fa-trophy"></i><br>SUCCESS</div>
+      </div>
+    </div>
+
+    <div class="entry-middle">
+      <div class="key-portal-form">
+        <input type="text" id="secretKeyInput" class="key-portal-input" placeholder="ENTER SECRET KEY">
+        <button class="key-portal-btn" onclick="loginWithKey()">UNLOCK HUB</button>
+      </div>
+    </div>
+
+    <div class="entry-bottom">
+      <div class="bottom-title">You are just a step away to dive into</div>
+      <div class="ecosystem-grid">
+        <div class="eco-card">
+          <svg class="eco-icon" viewBox="0 0 24 24"><path d="M19,3H5C3.9,3,3,3.9,3,5v14c0,1.1,0.9,2,2,2h14c1.1,0,2-0.9,2-2V5C21,3.9,20.1,3,19,3z M7,7h4v4H7V7z M13,7h4v4h-4V7z"/></svg>
+          <div class="eco-text"><h4>Live Excel Practice</h4><p>Authentic MS Excel Canvas</p></div>
         </div>
-        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-size="large"></div>
+        <div class="eco-card">
+          <svg class="eco-icon" viewBox="0 0 24 24"><path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,4M11,17H13V15H11V17M11,13H13V7H11V13Z"/></svg>
+          <div class="eco-text"><h4>AI Excel Trainer</h4><p>Formulas, VBA & Shortcuts on Click</p></div>
+        </div>
       </div>
     </div>
   </div>
@@ -211,27 +548,39 @@ app.get('/', (req, res) => {
       <ul class="nav-links">
         <li class="nav-item active" onclick="switchTab('ai-trainer')"><i class="fa-solid fa-robot"></i> AI Excel Trainer</li>
         <li class="nav-item" onclick="switchTab('live-excel')"><i class="fa-solid fa-table"></i> Live Practice Screen</li>
-        <li class="nav-item" onclick="switchTab('shortcuts')"><i class="fa-solid fa-keyboard"></i> Shortcuts (All Categories)</li>
-        <li class="nav-item" onclick="switchTab('formulas')"><i class="fa-solid fa-calculator"></i> All Formulas & Functions</li>
-        <li class="nav-item" onclick="switchTab('dashboard-tutorials')"><i class="fa-solid fa-chart-pie"></i> Dashboard Tutorials</li>
-        <li class="nav-item" onclick="switchTab('pivot-powerquery')"><i class="fa-solid fa-database"></i> Pivot & Power Query</li>
-        <li class="nav-item" onclick="switchTab('vba-macros')"><i class="fa-solid fa-code"></i> VBA Macros & Automation</li>
-        <li class="nav-item" onclick="switchTab('charts-viz')"><i class="fa-solid fa-chart-column"></i> Charts & Visualization</li>
-        <li class="nav-item" onclick="switchTab('error-solving')"><i class="fa-solid fa-triangle-exclamation"></i> Error Troubleshooting</li>
+        <li class="nav-item" onclick="switchTab('practice-sheets')"><i class="fa-solid fa-download"></i> Admin Practice Sheets</li>
       </ul>
     </sidebar>
 
     <main>
       <header>
-        <strong id="active-tab-title" style="color: #38bdf8;">AI Excel Trainer</strong>
-        <span style="font-size: 11px; color: #10b981;"><i class="fa-solid fa-database"></i> 24h Auto-Purge Active</span>
+        <strong id="active-tab-title" style="color: #38bdf8;">AI Excel Trainer Workspace</strong>
+        <span style="font-size: 11px; color: #10b981;"><i class="fa-solid fa-shield-halved"></i> Authorized Session</span>
       </header>
 
-      <!-- 1. AI CHAT -->
-      <div id="ai-trainer" class="tab-content active">
-        <div class="chat-area" id="chat">
-          <div class="msg bot">Welcome! Type queries, upload Excel/image files, or use voice input to solve complex errors, VBA, or formulas.</div>
+      <!-- 1. AI CHAT MODULE WITH QUICK ACTION BUTTONS -->
+      <div id="ai-trainer" class="tab-content active" style="padding:0;">
+        
+        <!-- DYNAMIC QUICK ACTION BUTTONS -->
+        <div class="quick-actions">
+          <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Shortcut Keys from A-Z (Basic to Advanced) in a clean Code Box.')">
+            <i class="fa-solid fa-keyboard"></i> A-Z All Shortcuts
+          </button>
+          <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Formulas & Functions (Lookup, Math, Dynamic Arrays, Text) with syntax in a Code Box.')">
+            <i class="fa-solid fa-calculator"></i> A-Z All Formulas
+          </button>
+          <button class="action-btn" onclick="triggerQuickAction('Provide top 5 Useful VBA Macro Codes (e.g., Export PDF, Auto Email, Clean Data) in Code Blocks.')">
+            <i class="fa-solid fa-code"></i> Essential VBA Macros
+          </button>
+          <button class="action-btn" onclick="triggerQuickAction('Provide complete Excel Error Troubleshooting Guide (#N/A, #REF!, #SPILL!, #VALUE!) in Code Box.')">
+            <i class="fa-solid fa-triangle-exclamation"></i> Error Solutions
+          </button>
         </div>
+
+        <div class="chat-area" id="chat">
+          <div class="msg bot">Welcome! Click any of the Quick Action buttons above to instantly generate complete A-Z Shortcuts, Formulas, or VBA codes inside a Code Box, or type your own question below.</div>
+        </div>
+
         <div class="controls">
           <div class="row">
             <label class="file-btn">
@@ -242,8 +591,8 @@ app.get('/', (req, res) => {
             <span id="fileNameDisplay" style="font-size: 12px; color: #38bdf8; align-self: center;"></span>
           </div>
           <div class="row">
-            <input type="text" id="userInput" placeholder="Ask Excel formula, VBA macro, or error query..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendQuery()">Send</button>
+            <input type="text" id="userInput" placeholder="Ask Excel formula, VBA macro, or click Quick Action buttons above..." onkeypress="handleKeyPress(event)">
+            <button onclick="sendQuery()">Send Query</button>
           </div>
         </div>
       </div>
@@ -253,178 +602,15 @@ app.get('/', (req, res) => {
         <div id="luckysheet" style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left:0px;top:0px;"></div>
       </div>
 
-      <!-- 3. ALL SHORTCUT KEYS -->
-      <div id="shortcuts" class="tab-content">
-        <h2 style="color: #38bdf8;">Complete Excel Keyboard Shortcuts Reference</h2>
-        <table>
+      <!-- 3. PRACTICE SHEETS DOWNLOAD CENTER -->
+      <div id="practice-sheets" class="tab-content">
+        <h2 style="color: #38bdf8;">Download Admin Practice Sheets</h2>
+        <table style="margin-top: 20px;">
           <thead>
-            <tr><th>Category</th><th>Shortcut Key</th><th>Function / Action</th></tr>
+            <tr><th>Template Title</th><th>Category</th><th>File Format</th><th>Action</th></tr>
           </thead>
-          <tbody>
-            <tr><td>Editing</td><td><b>Ctrl + C / Ctrl + V</b></td><td>Copy & Paste Data</td></tr>
-            <tr><td>Editing</td><td><b>Ctrl + Alt + V</b></td><td>Paste Special (Values, Formats, Formulas)</td></tr>
-            <tr><td>Editing</td><td><b>Ctrl + Z / Ctrl + Y</b></td><td>Undo / Redo Last Action</td></tr>
-            <tr><td>Formulas</td><td><b>Alt + =</b></td><td>AutoSUM Selected Column/Row</td></tr>
-            <tr><td>Formulas</td><td><b>F4</b></td><td>Lock Cell Reference Toggle ($A$1 Absolute Mode)</td></tr>
-            <tr><td>Formulas</td><td><b>Ctrl + Shift + Enter</b></td><td>Legacy Array Formula Execution</td></tr>
-            <tr><td>Formatting</td><td><b>Ctrl + 1</b></td><td>Format Cells Dialog Box</td></tr>
-            <tr><td>Formatting</td><td><b>Ctrl + Shift + !</b></td><td>Apply Number Format (2 decimal places)</td></tr>
-            <tr><td>Formatting</td><td><b>Ctrl + Shift + $</b></td><td>Apply Currency Format</td></tr>
-            <tr><td>Formatting</td><td><b>Ctrl + Shift + %</b></td><td>Apply Percentage Format</td></tr>
-            <tr><td>Data/Filter</td><td><b>Ctrl + Shift + L</b></td><td>Apply or Remove AutoFilter</td></tr>
-            <tr><td>Data/Filter</td><td><b>Alt + A + T</b></td><td>Toggle Filters</td></tr>
-            <tr><td>Table</td><td><b>Ctrl + T</b></td><td>Convert Data Range to Dynamic Excel Table</td></tr>
-            <tr><td>Navigation</td><td><b>Ctrl + Arrow Keys</b></td><td>Jump to Extreme Edge of Data Region</td></tr>
-            <tr><td>Navigation</td><td><b>Ctrl + Home / End</b></td><td>Jump to Beginning / Last Cell of Worksheet</td></tr>
-            <tr><td>Selection</td><td><b>Ctrl + Shift + Arrow</b></td><td>Select All Data to Edge of Region</td></tr>
-            <tr><td>Selection</td><td><b>Ctrl + Space</b></td><td>Select Entire Column</td></tr>
-            <tr><td>Selection</td><td><b>Shift + Space</b></td><td>Select Entire Row</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <!-- 4. ALL FORMULAS & FUNCTIONS -->
-      <div id="formulas" class="tab-content">
-        <h2 style="color: #38bdf8;">Comprehensive Excel Formulas & Functions Catalog</h2>
-        <div class="grid">
-          <div class="card">
-            <h3><i class="fa-solid fa-search"></i> Lookup & Reference</h3>
-            <p><b>XLOOKUP:</b> <code>=XLOOKUP(lookup_val, lookup_arr, return_arr, [if_not_found])</code></p>
-            <p style="margin-top:4px; font-size:12px; color:#94a3b8;">Replaces VLOOKUP & INDEX/MATCH. Performs bi-directional lookup effortlessly.</p>
-            <p style="margin-top:8px;"><b>VLOOKUP:</b> <code>=VLOOKUP(val, table, col_index, [range_lookup])</code></p>
-            <p style="margin-top:8px;"><b>INDEX & MATCH:</b> <code>=INDEX(return_range, MATCH(val, lookup_range, 0))</code></p>
-          </div>
-          <div class="card">
-            <h3><i class="fa-solid fa-filter"></i> Aggregation & Math</h3>
-            <p><b>SUMIFS:</b> <code>=SUMIFS(sum_range, criteria_range1, criteria1, ...)</code></p>
-            <p style="margin-top:4px; font-size:12px; color:#94a3b8;">Sums values matching multiple conditions.</p>
-            <p style="margin-top:8px;"><b>COUNTIFS:</b> <code>=COUNTIFS(criteria_range1, criteria1, ...)</code></p>
-            <p style="margin-top:8px;"><b>AVERAGEIFS:</b> <code>=AVERAGEIFS(avg_range, criteria_range1, criteria1)</code></p>
-          </div>
-          <div class="card">
-            <h3><i class="fa-solid fa-code-branch"></i> Logical Functions</h3>
-            <p><b>IFS:</b> <code>=IFS(cond1, val1, cond2, val2, [TRUE, default_val])</code></p>
-            <p style="margin-top:4px; font-size:12px; color:#94a3b8;">Eliminates nested IF statements.</p>
-            <p style="margin-top:8px;"><b>AND / OR:</b> <code>=IF(AND(A2>50, B2<100), "Pass", "Fail")</code></p>
-            <p style="margin-top:8px;"><b>SWITCH:</b> <code>=SWITCH(expression, val1, result1, val2, result2)</code></p>
-          </div>
-          <div class="card">
-            <h3><i class="fa-solid fa-font"></i> Text Manipulation</h3>
-            <p><b>TEXTJOIN:</b> <code>=TEXTJOIN(delimiter, ignore_empty, text1, text2)</code></p>
-            <p style="margin-top:8px;"><b>CONCAT / TRIM:</b> <code>=TRIM(CLEAN(text))</code> removes extra whitespace.</p>
-            <p style="margin-top:8px;"><b>LEFT / RIGHT / MID:</b> Extracts exact substring characters.</p>
-          </div>
-          <div class="card">
-            <h3><i class="fa-solid fa-calendar"></i> Date & Time</h3>
-            <p><b>DATEDIF:</b> <code>=DATEDIF(start_date, end_date, "Y")</code> calculates age/tenure.</p>
-            <p style="margin-top:8px;"><b>WORKDAY:</b> <code>=WORKDAY(start_date, days, [holidays])</code></p>
-            <p style="margin-top:8px;"><b>EOMONTH:</b> Returns last day of month before or after specified months.</p>
-          </div>
-          <div class="card">
-            <h3><i class="fa-solid fa-coins"></i> Financial Functions</h3>
-            <p><b>PMT:</b> <code>=PMT(rate/12, nper, pv)</code> calculates loan EMI payments.</p>
-            <p style="margin-top:8px;"><b>NPV:</b> <code>=NPV(rate, val1, val2, ...)</code> Net Present Value.</p>
-            <p style="margin-top:8px;"><b>IRR:</b> Returns Internal Rate of Return for periodic cash flows.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5. DASHBOARD TUTORIALS -->
-      <div id="dashboard-tutorials" class="tab-content">
-        <h2 style="color: #38bdf8;">Interactive Dashboard Building Guide</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>1. Structuring Raw Data</h3>
-            <p>Format raw data as an official Excel Table (<code>Ctrl + T</code>). Ensure unique column headers, no merged cells, and no blank rows.</p>
-          </div>
-          <div class="card">
-            <h3>2. Pivot Tables & Slicers</h3>
-            <p>Create separate Pivot Tables for each KPI metric. Insert Timeline & Slicers, then right-click -> <b>Report Connections</b> to link all pivots together.</p>
-          </div>
-          <div class="card">
-            <h3>3. Visual Layout & Theme</h3>
-            <p>Hide gridlines (View -> uncheck Gridlines). Use dark themes, uniform card padding, dynamic Pivot Charts, and clean alignment.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 6. PIVOT TABLES & POWER QUERY -->
-      <div id="pivot-powerquery" class="tab-content">
-        <h2 style="color: #38bdf8;">Pivot Tables & Power Query Data Transformation</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>Pivot Table Calculated Fields</h3>
-            <p>In Pivot Table Analyze tab -> Fields, Items & Sets -> <b>Calculated Field</b>. Write custom dynamic math like <code>='Sales' * 0.10</code>.</p>
-          </div>
-          <div class="card">
-            <h3>Power Query Data Unpivoting</h3>
-            <p>Data -> Get Data -> From File/Table. In Query Editor, select columns -> <b>Unpivot Columns</b> to transform cross-tabulated data into normalized rows.</p>
-          </div>
-          <div class="card">
-            <h3>Merging & Appending Queries</h3>
-            <p>Combine multiple worksheets or monthly files instantly using Power Query <b>Append Queries</b> without writing VBA.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 7. VBA MACROS & AUTOMATION -->
-      <div id="vba-macros" class="tab-content">
-        <h2 style="color: #38bdf8;">VBA Macros & Workflow Automation</h2>
-        <div class="card">
-          <h3>Automated Sheet Save to PDF (VBA Code)</h3>
-          <p>Press <code>Alt + F11</code>, Insert -> Module, and paste the code below:</p>
-          <pre>
-Sub SaveSheetToPDF()
-    Dim pdfPath As String
-    pdfPath = Application.ActiveWorkbook.Path & "\\Report_" & Format(Now(), "YYYYMMDD") & ".pdf"
-    ActiveSheet.ExportAsFixedFormat Type: = xlTypePDF, Filename: = pdfPath
-    MsgBox "PDF Exported Successfully!", vbInformation
-End Sub
-          </pre>
-        </div>
-        <div class="card" style="margin-top:15px;">
-          <h3>Auto Highlight Active Row</h3>
-          <pre>
-Private Sub Worksheet_SelectionChange(ByVal Target As Range)
-    Cells.Interior.ColorIndex = xlNone
-    Target.EntireRow.Interior.Color = RGB(15, 23, 42)
-End Sub
-          </pre>
-        </div>
-      </div>
-
-      <!-- 8. CHARTS & VISUALIZATION -->
-      <div id="charts-viz" class="tab-content">
-        <h2 style="color: #38bdf8;">Data Visualization & Advanced Charts</h2>
-        <div class="grid">
-          <div class="card">
-            <h3>Waterfall Charts</h3>
-            <p>Ideal for visualizing financial statements, revenue gains, and expense deductions incrementally.</p>
-          </div>
-          <div class="card">
-            <h3>Pareto Charts (80/20 Rule)</h3>
-            <p>Combines bar charts and line graphs to highlight top contributors causing 80% of business results or defects.</p>
-          </div>
-          <div class="card">
-            <h3>Gantt Project Charts</h3>
-            <p>Built using Stacked Bar Charts with transparent base series to track project start dates and task durations.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 9. ERROR TROUBLESHOOTING -->
-      <div id="error-solving" class="tab-content">
-        <h2 style="color: #38bdf8;">Excel Error Troubleshooting Guide</h2>
-        <table>
-          <thead>
-            <tr><th>Error Type</th><th>Common Cause</th><th>How to Fix</th></tr>
-          </thead>
-          <tbody>
-            <tr><td><b>#N/A</b></td><td>Value not found in lookup table</td><td>Wrap formula in <code>IFERROR(VLOOKUP(...), "Not Found")</code></td></tr>
-            <tr><td><b>#REF!</b></td><td>Referenced cell was deleted or overwritten</td><td>Undo deletion or update cell address in formula</td></tr>
-            <tr><td><b>#VALUE!</b></td><td>Wrong data type (e.g., multiplying text by number)</td><td>Use <code>VALUE()</code> or clean text characters with <code>TRIM()</code></td></tr>
-            <tr><td><b>#DIV/0!</b></td><td>Formula attempts division by zero or empty cell</td><td>Use <code>IF(B2=0, 0, A2/B2)</code></td></tr>
-            <tr><td><b>#SPILL!</b></td><td>Dynamic array formula range is blocked by data</td><td>Clear all contents in cells below/around the formula</td></tr>
+          <tbody id="sheets-table-body">
+            <tr><td colspan="4" style="text-align:center; color:#64748b;">Loading downloadable practice sheets...</td></tr>
           </tbody>
         </table>
       </div>
@@ -433,103 +619,104 @@ End Sub
   </div>
 
   <script>
-    var authenticatedUser = null;
+    var currentActiveKey = null;
     var luckysheetInitialized = false;
 
-    window.onload = function() {
-      if (window.google && google.accounts && google.accounts.id) {
-        google.accounts.id.initialize({
-          client_id: "720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com",
-          callback: handleCredentialResponse
-        });
-        google.accounts.id.renderButton(
-          document.querySelector(".g_id_signin"),
-          { theme: "filled_blue", size: "large", type: "standard" }
-        );
+    function getSessionId() {
+      let sid = localStorage.getItem('cb_session_id');
+      if (!sid) {
+        sid = 'SESS-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+        localStorage.setItem('cb_session_id', sid);
       }
-    };
+      return sid;
+    }
 
-    function handleCredentialResponse(response) {
-      if(!response || !response.credential) {
-        alert("Google Verification Failed.");
-        return;
-      }
-      fetch('/api/auth/google', {
+    function loginWithKey() {
+      const keyInput = document.getElementById('secretKeyInput').value.trim();
+      if(!keyInput) return alert("Please enter your Secret Key.");
+
+      fetch('/api/auth/key-login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential })
+        body: JSON.stringify({ secretKey: keyInput, sessionId: getSessionId() })
       })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (data.success) {
-          authenticatedUser = data.user;
-          document.getElementById('login-overlay').style.display = 'none';
+      .then(res => res.json())
+      .then(data => {
+        if(data.success) {
+          currentActiveKey = data.userKey;
+          document.getElementById('entry-screen').style.display = 'none';
           document.getElementById('app-container').style.display = 'flex';
-        } else {
-          alert("Authentication Error: " + (data.error || "Verification failed"));
-        }
-      })
-      .catch(function(err) { alert("Network Connection Error"); });
+          loadPracticeSheets();
+        } else { alert(data.error || "Login Failed"); }
+      });
     }
 
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
-      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
       
       document.getElementById(tabId).classList.add('active');
-      
-      if(window.event && window.event.currentTarget) {
-        window.event.currentTarget.classList.add('active');
-      }
-
-      var titles = {
-        'ai-trainer': 'AI Excel Trainer Engine',
-        'live-excel': 'Live Excel Practice Sandbox (Full Spreadsheet Canvas)',
-        'shortcuts': 'Complete Keyboard Shortcuts Directory',
-        'formulas': 'All Excel Formulas & Functions Catalog',
-        'dashboard-tutorials': 'Interactive Dashboard Building Guide',
-        'pivot-powerquery': 'Pivot Tables & Power Query Transformation',
-        'vba-macros': 'VBA Automation & Macro Scripts',
-        'charts-viz': 'Data Visualization & Advanced Charts',
-        'error-solving': 'Excel Error Solutions & Troubleshooting'
-      };
-      document.getElementById('active-tab-title').innerText = titles[tabId];
+      if(window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
 
       if (tabId === 'live-excel' && !luckysheetInitialized) {
         setTimeout(function() {
           luckysheet.create({
             container: 'luckysheet',
-            title: 'Live Excel Sandbox',
-            lang: 'en'
+            title: 'Live MS Excel Sandbox Workspace',
+            lang: 'en',
+            showtoolbar: true,
+            showinfobar: true,
+            showsheetbar: true
           });
           luckysheetInitialized = true;
         }, 100);
       }
     }
 
+    function loadPracticeSheets() {
+      fetch('/api/practice-sheets')
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            const tbody = document.getElementById('sheets-table-body');
+            tbody.innerHTML = '';
+            if (data.sheets.length === 0) {
+              tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No practice sheets uploaded by admin yet.</td></tr>';
+              return;
+            }
+            data.sheets.forEach(s => {
+              const tr = document.createElement('tr');
+              tr.innerHTML = \`
+                <td><b>\${s.title}</b></td>
+                <td><span style="color:#38bdf8">\${s.category}</span></td>
+                <td>\${s.fileName.split('.').pop().toUpperCase()}</td>
+                <td><a href="/api/practice-sheets/download/\${s._id}" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i> Download Sheet</a></td>
+              \`;
+              tbody.appendChild(tr);
+            });
+          }
+        });
+    }
+
     function showFileName(input) {
-      if (input.files && input.files[0]) {
-        document.getElementById('fileNameDisplay').innerText = input.files[0].name;
-      }
+      if (input.files && input.files[0]) document.getElementById('fileNameDisplay').innerText = input.files[0].name;
     }
 
     function toggleVoice() {
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-        alert("Voice recognition not supported in browser.");
-        return;
-      }
+      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return alert("Voice recognition not supported.");
       var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       var recognition = new SpeechRecognition();
       recognition.lang = 'hi-IN';
       recognition.start();
-      recognition.onresult = function(event) {
-        document.getElementById('userInput').value = event.results[0][0].transcript;
-      };
+      recognition.onresult = function(event) { document.getElementById('userInput').value = event.results[0][0].transcript; };
     }
 
-    function handleKeyPress(e) {
-      if (e.key === 'Enter') sendQuery();
+    function triggerQuickAction(promptText) {
+      document.getElementById('userInput').value = promptText;
+      sendQuery();
     }
+
+    function handleKeyPress(e) { if (e.key === 'Enter') sendQuery(); }
 
     async function sendQuery() {
       var input = document.getElementById('userInput');
@@ -542,13 +729,13 @@ End Sub
       appendMsg(text + fileLabel, 'user');
 
       var formData = new FormData();
-      formData.append('userEmail', authenticatedUser.email);
+      formData.append('userKey', currentActiveKey);
       formData.append('text', text);
       if (fileInput.files && fileInput.files[0]) formData.append('file', fileInput.files[0]);
 
       input.value = '';
       document.getElementById('fileNameDisplay').innerText = '';
-      appendMsg("Analyzing query...", 'bot');
+      appendMsg("Generating response in Code Box...", 'bot');
 
       try {
         var res = await fetch('/api/chat', { method: 'POST', body: formData });
@@ -557,11 +744,8 @@ End Sub
         var chat = document.getElementById('chat');
         chat.removeChild(chat.lastChild);
 
-        if (data.success) {
-          appendMsg(data.answer, 'bot');
-        } else {
-          appendMsg("Error: " + data.error, 'bot');
-        }
+        if (data.success) appendMsg(data.answer, 'bot');
+        else appendMsg("Error: " + data.error, 'bot');
       } catch (err) {
         appendMsg("Connection error to server.", 'bot');
       }
@@ -573,7 +757,13 @@ End Sub
       var chat = document.getElementById('chat');
       var div = document.createElement('div');
       div.className = 'msg ' + sender;
-      div.innerText = msg;
+      
+      // Convert Markdown Code blocks (```code```) into HTML <pre> Code Box
+      let formattedMsg = msg.replace(/```([\\s\\S]*?)```/g, function(match, code) {
+        return '<pre><code>' + code.trim() + '</code></pre>';
+      });
+
+      div.innerHTML = formattedMsg;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
