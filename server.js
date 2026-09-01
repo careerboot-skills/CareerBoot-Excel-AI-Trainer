@@ -342,6 +342,10 @@ app.get('/', (req, res) => {
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
     th { background: #1e293b; color: #38bdf8; }
 
+    /* LUCKEYSHEET MOBILE SCROLL FIX */
+    .luckysheet-toolbar { overflow-x: auto !important; white-space: nowrap !important; }
+    .luckysheet-wa-editor { background: #fff !important; color: #000 !important; }
+
     /* MOBILE BREAKPOINT CSS */
     @media (max-width: 768px) {
       #app-container { flex-direction: column; }
@@ -435,7 +439,7 @@ app.get('/', (req, res) => {
         </div>
       </div>
 
-      <div id="live-excel" class="tab-content" style="position: relative;">
+      <div id="live-excel" class="tab-content" style="position: relative; width: 100%; height: calc(100vh - 55px);">
         <div id="luckysheet" style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left:0px;top:0px;"></div>
       </div>
 
@@ -515,11 +519,58 @@ app.get('/', (req, res) => {
       if(window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
       document.getElementById('mobileSidebar').classList.remove('open');
 
-      if (tabId === 'live-excel' && !luckysheetInitialized) {
+      if (tabId === 'live-excel') {
         setTimeout(function() {
-          luckysheet.create({ container: 'luckysheet', title: 'Live Workspace', lang: 'en' });
-          luckysheetInitialized = true;
-        }, 100);
+          if (!luckysheetInitialized) {
+            luckysheet.create({
+              container: 'luckysheet',
+              title: 'Live Workspace',
+              lang: 'en',
+              showtoolbar: true,
+              showtoolbarConfig: {
+                undoRedo: true,
+                paintFormat: true,
+                currencyFormat: true,
+                percentage: true,
+                numberDecrease: true,
+                numberIncrease: true,
+                font: true,
+                fontSize: true,
+                bold: true,
+                italic: true,
+                underline: true,
+                strikeThrough: true,
+                color: true,
+                background: true,
+                border: true,
+                merge: true,
+                align: true,
+                textWrap: true,
+                image: true,
+                link: true,
+                chart: true,
+                postil: true,
+                pivotTable: true,
+                function: true,
+                frozen: true,
+                sortAndFilter: true,
+                conditionalFormat: true,
+                dataVerification: true,
+                splitColumn: true,
+                screenshot: true,
+                findAndReplace: true,
+                protection: true,
+                print: true
+              },
+              showinfobar: true,
+              showsheetbar: true,
+              enableAddRow: true
+            });
+            luckysheetInitialized = true;
+          } else {
+            luckysheet.resize();
+          }
+        }, 150);
       }
     }
 
