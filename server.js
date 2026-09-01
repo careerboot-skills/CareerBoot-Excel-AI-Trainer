@@ -211,13 +211,12 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
 
 // --- 6. ADMIN UI FRONTEND (/admin) ---
 app.get('/admin', (req, res) => {
-  res.send(`
-<!DOCTYPE html>
+  const htmlContent = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Admin Dashboard - CareerBoot Excel Hub</title>
-  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap)" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
   <style>
     * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }
     body { background: #070d19; color: #fff; padding: 30px 20px; display: flex; justify-content: center; }
@@ -272,10 +271,10 @@ app.get('/admin', (req, res) => {
       fetch('/api/admin/keys', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode })
+        body: JSON.stringify({ adminCode: adminCode })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
         if(data.success) {
           document.getElementById('auth-box').style.display = 'none';
           document.getElementById('admin-controls').style.display = 'block';
@@ -290,10 +289,10 @@ app.get('/admin', (req, res) => {
       fetch('/api/admin/generate-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode, label })
+        body: JSON.stringify({ adminCode: adminCode, label: label })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
         if(data.success) {
           document.getElementById('keyLabel').value = '';
           authenticateAdmin();
@@ -306,8 +305,8 @@ app.get('/admin', (req, res) => {
       fetch('/api/admin/toggle-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode, keyId })
-      }).then(() => authenticateAdmin());
+        body: JSON.stringify({ adminCode: adminCode, keyId: keyId })
+      }).then(function() { authenticateAdmin(); });
     }
 
     function unbindSession(keyId) {
@@ -315,8 +314,8 @@ app.get('/admin', (req, res) => {
       fetch('/api/admin/reset-session', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode, keyId })
-      }).then(() => authenticateAdmin());
+        body: JSON.stringify({ adminCode: adminCode, keyId: keyId })
+      }).then(function() { authenticateAdmin(); });
     }
 
     function uploadSheet() {
@@ -333,8 +332,8 @@ app.get('/admin', (req, res) => {
       formData.append('sheetFile', fileInput.files[0]);
 
       fetch('/api/admin/upload-sheet', { method: 'POST', body: formData })
-      .then(res => res.json())
-      .then(data => {
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
         if (data.success) {
           alert("Practice Sheet Uploaded!");
           document.getElementById('sheetTitle').value = '';
@@ -347,46 +346,43 @@ app.get('/admin', (req, res) => {
     function renderTable(keys) {
       const tbody = document.getElementById('keys-list');
       tbody.innerHTML = '';
-      keys.forEach(k => {
+      keys.forEach(function(k) {
         const tr = document.createElement('tr');
         const boundStatus = k.boundSessionId ? '<span class="status-bound">Bound</span>' : 'Unbound';
-        tr.innerHTML = \`
-          <td><b style="color:#38bdf8">\${k.key}</b></td>
-          <td>\${k.label}</td>
-          <td class="\${k.isActive ? 'status-active' : 'status-inactive'}">\${k.isActive ? 'Active' : 'Disabled'}</td>
-          <td>\${boundStatus}</td>
-          <td>
-            <button class="btn-sm" style="background:#334155;" onclick="toggleKey('\${k._id}')">\${k.isActive ? 'Disable' : 'Enable'}</button>
-            <button class="btn-sm" style="background:#0284c7;" onclick="unbindSession('\${k._id}')">Reset Device</button>
-          </td>
-        \`;
+        tr.innerHTML = '<td><b style="color:#38bdf8">' + k.key + '</b></td>' +
+          '<td>' + k.label + '</td>' +
+          '<td class="' + (k.isActive ? 'status-active' : 'status-inactive') + '">' + (k.isActive ? 'Active' : 'Disabled') + '</td>' +
+          '<td>' + boundStatus + '</td>' +
+          '<td>' +
+            '<button class="btn-sm" style="background:#334155;" onclick="toggleKey(\'' + k._id + '\')">' + (k.isActive ? 'Disable' : 'Enable') + '</button>' +
+            '<button class="btn-sm" style="background:#0284c7;" onclick="unbindSession(\'' + k._id + '\')">Reset Device</button>' +
+          '</td>';
         tbody.appendChild(tr);
       });
     }
   </script>
 </body>
-</html>
-  `);
+</html>`;
+  res.send(htmlContent);
 });
 
 // --- 7. MAIN USER APPLICATION UI (/) ---
 app.get('/', (req, res) => {
-  res.send(`
-<!DOCTYPE html>
+  const userHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CareerBoot AI - Excel Hub</title>
-  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap)" rel="stylesheet">
-  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css)' />
-  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css)' />
-  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css)' />
-  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css)' />
-  <script src="[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js)"></script>
-  <script src="[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js)"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css" />
+  <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -472,14 +468,12 @@ app.get('/', (req, res) => {
     .msg.bot { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); align-self: flex-start; }
     .msg.user { background: #0284c7; align-self: flex-end; }
     
-    /* CODE BOX STYLING FOR AI RESPONSES */
     .msg pre {
       background: #030712; border: 1px solid #38bdf8; border-radius: 8px;
       padding: 12px; margin-top: 10px; font-family: monospace; font-size: 13px;
       color: #38bdf8; overflow-x: auto; white-space: pre;
     }
 
-    /* QUICK ACTION BUTTONS BAR */
     .quick-actions {
       display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px;
       background: #0f172a; border-bottom: 1px solid rgba(56, 189, 248, 0.15);
@@ -507,7 +501,7 @@ app.get('/', (req, res) => {
   <div id="entry-screen">
     <div class="entry-top">
       <div class="branding-box">
-        <svg class="brand-svg" viewBox="0 0 300 60" fill="none" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
+        <svg class="brand-svg" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
           <text x="0" y="42" fill="#38bdf8" font-size="30" font-weight="800">CAREERBOOT</text>
           <text x="215" y="42" fill="#10b981" font-size="30" font-weight="800">AI</text>
         </svg>
@@ -558,10 +552,7 @@ app.get('/', (req, res) => {
         <span style="font-size: 11px; color: #10b981;"><i class="fa-solid fa-shield-halved"></i> Authorized Session</span>
       </header>
 
-      <!-- 1. AI CHAT MODULE WITH QUICK ACTION BUTTONS -->
       <div id="ai-trainer" class="tab-content active" style="padding:0;">
-        
-        <!-- DYNAMIC QUICK ACTION BUTTONS -->
         <div class="quick-actions">
           <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Shortcut Keys from A-Z (Basic to Advanced) in a clean Code Box.')">
             <i class="fa-solid fa-keyboard"></i> A-Z All Shortcuts
@@ -597,12 +588,10 @@ app.get('/', (req, res) => {
         </div>
       </div>
 
-      <!-- 2. LIVE EXCEL PRACTICE SCREEN -->
       <div id="live-excel" class="tab-content" style="padding: 0; position: relative;">
         <div id="luckysheet" style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left:0px;top:0px;"></div>
       </div>
 
-      <!-- 3. PRACTICE SHEETS DOWNLOAD CENTER -->
       <div id="practice-sheets" class="tab-content">
         <h2 style="color: #38bdf8;">Download Admin Practice Sheets</h2>
         <table style="margin-top: 20px;">
@@ -623,7 +612,7 @@ app.get('/', (req, res) => {
     var luckysheetInitialized = false;
 
     function getSessionId() {
-      let sid = localStorage.getItem('cb_session_id');
+      var sid = localStorage.getItem('cb_session_id');
       if (!sid) {
         sid = 'SESS-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
         localStorage.setItem('cb_session_id', sid);
@@ -632,7 +621,7 @@ app.get('/', (req, res) => {
     }
 
     function loginWithKey() {
-      const keyInput = document.getElementById('secretKeyInput').value.trim();
+      var keyInput = document.getElementById('secretKeyInput').value.trim();
       if(!keyInput) return alert("Please enter your Secret Key.");
 
       fetch('/api/auth/key-login', {
@@ -640,8 +629,8 @@ app.get('/', (req, res) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ secretKey: keyInput, sessionId: getSessionId() })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
         if(data.success) {
           currentActiveKey = data.userKey;
           document.getElementById('entry-screen').style.display = 'none';
@@ -652,8 +641,8 @@ app.get('/', (req, res) => {
     }
 
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       
       document.getElementById(tabId).classList.add('active');
       if(window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
@@ -675,23 +664,21 @@ app.get('/', (req, res) => {
 
     function loadPracticeSheets() {
       fetch('/api/practice-sheets')
-        .then(res => res.json())
-        .then(data => {
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
           if (data.success) {
-            const tbody = document.getElementById('sheets-table-body');
+            var tbody = document.getElementById('sheets-table-body');
             tbody.innerHTML = '';
             if (data.sheets.length === 0) {
               tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No practice sheets uploaded by admin yet.</td></tr>';
               return;
             }
-            data.sheets.forEach(s => {
-              const tr = document.createElement('tr');
-              tr.innerHTML = \`
-                <td><b>\${s.title}</b></td>
-                <td><span style="color:#38bdf8">\${s.category}</span></td>
-                <td>\${s.fileName.split('.').pop().toUpperCase()}</td>
-                <td><a href="/api/practice-sheets/download/\${s._id}" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i> Download Sheet</a></td>
-              \`;
+            data.sheets.forEach(function(s) {
+              var tr = document.createElement('tr');
+              tr.innerHTML = '<td><b>' + s.title + '</b></td>' +
+                '<td><span style="color:#38bdf8">' + s.category + '</span></td>' +
+                '<td>' + s.fileName.split('.').pop().toUpperCase() + '</td>' +
+                '<td><a href="/api/practice-sheets/download/' + s._id + '" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i> Download Sheet</a></td>';
               tbody.appendChild(tr);
             });
           }
@@ -758,8 +745,7 @@ app.get('/', (req, res) => {
       var div = document.createElement('div');
       div.className = 'msg ' + sender;
       
-      // Safe Regex without breaking string literal syntax
-      let formattedMsg = msg.replace(/\\`\\`\\`([\\s\\S]*?)\\`\\`\\`/g, function(match, code) {
+      var formattedMsg = msg.replace(/\\\`\\\`\\\`([\\s\\S]*?)\\\`\\\`\\\`/g, function(match, code) {
         return '<pre><code>' + code.trim() + '</code></pre>';
       });
 
@@ -769,8 +755,8 @@ app.get('/', (req, res) => {
     }
   </script>
 </body>
-</html>
-  `);
+</html>`;
+  res.send(userHtml);
 });
 
 const PORT = process.env.PORT || 10000;
