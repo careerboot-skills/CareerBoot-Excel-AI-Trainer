@@ -45,7 +45,6 @@ if (MONGO_URI) {
   mongoose.connect(MONGO_URI)
     .then(async () => {
       console.log("MongoDB Atlas Connected Successfully");
-      // Ensure Admin Passcode is valid as a Secret Key as well
       await SecretKey.updateOne(
         { key: ADMIN_PASSCODE.trim().toUpperCase() },
         { $setOnInsert: { key: ADMIN_PASSCODE.trim().toUpperCase(), label: "Master Admin Access", isActive: true } },
@@ -77,14 +76,11 @@ app.post('/api/auth/key-login', async (req, res) => {
 
   try {
     const formattedKey = secretKey.trim().toUpperCase();
-    
-    // Check if it matches Admin Passcode directly
     if (formattedKey === ADMIN_PASSCODE.trim().toUpperCase()) {
       return res.json({ success: true, userKey: formattedKey, label: "Master Admin Access", isAdmin: true });
     }
 
     const foundKey = await SecretKey.findOne({ key: formattedKey, isActive: true });
-
     if (!foundKey) {
       return res.status(401).json({ success: false, error: "Invalid or Deactivated Secret Key." });
     }
@@ -104,7 +100,7 @@ app.post('/api/auth/key-login', async (req, res) => {
   }
 });
 
-// --- 4. ADMIN PANEL ENDPOINTS ---
+// --- 4. ADMIN ENDPOINTS ---
 app.post('/api/admin/keys', async (req, res) => {
   const { adminCode } = req.body;
   if (adminCode !== ADMIN_PASSCODE) return res.status(403).json({ success: false, error: "Unauthorized Admin Access." });
@@ -165,7 +161,7 @@ app.post('/api/admin/upload-sheet', upload.single('sheetFile'), async (req, res)
   } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
 });
 
-// --- 5. USER PRACTICE SHEETS & AI CHAT API ---
+// --- 5. PRACTICE SHEETS & AI CHAT API ---
 app.get('/api/practice-sheets', async (req, res) => {
   try {
     const sheets = await PracticeSheet.find({}, { fileData: 0 }).sort({ uploadedAt: -1 });
@@ -195,7 +191,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    let systemInstruction = "You are CareerBoot AI Excel Trainer. Provide comprehensive, structured Excel resources inside Markdown Code Blocks.";
+    let systemInstruction = "You are CareerBoot AI Excel Trainer. Provide clear structured responses in code blocks where applicable.";
 
     let promptContents = [systemInstruction];
     if (text) promptContents.push(text);
@@ -219,13 +215,13 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
   }
 });
 
-// --- 6. MAIN APPLICATION & FRONTEND UI ---
+// --- 6. USER UI FRONTEND (/ FRONT PAGE) ---
 app.get('/', (req, res) => {
   const userHtml = `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>CareerBoot AI - Excel Hub</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -239,40 +235,41 @@ app.get('/', (req, res) => {
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-    body, html { height: 100%; background: #070d19; color: #fff; overflow-x: hidden; }
+    body, html { height: 100%; width: 100vw; background: #070d19; color: #fff; overflow-x: hidden; }
 
     #toast-notification {
-      position: fixed; top: 20px; right: 20px; z-index: 9999;
+      position: fixed; top: 15px; right: 15px; z-index: 9999;
       background: rgba(15, 23, 42, 0.95); border: 1px solid #ef4444; color: #fff;
-      padding: 14px 22px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      padding: 12px 18px; border-radius: 10px; font-size: 13px; font-weight: 600;
       box-shadow: 0 10px 25px rgba(239, 68, 68, 0.25); display: none; align-items: center; gap: 10px;
-      backdrop-filter: blur(10px); transition: 0.3s ease;
+      backdrop-filter: blur(10px);
     }
     #toast-notification.success { border-color: #10b981; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25); }
 
+    /* --- LOGIN PORTAL SCREEN --- */
     #entry-screen {
       min-height: 100vh; width: 100vw; display: flex; flex-direction: column;
       background: linear-gradient(135deg, #070d19 0%, #0f172a 100%);
     }
 
     .entry-top {
-      padding: 35px 20px 20px 20px; display: flex; flex-direction: column; align-items: center;
+      padding: 30px 20px 15px 20px; display: flex; flex-direction: column; align-items: center;
       text-align: center; border-bottom: 1px solid rgba(56, 189, 248, 0.15); width: 100%;
     }
-    .branding-box { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 600px; width: 100%; }
-    .brand-svg { width: 240px; height: auto; }
-    .welcome-note { color: #94a3b8; font-size: 14px; line-height: 1.6; text-align: center; margin-bottom: 25px; }
+    .branding-box { display: flex; flex-direction: column; align-items: center; gap: 8px; max-width: 500px; width: 100%; }
+    .brand-svg { width: 220px; height: auto; }
+    .welcome-note { color: #94a3b8; font-size: 13px; line-height: 1.5; text-align: center; margin-bottom: 15px; }
 
     .walk-animation-container {
-      width: 100%; max-width: 450px; display: flex; align-items: center; justify-content: space-between;
-      position: relative; margin-top: 10px; padding: 0 10px;
+      width: 100%; max-width: 360px; display: flex; align-items: center; justify-content: space-between;
+      position: relative; margin-top: 5px; padding: 0 10px;
     }
-    .stage-node { text-align: center; font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; }
-    .path-line { flex: 1; height: 3px; background: linear-gradient(90deg, #38bdf8, #10b981); margin: 0 15px; position: relative; border-radius: 2px; }
+    .stage-node { text-align: center; font-size: 10px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; }
+    .path-line { flex: 1; height: 3px; background: linear-gradient(90deg, #38bdf8, #10b981); margin: 0 12px; position: relative; border-radius: 2px; }
 
     .walker-icon {
-      position: absolute; top: -18px; left: 0%; transform: translateX(-50%);
-      font-size: 20px; color: #38bdf8; animation: walkAlong 6s infinite ease-in-out;
+      position: absolute; top: -16px; left: 0%; transform: translateX(-50%);
+      font-size: 18px; color: #38bdf8; animation: walkAlong 6s infinite ease-in-out;
     }
     @keyframes walkAlong {
       0% { left: 0%; color: #38bdf8; }
@@ -281,77 +278,87 @@ app.get('/', (req, res) => {
     }
 
     .entry-middle {
-      padding: 30px 20px; display: flex; justify-content: center; align-items: center;
+      padding: 25px 15px; display: flex; justify-content: center; align-items: center;
       background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(56, 189, 248, 0.15);
     }
-    .key-portal-form { display: flex; gap: 12px; width: 100%; max-width: 500px; }
+    .key-portal-form { display: flex; gap: 10px; width: 100%; max-width: 450px; }
     .key-portal-input {
       flex: 1; background: #070d19; border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #38bdf8; font-size: 14px; font-weight: 700; padding: 14px 18px; border-radius: 10px;
-      outline: none; text-transform: uppercase; letter-spacing: 2px; text-align: center;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+      color: #38bdf8; font-size: 13px; font-weight: 700; padding: 12px 14px; border-radius: 8px;
+      outline: none; text-transform: uppercase; letter-spacing: 1.5px; text-align: center;
     }
     .key-portal-btn {
       background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; border: none;
-      padding: 14px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s;
-      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
+      padding: 12px 18px; border-radius: 8px; font-weight: 700; cursor: pointer; white-space: nowrap; font-size: 13px;
     }
-    .key-portal-btn:hover { background: linear-gradient(135deg, #0369a1, #075985); }
 
-    .entry-bottom { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; }
-    .bottom-title { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; font-weight: 700; }
+    .entry-bottom { padding: 25px 15px; display: flex; flex-direction: column; align-items: center; }
+    .bottom-title { color: #64748b; font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 15px; font-weight: 700; }
     
-    .ecosystem-grid { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 500px; }
+    .ecosystem-grid { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 450px; }
     .eco-card {
       background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2);
-      border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px;
+      border-radius: 10px; padding: 14px; display: flex; align-items: center; gap: 12px;
     }
-    .eco-icon { width: 32px; height: 32px; fill: #38bdf8; flex-shrink: 0; }
-    .eco-text h4 { font-size: 14px; color: #fff; margin-bottom: 2px; font-weight: 700; }
-    .eco-text p { font-size: 12px; color: #64748b; }
+    .eco-icon { width: 28px; height: 28px; fill: #38bdf8; flex-shrink: 0; }
+    .eco-text h4 { font-size: 13px; color: #fff; margin-bottom: 2px; font-weight: 700; }
+    .eco-text p { font-size: 11px; color: #64748b; }
 
-    #app-container { display: none; height: 100vh; flex-direction: row; width: 100vw; }
-    
-    sidebar { width: 260px; background: #0f172a; border-right: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; }
-    .sidebar-header { padding: 20px; font-weight: 800; color: #38bdf8; font-size: 16px; border-bottom: 1px solid rgba(56, 189, 248, 0.1); }
-    .nav-links { list-style: none; padding: 15px 10px; display: flex; flex-direction: column; gap: 6px; }
+    /* --- RESPONSIVE MAIN APP LAYOUT --- */
+    #app-container { display: none; height: 100vh; width: 100vw; overflow: hidden; }
+
+    sidebar {
+      width: 250px; min-width: 250px; background: #0f172a; border-right: 1px solid rgba(56, 189, 248, 0.2);
+      display: flex; flex-direction: column; transition: transform 0.3s ease;
+    }
+    .sidebar-header { padding: 16px 20px; font-weight: 800; color: #38bdf8; font-size: 15px; border-bottom: 1px solid rgba(56, 189, 248, 0.1); }
+    .nav-links { list-style: none; padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; }
     .nav-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; color: #94a3b8; display: flex; align-items: center; gap: 10px; font-size: 13px; }
     .nav-item:hover, .nav-item.active { background: #0284c7; color: #fff; }
 
-    main { flex: 1; display: flex; flex-direction: column; background: #070d19; overflow: hidden; }
-    header { background: #0f172a; padding: 16px 24px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); display: flex; justify-content: space-between; align-items: center; }
+    main { flex: 1; display: flex; flex-direction: column; background: #070d19; height: 100vh; overflow: hidden; min-width: 0; }
+    header { background: #0f172a; padding: 12px 16px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); display: flex; justify-content: space-between; align-items: center; }
 
-    .tab-content { display: none; padding: 24px; height: 100%; flex-direction: column; }
+    .menu-toggle { display: none; background: transparent; border: none; color: #38bdf8; font-size: 18px; cursor: pointer; }
+
+    .tab-content { display: none; padding: 0; height: calc(100vh - 55px); flex-direction: column; width: 100%; min-width: 0; }
     .tab-content.active { display: flex; }
 
-    .chat-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .msg { max-width: 85%; padding: 14px 18px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
-    .msg.bot { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); align-self: flex-start; }
+    .chat-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; width: 100%; }
+    .msg { max-width: 90%; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.5; word-break: break-word; }
+    .msg.bot { background: rgba(15, 23, 42, 0.9); border: 1px solid rgba(56, 189, 248, 0.2); align-self: flex-start; }
     .msg.user { background: #0284c7; align-self: flex-end; }
-    .msg pre { background: #030712; border: 1px solid #38bdf8; border-radius: 8px; padding: 12px; margin-top: 10px; font-family: monospace; font-size: 13px; color: #38bdf8; overflow-x: auto; }
+    .msg pre { background: #030712; border: 1px solid #38bdf8; border-radius: 8px; padding: 10px; margin-top: 8px; font-family: monospace; font-size: 12px; color: #38bdf8; overflow-x: auto; white-space: pre-wrap; }
 
-    .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px; background: #0f172a; border-bottom: 1px solid rgba(56, 189, 248, 0.15); }
-    .action-btn { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
+    .quick-actions { display: flex; gap: 6px; overflow-x: auto; padding: 10px 15px; background: #0f172a; border-bottom: 1px solid rgba(56, 189, 248, 0.15); }
+    .action-btn { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 6px 10px; border-radius: 16px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; }
 
-    .controls { padding: 16px; background: #0f172a; border-top: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; gap: 10px; }
-    .row { display: flex; gap: 10px; }
-    input[type="text"] { flex: 1; background: #070d19; border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 12px; border-radius: 8px; outline: none; }
-    button { background: #0284c7; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+    .controls { padding: 12px 15px; background: #0f172a; border-top: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; gap: 8px; }
+    .row { display: flex; gap: 8px; width: 100%; }
+    input[type="text"] { flex: 1; background: #070d19; border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 10px 12px; border-radius: 8px; outline: none; font-size: 13px; min-width: 0; }
+    button { background: #0284c7; color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px; white-space: nowrap; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #0f172a; border-radius: 8px; overflow: hidden; }
-    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
     th { background: #1e293b; color: #38bdf8; }
+
+    /* MOBILE BREAKPOINT CSS */
+    @media (max-width: 768px) {
+      #app-container { flex-direction: column; }
+      sidebar { position: fixed; top: 0; left: -260px; height: 100vh; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.8); }
+      sidebar.open { transform: translateX(260px); }
+      .menu-toggle { display: block; }
+    }
   </style>
 </head>
 <body>
 
   <div id="toast-notification">
     <i id="toast-icon" class="fa-solid fa-circle-exclamation"></i>
-    <span id="toast-msg">Error Message</span>
+    <span id="toast-msg">Error</span>
   </div>
 
   <div id="entry-screen">
-    <!-- TOP SECTION: Centered Vertical Hierarchy (Logo -> Welcome -> Animation) -->
     <div class="entry-top">
       <div class="branding-box">
         <svg class="brand-svg" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -368,7 +375,6 @@ app.get('/', (req, res) => {
       </div>
     </div>
 
-    <!-- MIDDLE SECTION: Secret Key Input Portal -->
     <div class="entry-middle">
       <div class="key-portal-form">
         <input type="text" id="secretKeyInput" class="key-portal-input" placeholder="ENTER SECRET KEY">
@@ -376,7 +382,6 @@ app.get('/', (req, res) => {
       </div>
     </div>
 
-    <!-- BOTTOM SECTION: Feature Highlights -->
     <div class="entry-bottom">
       <div class="bottom-title">YOU ARE JUST A STEP AWAY TO DIVE INTO</div>
       <div class="ecosystem-grid">
@@ -393,22 +398,25 @@ app.get('/', (req, res) => {
   </div>
 
   <div id="app-container">
-    <sidebar>
+    <sidebar id="mobileSidebar">
       <div class="sidebar-header"><i class="fa-solid fa-file-excel"></i> Excel Mastery Hub</div>
       <ul class="nav-links">
         <li class="nav-item active" onclick="switchTab('ai-trainer')"><i class="fa-solid fa-robot"></i> AI Excel Trainer</li>
         <li class="nav-item" onclick="switchTab('live-excel')"><i class="fa-solid fa-table"></i> Live Practice Screen</li>
-        <li class="nav-item" onclick="switchTab('practice-sheets')"><i class="fa-solid fa-download"></i> Admin Practice Sheets</li>
+        <li class="nav-item" onclick="switchTab('practice-sheets')"><i class="fa-solid fa-download"></i> Practice Sheets</li>
       </ul>
     </sidebar>
 
     <main>
       <header>
-        <strong id="active-tab-title" style="color: #38bdf8;">AI Excel Trainer Workspace</strong>
-        <span style="font-size: 11px; color: #10b981;"><i class="fa-solid fa-shield-halved"></i> Authorized Session</span>
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <button class="menu-toggle" onclick="toggleSidebar()"><i class="fa-solid fa-bars"></i></button>
+          <strong id="active-tab-title" style="color: #38bdf8; font-size: 14px;">AI Excel Trainer Workspace</strong>
+        </div>
+        <span style="font-size: 11px; color: #10b981;"><i class="fa-solid fa-shield-halved"></i> Active</span>
       </header>
 
-      <div id="ai-trainer" class="tab-content active" style="padding:0;">
+      <div id="ai-trainer" class="tab-content active">
         <div class="quick-actions">
           <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Shortcut Keys from A-Z inside Code Box.')">A-Z Shortcuts</button>
           <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Formulas & Functions with syntax.')">A-Z Formulas</button>
@@ -416,26 +424,26 @@ app.get('/', (req, res) => {
         </div>
 
         <div class="chat-area" id="chat">
-          <div class="msg bot">Welcome to CareerBoot AI! Ask any Excel query or click options above to get started.</div>
+          <div class="msg bot">Welcome to CareerBoot AI! Ask any Excel query or click options above.</div>
         </div>
 
         <div class="controls">
           <div class="row">
             <input type="text" id="userInput" placeholder="Ask Excel formula, VBA macro..." onkeypress="handleKeyPress(event)">
-            <button onclick="sendQuery()">Send Query</button>
+            <button onclick="sendQuery()">Send</button>
           </div>
         </div>
       </div>
 
-      <div id="live-excel" class="tab-content" style="padding: 0; position: relative;">
+      <div id="live-excel" class="tab-content" style="position: relative;">
         <div id="luckysheet" style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left:0px;top:0px;"></div>
       </div>
 
-      <div id="practice-sheets" class="tab-content">
-        <h2 style="color: #38bdf8;">Download Admin Practice Sheets</h2>
-        <table style="margin-top: 20px;">
+      <div id="practice-sheets" class="tab-content" style="padding: 15px; overflow-y: auto;">
+        <h3 style="color: #38bdf8;">Download Admin Practice Sheets</h3>
+        <table>
           <thead>
-            <tr><th>Template Title</th><th>Category</th><th>File Format</th><th>Action</th></tr>
+            <tr><th>Template Title</th><th>Category</th><th>Format</th><th>Action</th></tr>
           </thead>
           <tbody id="sheets-table-body">
             <tr><td colspan="4" style="text-align:center; color:#64748b;">Loading practice sheets...</td></tr>
@@ -449,20 +457,18 @@ app.get('/', (req, res) => {
     var currentActiveKey = null;
     var luckysheetInitialized = false;
 
+    function toggleSidebar() {
+      document.getElementById('mobileSidebar').classList.toggle('open');
+    }
+
     function showToast(message, isSuccess = false) {
       var toast = document.getElementById('toast-notification');
       var toastMsg = document.getElementById('toast-msg');
       var toastIcon = document.getElementById('toast-icon');
 
       toastMsg.innerText = message;
-      if (isSuccess) {
-        toast.classList.add('success');
-        toastIcon.className = "fa-solid fa-circle-check";
-      } else {
-        toast.classList.remove('success');
-        toastIcon.className = "fa-solid fa-circle-exclamation";
-      }
-
+      toast.className = isSuccess ? 'success' : '';
+      toastIcon.className = isSuccess ? "fa-solid fa-circle-check" : "fa-solid fa-circle-exclamation";
       toast.style.display = 'flex';
       setTimeout(function() { toast.style.display = 'none'; }, 3500);
     }
@@ -478,7 +484,7 @@ app.get('/', (req, res) => {
 
     function loginWithKey() {
       var keyInput = document.getElementById('secretKeyInput').value.trim();
-      if(!keyInput) return showToast("Please enter your Secret Key.");
+      if(!keyInput) return showToast("Please enter Secret Key.");
 
       fetch('/api/auth/key-login', {
         method: 'POST',
@@ -489,17 +495,16 @@ app.get('/', (req, res) => {
       .then(function(data) {
         if(data.success) {
           currentActiveKey = data.userKey;
-          showToast("Session Unlocked Successfully!", true);
+          showToast("Unlocked Successfully!", true);
           setTimeout(function() {
             document.getElementById('entry-screen').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
             loadPracticeSheets();
-          }, 800);
+          }, 600);
         } else { 
           showToast(data.error || "Login Failed"); 
         }
-      })
-      .catch(function() { showToast("Server connection error."); });
+      });
     }
 
     function switchTab(tabId) {
@@ -508,14 +513,11 @@ app.get('/', (req, res) => {
       
       document.getElementById(tabId).classList.add('active');
       if(window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
+      document.getElementById('mobileSidebar').classList.remove('open');
 
       if (tabId === 'live-excel' && !luckysheetInitialized) {
         setTimeout(function() {
-          luckysheet.create({
-            container: 'luckysheet',
-            title: 'Live Practice Screen',
-            lang: 'en'
-          });
+          luckysheet.create({ container: 'luckysheet', title: 'Live Workspace', lang: 'en' });
           luckysheetInitialized = true;
         }, 100);
       }
@@ -529,7 +531,7 @@ app.get('/', (req, res) => {
             var tbody = document.getElementById('sheets-table-body');
             tbody.innerHTML = '';
             if (data.sheets.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No practice sheets uploaded by admin yet.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No practice sheets yet.</td></tr>';
               return;
             }
             data.sheets.forEach(function(s) {
@@ -537,7 +539,7 @@ app.get('/', (req, res) => {
               tr.innerHTML = '<td><b>' + s.title + '</b></td>' +
                 '<td><span style="color:#38bdf8">' + s.category + '</span></td>' +
                 '<td>' + s.fileName.split('.').pop().toUpperCase() + '</td>' +
-                '<td><a href="/api/practice-sheets/download/' + s._id + '" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i> Download</a></td>';
+                '<td><a href="/api/practice-sheets/download/' + s._id + '" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i></a></td>';
               tbody.appendChild(tr);
             });
           }
