@@ -8,11 +8,18 @@ const multer = require('multer');
 
 const app = express();
 
-app.use(cors());
+// --- CORS & SECURITY HEADERS FOR OAUTH & CROSS-ORIGIN POPUPS ---
+app.use(cors({
+  origin: ['https://careerboot-excel-ai-trainer.onrender.com', 'http://localhost:10000', 'http://localhost:3000'],
+  credentials: true
+}));
+
 app.use(express.json());
+
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
   next();
 });
 
@@ -43,18 +50,23 @@ const upload = multer({ storage: multer.memoryStorage() });
 // --- 3. API ENDPOINTS ---
 app.post('/api/auth/google', async (req, res) => {
   const { credential } = req.body;
+  if (!credential) {
+    return res.status(400).json({ success: false, error: "Missing credential token." });
+  }
+
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: GOOGLE_CLIENT_ID
     });
     const payload = ticket.getPayload();
-    res.json({ 
+    return res.json({ 
       success: true, 
       user: { name: payload.name, email: payload.email, picture: payload.picture } 
     });
   } catch (error) {
-    res.status(401).json({ success: false, error: "Google verification failed." });
+    console.error("Google Auth Verification Error:", error.message);
+    return res.status(401).json({ success: false, error: "Google verification failed: " + error.message });
   }
 });
 
@@ -176,12 +188,19 @@ app.get('/', (req, res) => {
       <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Verification required to access Excel Platform.</p>
       
       <div id="g_id_onload"
-           data-client_id="${GOOGLE_CLIENT_ID}"
+           data-client_id="720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com"
            data-callback="handleCredentialResponse"
-           data-auto_select="false"
-           data-itp_support="true">
+           data-auto_prompt="false"
+           data-context="signin">
       </div>
-      <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-size="large"></div>
+      <div class="g_id_signin" 
+           data-type="standard" 
+           data-shape="rectangular" 
+           data-theme="filled_blue" 
+           data-size="large"
+           data-text="sign_in_with"
+           data-logo_alignment="left">
+      </div>
     </div>
   </div>
 
