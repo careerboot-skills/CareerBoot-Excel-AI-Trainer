@@ -185,7 +185,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    let systemInstruction = "You are CareerBoot AI Excel Trainer. Provide comprehensive, structured Excel resources. If user requests shortcuts or formulas, output them clearly formatted inside Markdown Code Blocks (`...`) categorized from A to Z (Basic to Advanced).";
+    let systemInstruction = "You are CareerBoot AI Excel Trainer. Provide comprehensive, structured Excel resources. If user requests shortcuts or formulas, output them clearly formatted inside Markdown Code Blocks categorization from A to Z (Basic to Advanced).";
 
     let promptContents = [systemInstruction];
     if (text) promptContents.push(text);
@@ -217,7 +217,7 @@ app.get('/admin', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <title>Admin Dashboard - CareerBoot Excel Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap)" rel="stylesheet">
   <style>
     * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }
     body { background: #070d19; color: #fff; padding: 30px 20px; display: flex; justify-content: center; }
@@ -378,15 +378,15 @@ app.get('/', (req, res) => {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CareerBoot AI - Excel Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="[https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap](https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap)" rel="stylesheet">
+  <link rel="stylesheet" href="[https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css](https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css)">
   
-  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css' />
-  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css' />
-  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css' />
-  <link rel='stylesheet' href='https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css' />
-  <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js"></script>
+  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/css/pluginsCss.css)' />
+  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/plugins.css)' />
+  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/css/luckysheet.css)' />
+  <link rel='stylesheet' href='[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/assets/iconfont/iconfont.css)' />
+  <script src="[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/plugins/js/plugin.js)"></script>
+  <script src="[https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js](https://cdn.jsdelivr.net/npm/luckysheet@latest/dist/luckysheet.umd.js)"></script>
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -507,7 +507,7 @@ app.get('/', (req, res) => {
   <div id="entry-screen">
     <div class="entry-top">
       <div class="branding-box">
-        <svg class="brand-svg" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <svg class="brand-svg" viewBox="0 0 300 60" fill="none" xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)">
           <text x="0" y="42" fill="#38bdf8" font-size="30" font-weight="800">CAREERBOOT</text>
           <text x="215" y="42" fill="#10b981" font-size="30" font-weight="800">AI</text>
         </svg>
@@ -758,8 +758,8 @@ app.get('/', (req, res) => {
       var div = document.createElement('div');
       div.className = 'msg ' + sender;
       
-      // Convert Markdown Code blocks (```code```) into HTML <pre> Code Box
-      let formattedMsg = msg.replace(/```([\\s\\S]*?)```/g, function(match, code) {
+      // Safe Regex without breaking string literal syntax
+      let formattedMsg = msg.replace(/\\`\\`\\`([\\s\\S]*?)\\`\\`\\`/g, function(match, code) {
         return '<pre><code>' + code.trim() + '</code></pre>';
       });
 
