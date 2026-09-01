@@ -7,8 +7,15 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const multer = require('multer');
 
 const app = express();
+
+// --- CROSS-ORIGIN HEADERS FOR GOOGLE AUTH POPUP ---
 app.use(cors());
 app.use(express.json());
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
+  next();
+});
 
 // --- 1. MONGODB CONNECTION WITH 24-HOUR TTL AUTO-PURGE ---
 const MONGO_URI = process.env.MONGO_URI;
@@ -172,7 +179,8 @@ app.get('/', (req, res) => {
       
       <div id="g_id_onload"
            data-client_id="${GOOGLE_CLIENT_ID}"
-           data-callback="handleCredentialResponse">
+           data-callback="handleCredentialResponse"
+           data-auto_prompt="false">
       </div>
       <div class="g_id_signin" data-type="standard" data-theme="filled_blue" data-size="large"></div>
     </div>
@@ -221,9 +229,10 @@ app.get('/', (req, res) => {
           document.getElementById('login-overlay').style.display = 'none';
           document.getElementById('app-container').style.display = 'flex';
         } else {
-          alert("Authentication Failed.");
+          alert("Authentication Failed: " + (data.error || "Unknown Error"));
         }
-      });
+      })
+      .catch(err => alert("Server Verification Connection Failed"));
     }
 
     function showFileName(input) {
