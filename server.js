@@ -215,7 +215,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
   }
 });
 
-// --- 6. USER UI FRONTEND (/ FRONT PAGE) ---
+// --- 6. USER UI FRONTEND ---
 app.get('/', (req, res) => {
   const userHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -235,7 +235,7 @@ app.get('/', (req, res) => {
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-    body, html { height: 100%; width: 100vw; background: #070d19; color: #fff; overflow-x: hidden; }
+    body, html { height: 100%; width: 100vw; background: #070d19; color: #fff; overflow: hidden; }
 
     #toast-notification {
       position: fixed; top: 15px; right: 15px; z-index: 9999;
@@ -307,7 +307,7 @@ app.get('/', (req, res) => {
 
     sidebar {
       width: 250px; min-width: 250px; background: #0f172a; border-right: 1px solid rgba(56, 189, 248, 0.2);
-      display: flex; flex-direction: column; transition: transform 0.3s ease;
+      display: flex; flex-direction: column; transition: transform 0.3s ease; z-index: 100;
     }
     .sidebar-header { padding: 16px 20px; font-weight: 800; color: #38bdf8; font-size: 15px; border-bottom: 1px solid rgba(56, 189, 248, 0.1); }
     .nav-links { list-style: none; padding: 12px 10px; display: flex; flex-direction: column; gap: 6px; }
@@ -315,11 +315,11 @@ app.get('/', (req, res) => {
     .nav-item:hover, .nav-item.active { background: #0284c7; color: #fff; }
 
     main { flex: 1; display: flex; flex-direction: column; background: #070d19; height: 100vh; overflow: hidden; min-width: 0; }
-    header { background: #0f172a; padding: 12px 16px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); display: flex; justify-content: space-between; align-items: center; }
+    header { background: #0f172a; padding: 12px 16px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); display: flex; justify-content: space-between; align-items: center; height: 50px; }
 
     .menu-toggle { display: none; background: transparent; border: none; color: #38bdf8; font-size: 18px; cursor: pointer; }
 
-    .tab-content { display: none; padding: 0; height: calc(100vh - 55px); flex-direction: column; width: 100%; min-width: 0; }
+    .tab-content { display: none; padding: 0; height: calc(100vh - 50px); flex-direction: column; width: 100%; min-width: 0; }
     .tab-content.active { display: flex; }
 
     .chat-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 14px; width: 100%; }
@@ -340,16 +340,18 @@ app.get('/', (req, res) => {
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
     th { background: #1e293b; color: #38bdf8; }
 
-    /* LUCKEYSHEET CORE ENGINE WRAPPER STYLES */
-    #luckysheet { width: 100% !important; height: 100% !important; }
-    .luckysheet-toolbar { overflow-x: auto !important; white-space: nowrap !important; }
-    .luckysheet-wa-editor { background: #fff !important; color: #000 !important; }
+    /* --- RESPONSIVE OPTIMIZED EXCEL SHEET ENGINE --- */
+    #luckysheet { width: 100% !important; height: 100% !important; position: absolute !important; left:0; top:0; }
+    .luckysheet-toolbar { overflow-x: auto !important; background: #0f172a !important; padding: 4px !important; }
+    .luckysheet-toolbar-button { background: transparent !important; color: #fff !important; margin: 0 1px !important; }
+    .luckysheet-cols-menu { background: #0f172a !important; color: #fff !important; }
 
     @media (max-width: 768px) {
       #app-container { flex-direction: column; }
-      sidebar { position: fixed; top: 0; left: -260px; height: 100vh; z-index: 1000; box-shadow: 10px 0 30px rgba(0,0,0,0.8); }
+      sidebar { position: fixed; top: 0; left: -260px; height: 100vh; box-shadow: 10px 0 30px rgba(0,0,0,0.8); }
       sidebar.open { transform: translateX(260px); }
       .menu-toggle { display: block; }
+      .luckysheet-toolbar { height: auto !important; flex-wrap: wrap; }
     }
   </style>
 </head>
@@ -403,9 +405,9 @@ app.get('/', (req, res) => {
     <sidebar id="mobileSidebar">
       <div class="sidebar-header"><i class="fa-solid fa-file-excel"></i> Excel Mastery Hub</div>
       <ul class="nav-links">
-        <li class="nav-item active" onclick="switchTab('ai-trainer')"><i class="fa-solid fa-robot"></i> AI Excel Trainer</li>
-        <li class="nav-item" onclick="switchTab('live-excel')"><i class="fa-solid fa-table"></i> Live Practice Screen</li>
-        <li class="nav-item" onclick="switchTab('practice-sheets')"><i class="fa-solid fa-download"></i> Practice Sheets</li>
+        <li class="nav-item active" id="nav-ai-trainer" onclick="switchTab('ai-trainer')"><i class="fa-solid fa-robot"></i> AI Excel Trainer</li>
+        <li class="nav-item" id="nav-live-excel" onclick="switchTab('live-excel')"><i class="fa-solid fa-table"></i> Live Practice Screen</li>
+        <li class="nav-item" id="nav-practice-sheets" onclick="switchTab('practice-sheets')"><i class="fa-solid fa-download"></i> Practice Sheets</li>
       </ul>
     </sidebar>
 
@@ -437,12 +439,12 @@ app.get('/', (req, res) => {
         </div>
       </div>
 
-      <div id="live-excel" class="tab-content" style="position: relative; width: 100%; height: calc(100vh - 55px); overflow: hidden;">
+      <div id="live-excel" class="tab-content" style="position: relative; width: 100%; height: calc(100vh - 50px); overflow: hidden;">
         <div id="luckysheet"></div>
       </div>
 
       <div id="practice-sheets" class="tab-content" style="padding: 15px; overflow-y: auto;">
-        <h3 style="color: #38bdf8;">Download Admin Practice Sheets</h3>
+        <h3 style="color: #38bdf8;">Download Practice Templates</h3>
         <table>
           <thead>
             <tr><th>Template Title</th><th>Category</th><th>Format</th><th>Action</th></tr>
@@ -458,6 +460,14 @@ app.get('/', (req, res) => {
   <script>
     var currentActiveKey = null;
     var luckysheetInitialized = false;
+
+    // --- PREVENT MOBILE BACK BUTTON APP EXIT/ERROR ---
+    window.addEventListener('popstate', function(event) {
+      if (document.getElementById('app-container').style.display === 'flex') {
+        history.pushState(null, null, window.location.pathname);
+        switchTab('ai-trainer');
+      }
+    });
 
     function toggleSidebar() {
       document.getElementById('mobileSidebar').classList.toggle('open');
@@ -501,6 +511,7 @@ app.get('/', (req, res) => {
           setTimeout(function() {
             document.getElementById('entry-screen').style.display = 'none';
             document.getElementById('app-container').style.display = 'flex';
+            history.pushState({ page: 'app' }, null, window.location.pathname);
             loadPracticeSheets();
           }, 600);
         } else { 
@@ -516,21 +527,27 @@ app.get('/', (req, res) => {
         title: 'CareerBoot Practice Sheet',
         lang: 'en',
         showtoolbar: true,
-        showinfobar: true,
+        showinfobar: false,
         showsheetbar: true,
         allowEdit: true,
         enableAddRow: true,
+        row: 25,
+        column: 12,
+        gridKey: 'practice_sheet_canvas',
         data: [{
-          "name": "Practice Sheet 1",
+          "name": "Sheet1",
           "color": "",
           "status": "1",
           "order": "0",
           "data": [
-            [{"v":"Data Item"},{"v":"Category"},{"v":"Value"}],
-            [{"v":"Sales Revenue"},{"v":"Financial"},{"v":"150000"}],
+            [{"v":"Sales Data"},{"v":"Category"},{"v":"Amount (INR)"}],
+            [{"v":"Q1 Revenue"},{"v":"Financial"},{"v":"150000"}],
             [{"v":"Marketing Cost"},{"v":"Expense"},{"v":"35000"}]
           ],
-          "config": {},
+          "config": {
+            "rowlen": {"0": 34, "1": 32, "2": 32},
+            "columnlen": {"0": 140, "1": 120, "2": 130}
+          },
           "index": 0
         }]
       });
@@ -542,17 +559,19 @@ app.get('/', (req, res) => {
       document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       
       document.getElementById(tabId).classList.add('active');
-      if(window.event && window.event.currentTarget) window.event.currentTarget.classList.add('active');
+      var activeNav = document.getElementById('nav-' + tabId);
+      if(activeNav) activeNav.classList.add('active');
+
       document.getElementById('mobileSidebar').classList.remove('open');
 
       if (tabId === 'live-excel') {
         setTimeout(function() {
           if (!luckysheetInitialized) {
             initLuckysheetEngine();
-          } else {
+          } else if(window.luckysheet) {
             luckysheet.resize();
           }
-        }, 200);
+        }, 150);
       }
     }
 
@@ -564,7 +583,7 @@ app.get('/', (req, res) => {
             var tbody = document.getElementById('sheets-table-body');
             tbody.innerHTML = '';
             if (data.sheets.length === 0) {
-              tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No practice sheets yet.</td></tr>';
+              tbody.innerHTML = '<tr><td colspan="4" style="text-align:center; color:#64748b;">No practice sheets available.</td></tr>';
               return;
             }
             data.sheets.forEach(function(s) {
@@ -572,7 +591,7 @@ app.get('/', (req, res) => {
               tr.innerHTML = '<td><b>' + s.title + '</b></td>' +
                 '<td><span style="color:#38bdf8">' + s.category + '</span></td>' +
                 '<td>' + s.fileName.split('.').pop().toUpperCase() + '</td>' +
-                '<td><a href="/api/practice-sheets/download/' + s._id + '" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i></a></td>';
+                '<td><a href="/api/practice-sheets/download/' + s._id + '" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i> Download</a></td>';
               tbody.appendChild(tr);
             });
           }
