@@ -1,839 +1,599 @@
-require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const mongoose = require('mongoose');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
-const multer = require('multer');
-const XLSX = require('xlsx');
+import express from 'express';
+import mongoose from 'mongoose';
+import multer from 'multer';
+import path from 'path';
+import jwt from 'jsonwebtoken';
+import { fileURLToPath } from 'url';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-app.use(cors());
-app.use(express.json({ limit: '100mb' }));
-app.use(express.urlencoded({ extended: true, limit: '100mb' }));
-
-// ==========================================
-// 1. DATABASE & SCHEMAS
-// ==========================================
-const MONGO_URI = process.env.MONGO_URI;
-const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || "T-FOR-TOPA/420";
-
-const keySchema = new mongoose.Schema({
-  key: { type: String, required: true, unique: true, uppercase: true, trim: true },
-  label: { type: String, default: "User Key" },
-  isActive: { type: Boolean, default: true },
-  isMultiDevice: { type: Boolean, default: false },
-  boundSessionId: { type: String, default: null },
-  maxUses: { type: Number, default: 1 },
-  usedCount: { type: Number, default: 0 },
-  expiresAt: { type: Date, default: null },
-  createdAt: { type: Date, default: Date.now }
-});
-const SecretKey = mongoose.model('SecretKey', keySchema);
-
-const chatSchema = new mongoose.Schema({
-  userKey: { type: String, required: true },
-  message: { type: String, required: true },
-  sender: { type: String, enum: ['user', 'bot'], required: true },
-  attachmentMeta: { type: Object, default: null },
-  createdAt: { type: Date, default: Date.now, expires: 2592000 }
-});
-const Chat = mongoose.model('Chat', chatSchema);
-
-const sheetSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  category: { type: String, default: "General Practice" },
-  description: { type: String, default: "" },
-  fileName: { type: String, required: true },
-  fileData: { type: String, required: true },
-  mimeType: { type: String, required: true },
-  uploadedAt: { type: Date, default: Date.now }
-});
-const PracticeSheet = mongoose.model('PracticeSheet', sheetSchema);
-
-if (MONGO_URI) {
-  mongoose.connect(MONGO_URI)
-    .then(async () => {
-      console.log("[DATABASE] Connected successfully.");
-      await SecretKey.updateOne(
-        { key: ADMIN_PASSCODE.trim().toUpperCase() },
-        { 
-          $setOnInsert: { 
-            key: ADMIN_PASSCODE.trim().toUpperCase(), 
-            label: "Master Root Admin Access", 
-            isActive: true, 
-            isMultiDevice: true, 
-            maxUses: 999999 
-          } 
-        },
-        { upsert: true }
-      );
-    })
-    .catch(err => console.error("[DATABASE ERROR]", err));
-}
-
-// ==========================================
-// 2. AI ENGINE & UPLOAD PIPELINE
-// ==========================================
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const upload = multer({ 
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 }
+    storage: multer.memoryStorage(),
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB Limit
 });
 
-// ==========================================
-// 3. API ENDPOINTS
-// ==========================================
+// Environment Configurations
+const PORT = process.env.PORT || 3000;
+const MONGO_URI = process.env.MONGO_URI;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const ADMIN_SECRET = process.env.ADMIN_SECRET || "SUPER_SECURE_ADMIN_KEY_2026";
+const JWT_SECRET = process.env.JWT_SECRET || "JWT_CAREERBOOT_SECRET_KEY_PROD";
 
-app.post('/api/auth/key-login', async (req, res) => {
-  const { secretKey, sessionId } = req.body;
-  if (!secretKey || !sessionId) {
-    return res.status(400).json({ success: false, error: "Secret Key & Unique Hardware Session ID required." });
-  }
+// Database Connection
+if (!MONGO_URI) {
+    console.error("FATAL ERROR: MONGO_URI Environment Variable Missing!");
+}
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("MongoDB Production Database Connected Successfully"))
+    .catch(err => console.error("MongoDB Connection Failed:", err));
 
-  try {
-    const formattedKey = secretKey.trim().toUpperCase();
-    if (formattedKey === ADMIN_PASSCODE.trim().toUpperCase()) {
-      return res.json({ success: true, userKey: formattedKey, label: "Master Admin Root Access", isAdmin: true });
-    }
-
-    const foundKey = await SecretKey.findOne({ key: formattedKey, isActive: true });
-    if (!foundKey) {
-      return res.status(401).json({ success: false, error: "Invalid or inactive key." });
-    }
-
-    if (foundKey.expiresAt && new Date() > new Date(foundKey.expiresAt)) {
-      foundKey.isActive = false;
-      await foundKey.save();
-      return res.status(401).json({ success: false, error: "Access Key has expired." });
-    }
-
-    if (!foundKey.isMultiDevice && foundKey.boundSessionId && foundKey.boundSessionId !== sessionId) {
-      return res.status(403).json({ success: false, error: "Key is bound to another active device." });
-    }
-
-    if (!foundKey.boundSessionId) {
-      foundKey.boundSessionId = sessionId;
-      foundKey.usedCount += 1;
-      await foundKey.save();
-    }
-
-    return res.json({ success: true, userKey: foundKey.key, label: foundKey.label, isAdmin: false });
-  } catch (err) {
-    return res.status(500).json({ success: false, error: "Auth System Error: " + err.message });
-  }
+// Database Schemas
+const KeySchema = new mongoose.Schema({
+    key: { type: String, required: true, unique: true, index: true },
+    deviceId: { type: String, default: null },
+    boundAt: { type: Date },
+    role: { type: String, enum: ['user', 'admin'], default: 'user' },
+    createdAt: { type: Date, default: Date.now }
 });
 
-app.post('/api/admin/create-key', async (req, res) => {
-  const { adminKey, key, label, isMultiDevice, expiresAt } = req.body;
-  if (adminKey !== ADMIN_PASSCODE.trim().toUpperCase()) return res.status(403).json({ error: "Unauthorized." });
+const ChatSchema = new mongoose.Schema({
+    deviceId: { type: String, required: true, index: true },
+    role: { type: String, enum: ['user', 'model'], required: true },
+    message: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now, expires: 432000 } // Auto-delete in 120 Hours (5 Days)
+});
 
-  try {
-    const newKey = await SecretKey.create({ 
-      key: key.toUpperCase(), 
-      label: label || "Enterprise Key",
-      isMultiDevice: !!isMultiDevice,
-      expiresAt: expiresAt ? new Date(expiresAt) : null
+const PracticeSheetSchema = new mongoose.Schema({
+    filename: String,
+    data: Buffer,
+    contentType: String,
+    uploadedAt: { type: Date, default: Date.now }
+});
+
+const Key = mongoose.model('Key', KeySchema);
+const Chat = mongoose.model('Chat', ChatSchema);
+const PracticeSheet = mongoose.model('PracticeSheet', PracticeSheetSchema);
+
+// Gemini AI Config
+const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
+const model = genAI.getGenerativeModel({ 
+    model: "gemini-1.5-flash",
+    systemInstruction: `You are the official CareerBoot MS Excel AI Personal Trainer.
+    STRICT RULES:
+    1. You MUST ONLY answer questions directly related to Microsoft Excel (Formulas, Functions, Shortcuts, VBA, Macros, Data Analysis, Dashboards, Power Query, Charting).
+    2. If a query is NOT about MS Excel (e.g., general programming, history, coding in Python, cooking, general knowledge), decline politely: "I am trained exclusively as a CareerBoot MS Excel AI Trainer. Please ask any questions related to Microsoft Excel!"
+    3. Keep answers concise, highly practical, formatted in clean Markdown with step-by-step instructions and bold key shortcuts/formulas.`
+});
+
+app.use(express.json({ limit: '20mb' }));
+
+// Middleware: Authenticate Session
+const authMiddleware = (req, res, next) => {
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ success: false, message: "Unauthorized access" });
+    
+    try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (err) {
+        return res.status(401).json({ success: false, message: "Invalid or expired session" });
+    }
+};
+
+// --- API ENDPOINTS ---
+
+// 1. Secret Key Login & Single Device Lock
+app.post('/api/login', async (req, res) => {
+    try {
+        const { key, deviceSignature } = req.body;
+        if (!key || !deviceSignature) {
+            return res.status(400).json({ success: false, message: "Key & Device verification required" });
+        }
+
+        if (key === ADMIN_SECRET) {
+            const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '12h' });
+            return res.json({ success: true, role: 'admin', token });
+        }
+
+        const keyDoc = await Key.findOne({ key });
+        if (!keyDoc) {
+            return res.status(401).json({ success: false, message: "Incorrect Secret Key. Check and try again." });
+        }
+
+        if (!keyDoc.deviceId) {
+            keyDoc.deviceId = deviceSignature;
+            keyDoc.boundAt = new Date();
+            await keyDoc.save();
+        } else if (keyDoc.deviceId !== deviceSignature) {
+            return res.status(403).json({ 
+                success: false, 
+                message: "Security Lock: This Key is already registered & locked to another device!" 
+            });
+        }
+
+        const token = jwt.sign({ key: keyDoc.key, deviceId: deviceSignature, role: 'user' }, JWT_SECRET, { expiresIn: '30d' });
+        return res.json({ success: true, role: 'user', token });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Server authentication error" });
+    }
+});
+
+// 2. Admin - Generate User Keys
+app.post('/api/admin/create-key', authMiddleware, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    const { newKey } = req.body;
+    try {
+        await Key.create({ key: newKey.trim() });
+        res.json({ success: true, message: `Key '${newKey}' created successfully.` });
+    } catch (err) {
+        res.status(400).json({ success: false, message: "Key already exists in system!" });
+    }
+});
+
+// 3. Admin - Delete Key
+app.post('/api/admin/delete-key', authMiddleware, async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    const { key } = req.body;
+    await Key.deleteOne({ key });
+    res.json({ success: true, message: "Key removed successfully." });
+});
+
+// 4. Admin - Upload Practice File
+app.post('/api/admin/upload-sheet', authMiddleware, upload.single('sheet'), async (req, res) => {
+    if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
+    if (!req.file) return res.status(400).json({ message: "No file provided" });
+
+    await PracticeSheet.deleteMany({}); // Keep only latest sheet
+    await PracticeSheet.create({
+        filename: req.file.originalname,
+        data: req.file.buffer,
+        contentType: req.file.mimetype
     });
-    res.json({ success: true, key: newKey });
-  } catch (err) {
-    res.status(400).json({ success: false, error: "Key creation failed. Duplicate key name." });
-  }
+    res.json({ success: true, message: "New Practice Sheet published!" });
 });
 
-app.get('/api/admin/keys', async (req, res) => {
-  const adminKey = req.headers['authorization'];
-  if (adminKey !== ADMIN_PASSCODE.trim().toUpperCase()) return res.status(403).json({ error: "Unauthorized." });
-
-  const keys = await SecretKey.find().sort({ createdAt: -1 });
-  res.json({ success: true, keys });
+// 5. User - Download Practice Sheet
+app.get('/api/download-sheet', authMiddleware, async (req, res) => {
+    const sheet = await PracticeSheet.findOne().sort({ uploadedAt: -1 });
+    if (!sheet) return res.status(404).send("No active practice sheet uploaded by Admin.");
+    res.setHeader('Content-Type', sheet.contentType);
+    res.setHeader('Content-Disposition', `attachment; filename="${sheet.filename}"`);
+    res.send(sheet.data);
 });
 
-app.post('/api/admin/reset-key', async (req, res) => {
-  const { adminKey, keyId } = req.body;
-  if (adminKey !== ADMIN_PASSCODE.trim().toUpperCase()) return res.status(403).json({ error: "Unauthorized." });
-
-  await SecretKey.findByIdAndUpdate(keyId, { boundSessionId: null });
-  res.json({ success: true, message: "Hardware session lock released." });
+// 6. User - Chat History
+app.get('/api/chat-history', authMiddleware, async (req, res) => {
+    const history = await Chat.find({ deviceId: req.user.deviceId }).sort({ createdAt: 1 });
+    res.json({ success: true, history });
 });
 
-app.post('/api/admin/upload-sheet', upload.single('sheet'), async (req, res) => {
-  const { adminKey, title, category, description } = req.body;
-  if (adminKey !== ADMIN_PASSCODE.trim().toUpperCase()) return res.status(403).json({ error: "Unauthorized." });
-  if (!req.file) return res.status(400).json({ error: "No file attached." });
+// 7. Gemini AI Chat Interface
+app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
+    try {
+        const { message } = req.body;
+        const deviceId = req.user.deviceId;
 
-  const fileData = req.file.buffer.toString('base64');
-  const sheet = await PracticeSheet.create({
-    title,
-    category: category || "General Practice",
-    description: description || "",
-    fileName: req.file.originalname,
-    fileData,
-    mimeType: req.file.mimetype
-  });
+        let contents = [];
+        if (req.file) {
+            contents.push({
+                inlineData: {
+                    data: req.file.buffer.toString("base64"),
+                    mimeType: req.file.mimetype
+                }
+            });
+        }
+        if (message) contents.push(message);
 
-  res.json({ success: true, sheet });
-});
+        const result = await model.generateContent(contents);
+        const reply = result.response.text();
 
-app.post('/api/chat', upload.single('file'), async (req, res) => {
-  try {
-    const { userKey, text } = req.body;
-    if (!userKey) return res.status(401).json({ success: false, error: "Unauthorized." });
+        // Save Chat to DB
+        await Chat.create({ deviceId, role: 'user', message: message || '[Uploaded Media/Document]' });
+        await Chat.create({ deviceId, role: 'model', message: reply });
 
-    let chatHistory = [];
-    if (mongoose.connection.readyState === 1) {
-      chatHistory = await Chat.find({ userKey }).sort({ createdAt: -1 }).limit(6);
-      await Chat.create({ 
-        userKey, 
-        message: text || '[Attachment Submitted]', 
-        sender: 'user',
-        attachmentMeta: req.file ? { fileName: req.file.originalname, mimeType: req.file.mimetype } : null
-      });
+        res.json({ success: true, reply });
+    } catch (err) {
+        res.status(500).json({ success: false, reply: "AI Processing Error. Please try again with Excel queries." });
     }
-
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const systemPrompt = `You are CareerBoot AI, an expert Excel Master and Data Analyst. Provide immediate, highly accurate answers to Excel queries, VLOOKUP, XLOOKUP, INDEX/MATCH, and VBA requests. Wrap code/formulas in Markdown blocks. Be concise and precise.`;
-
-    let promptContents = [systemPrompt];
-    chatHistory.reverse().forEach(c => promptContents.push(`${c.sender.toUpperCase()}: ${c.message}`));
-    if (text) promptContents.push(`USER: ${text}`);
-    if (req.file) {
-      promptContents.push({
-        inlineData: { data: req.file.buffer.toString("base64"), mimeType: req.file.mimetype }
-      });
-    }
-
-    const aiResult = await model.generateContent(promptContents);
-    const botAnswer = aiResult.response.text();
-
-    if (mongoose.connection.readyState === 1) {
-      await Chat.create({ userKey, message: botAnswer, sender: 'bot' });
-    }
-
-    res.json({ success: true, answer: botAnswer });
-  } catch (err) {
-    console.error("[AI ERROR]", err);
-    res.status(500).json({ success: false, error: "AI Engine processing failed: " + err.message });
-  }
 });
 
-app.get('/api/practice-sheets', async (req, res) => {
-  try {
-    const sheets = await PracticeSheet.find({}, { fileData: 0 }).sort({ uploadedAt: -1 });
-    return res.json({ success: true, sheets });
-  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
-});
-
-app.get('/api/practice-sheets/data/:id', async (req, res) => {
-  try {
-    const sheet = await PracticeSheet.findById(req.params.id);
-    if (!sheet) return res.status(404).json({ success: false, error: "Sheet not found." });
-    return res.json({ success: true, fileData: sheet.fileData, fileName: sheet.fileName });
-  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
-});
-
-app.get('/api/practice-sheets/download/:id', async (req, res) => {
-  try {
-    const sheet = await PracticeSheet.findById(req.params.id);
-    if (!sheet) return res.status(404).json({ success: false, error: "Sheet not found." });
-
-    const fileBuffer = Buffer.from(sheet.fileData, 'base64');
-    res.setHeader('Content-Type', sheet.mimeType);
-    res.setHeader('Content-Disposition', `attachment; filename="${sheet.fileName}"`);
-    return res.send(fileBuffer);
-  } catch (err) { return res.status(500).json({ success: false, error: err.message }); }
-});
-
-// ==========================================
-// 4. FRONTEND APPLICATION (FULL FIXED UI/UX)
-// ==========================================
+// FRONTEND APPLICATION (Single Page Application)
 app.get('*', (req, res) => {
-  res.setHeader('Content-Type', 'text/html');
-  res.send(`<!DOCTYPE html>
+    res.send(`
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CareerBoot AI - Enterprise Excel Portal</title>
-  
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/assets/iconfont/iconfont.css" />
-  <script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/js/plugin.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/luckysheet/dist/luckysheet.umd.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>CareerBoot Excel AI Trainer</title>
+    <!-- Lottie Web Animation Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+    <style>
+        :root {
+            --primary: #10b981;
+            --primary-dark: #059669;
+            --bg-dark: #0f172a;
+            --card-dark: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --user-msg: #2563eb;
+        }
 
-  <style>
-    :root {
-      --bg-dark: #070d19;
-      --bg-card: #0f172a;
-      --green-excel: #107c41;
-      --green-hover: #0d6736;
-      --accent-blue: #38bdf8;
-      --text-muted: #94a3b8;
-      --border-color: rgba(56, 189, 248, 0.15);
-    }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
+        body { background-color: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-    html, body { height: 100%; width: 100vw; background: var(--bg-dark); color: #fff; overflow: hidden; }
+        .page { display: none; height: 100vh; width: 100vw; flex-direction: column; position: relative; }
+        .page.active { display: flex; }
 
-    #toast-notification {
-      position: fixed; top: 16px; right: 16px; z-index: 99999;
-      background: rgba(15, 23, 42, 0.95); border: 1px solid #ef4444; color: #fff;
-      padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 600;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); display: none; align-items: center; gap: 10px;
-      backdrop-filter: blur(8px);
-    }
-    #toast-notification.success { border-color: #10b981; }
+        /* Login Layout */
+        .login-top { height: 35vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
+        .brand-logo { font-size: 24px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+        .welcome-text { font-size: 14px; color: var(--text-muted); margin-top: 4px; }
+        
+        .tracker-wrapper { width: 85%; max-width: 380px; margin-top: 25px; position: relative; }
+        .tracker-line { height: 4px; background: #334155; border-radius: 2px; position: relative; width: 100%; }
+        .tracker-progress { position: absolute; height: 100%; background: var(--primary); width: 0%; transition: width 2.5s cubic-bezier(0.4, 0, 0.2, 1); border-radius: 2px; }
+        .tracker-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 600; text-transform: uppercase; }
+        .walker-avatar { position: absolute; top: -28px; left: 0%; transform: translateX(-50%); transition: left 2.5s cubic-bezier(0.4, 0, 0.2, 1); font-size: 20px; }
 
-    #entry-screen {
-      height: 100vh; width: 100vw; display: flex; flex-direction: column;
-      justify-content: center; align-items: center; background: radial-gradient(circle at center, #0f172a 0%, #070d19 100%);
-      padding: 20px; position: fixed; top:0; left:0; z-index: 100;
-    }
+        .login-middle { height: 15vh; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
+        .key-box { width: 100%; max-width: 380px; display: flex; gap: 8px; }
+        .input-key { flex: 1; padding: 14px; background: var(--card-dark); border: 1.5px solid #334155; border-radius: 10px; color: white; text-align: center; font-size: 16px; font-weight: 600; letter-spacing: 1px; outline: none; transition: border 0.3s; }
+        .input-key:focus { border-color: var(--primary); }
+        .btn-unlock { padding: 14px 22px; background: var(--primary); border: none; border-radius: 10px; color: white; font-weight: 700; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+        .btn-unlock:active { background: var(--primary-dark); }
 
-    .brand-title { color: var(--green-excel); font-size: 36px; font-weight: 800; letter-spacing: -0.5px; }
-    .brand-title span { color: var(--accent-blue); }
-    .portal-box { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 36px; width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 18px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); }
-    .key-input { background: var(--bg-dark); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--accent-blue); font-size: 15px; font-weight: 700; padding: 14px; border-radius: 10px; outline: none; text-transform: uppercase; text-align: center; width: 100%; transition: all 0.2s; }
-    .key-input:focus { border-color: var(--accent-blue); box-shadow: 0 0 15px rgba(56, 189, 248, 0.2); }
-    .key-btn { background: var(--green-excel); color: #fff; border: none; padding: 14px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: all 0.2s; font-size: 14px; }
-    .key-btn:hover { background: var(--green-hover); }
+        .login-bottom { height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; }
+        .typing-anim-container { width: 220px; height: 220px; }
+        .status-badge { display: none; font-size: 40px; margin-top: 10px; animation: popIn 0.3s ease-out; }
 
-    #app-container { display: none; height: 100vh; width: 100vw; overflow: hidden; flex-direction: row; }
-    sidebar { width: 240px; background: var(--bg-card); border-right: 1px solid var(--border-color); display: flex; flex-direction: column; z-index: 20; flex-shrink: 0; }
-    .sidebar-header { padding: 18px 20px; font-weight: 800; color: var(--green-excel); font-size: 16px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 10px; }
-    .nav-links { list-style: none; padding: 16px 10px; display: flex; flex-direction: column; gap: 8px; }
-    .nav-item { padding: 12px 16px; border-radius: 10px; cursor: pointer; color: var(--text-muted); display: flex; align-items: center; gap: 12px; font-size: 13px; font-weight: 600; transition: all 0.2s; }
-    .nav-item:hover, .nav-item.active { background: var(--green-excel); color: #fff; }
+        /* Chat Layout */
+        .chat-header { height: 60px; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid #334155; }
+        .chat-title { font-weight: 700; font-size: 16px; color: var(--primary); }
+        .chat-actions { display: flex; gap: 12px; }
+        .icon-btn { background: none; border: none; color: var(--text-main); font-size: 20px; cursor: pointer; }
 
-    main { flex: 1; display: flex; flex-direction: column; background: var(--bg-dark); height: 100vh; width: calc(100vw - 240px); overflow: hidden; position: relative; }
-    header { background: var(--bg-card); padding: 0 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; height: 50px; flex-shrink: 0; }
+        .chat-body { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-bubble { max-width: 82%; padding: 12px 16px; border-radius: 14px; font-size: 14px; line-height: 1.5; word-wrap: break-word; }
+        .chat-bubble.user { background: var(--user-msg); align-self: flex-end; border-bottom-right-radius: 2px; }
+        .chat-bubble.model { background: var(--card-dark); align-self: flex-start; border-bottom-left-radius: 2px; border: 1px solid #334155; }
 
-    .tab-content { display: none; height: calc(100vh - 50px); width: 100%; position: relative; overflow: hidden; }
-    .tab-content.active { display: flex; }
+        .pinned-bar { display: flex; gap: 8px; padding: 8px 16px; overflow-x: auto; background: rgba(15,23,42,0.8); }
+        .chip-btn { background: var(--card-dark); border: 1px solid #334155; padding: 6px 12px; border-radius: 20px; font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+        .chip-btn:hover { border-color: var(--primary); color: white; }
 
-    /* EXCEL CANVAS FIX */
-    #live-excel { width: 100%; height: calc(100vh - 50px); position: relative; overflow: hidden; }
-    #luckysheet { width: 100% !important; height: 100% !important; position: absolute !important; left:0; top:0; }
+        .chat-input-container { padding: 12px 16px; background: var(--card-dark); border-top: 1px solid #334155; display: flex; align-items: center; gap: 10px; }
+        .chat-input { flex: 1; background: var(--bg-dark); border: 1px solid #334155; padding: 12px; border-radius: 8px; color: white; font-size: 14px; outline: none; }
+        .chat-input:focus { border-color: var(--primary); }
 
-    /* AI TRAINER FIX (PERFECT SCROLLING & SIZING) */
-    #ai-trainer { flex-direction: column; height: calc(100vh - 50px); width: 100%; overflow: hidden; position: relative; }
-    .chat-container { flex: 1; overflow-y: auto !important; padding: 20px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; max-height: calc(100vh - 170px); }
-    .chat-container::-webkit-scrollbar { width: 6px; }
-    .chat-container::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.3); border-radius: 4px; }
-    
-    .prompt-suggestions { display: flex; gap: 10px; padding: 10px 20px; overflow-x: auto; background: rgba(15, 23, 42, 0.6); border-top: 1px solid var(--border-color); flex-shrink: 0; }
-    .prompt-chip { background: var(--bg-card); border: 1px solid var(--border-color); color: var(--accent-blue); padding: 6px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all 0.2s; }
-    .prompt-chip:hover { background: var(--green-excel); color: #fff; }
+        /* Drawer Page 3 */
+        .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 99; }
+        .drawer-menu { position: fixed; right: -300px; top: 0; width: 280px; height: 100%; background: var(--card-dark); transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 100; padding: 24px; display: flex; flex-direction: column; gap: 20px; }
+        .drawer-menu.open { right: 0; }
 
-    .msg { max-width: 80%; padding: 14px 18px; border-radius: 12px; font-size: 13px; line-height: 1.6; word-wrap: break-word; }
-    .msg.bot { background: var(--bg-card); border: 1px solid var(--border-color); align-self: flex-start; color: #e2e8f0; }
-    .msg.user { background: var(--green-excel); align-self: flex-end; color: #fff; }
-    .msg pre { background: #030712; border: 1px solid var(--border-color); border-radius: 8px; padding: 12px; margin-top: 10px; font-family: monospace; color: var(--accent-blue); overflow-x: auto; white-space: pre-wrap; }
+        /* Modal */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(3px); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: var(--card-dark); padding: 24px; border-radius: 16px; width: 85%; max-width: 320px; text-align: center; border: 1px solid #334155; }
 
-    .controls { padding: 14px 20px; background: var(--bg-card); border-top: 1px solid var(--border-color); display: flex; gap: 10px; align-items: center; flex-shrink: 0; }
-    .controls input[type="text"] { flex: 1; background: var(--bg-dark); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 12px 16px; border-radius: 8px; outline: none; font-size: 13px; }
-    .controls input[type="text"]:focus { border-color: var(--accent-blue); }
-    .action-btn { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--accent-blue); padding: 10px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 12px; display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s; }
-    .action-btn:hover { background: rgba(56, 189, 248, 0.2); }
-
-    .sheet-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; padding: 24px; width: 100%; height: 100%; overflow-y: auto; }
-    .sheet-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 12px; height: fit-content; }
-    .sheet-card h4 { color: #fff; font-size: 15px; font-weight: 700; }
-    .sheet-card p { color: var(--text-muted); font-size: 12px; line-height: 1.5; }
-    .download-btn { background: var(--green-excel); color: #fff; border: none; padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: none; text-align: center; margin-top: auto; }
-    .load-canvas-btn { background: rgba(56, 189, 248, 0.1); color: var(--accent-blue); border: 1px solid rgba(56, 189, 248, 0.3); padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; text-align: center; }
-
-    .admin-panel { padding: 24px; overflow-y: auto; width: 100%; height: 100%; }
-    .admin-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; }
-    .admin-card h4 { color: var(--accent-blue); margin-bottom: 14px; font-size: 14px; display: flex; align-items: center; gap: 8px; }
-    .form-group { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-    .form-group input, .form-group select { flex: 1; min-width: 180px; background: var(--bg-dark); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 12px; }
-
-    @media (max-width: 768px) {
-      sidebar { width: 60px !important; }
-      sidebar .sidebar-header span, sidebar .nav-item span { display: none !important; }
-      main { width: calc(100vw - 60px) !important; }
-      .nav-item { justify-content: center; padding: 12px 0; }
-      header { padding: 0 10px; }
-      header span { font-size: 11px !important; }
-      .action-btn span { display: none; }
-      .msg { max-width: 90%; }
-    }
-  </style>
+        @keyframes popIn { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+    </style>
 </head>
 <body>
 
-  <div id="toast-notification">
-    <i id="toast-icon" class="fa-solid fa-circle-exclamation"></i>
-    <span id="toast-msg">Notification</span>
-  </div>
-
-  <div id="entry-screen">
-    <h1 class="brand-title">CAREERBOOT <span>AI</span></h1>
-    <p style="color: var(--text-muted); margin-top: 6px; margin-bottom: 24px; font-size: 13px;">Enterprise Interactive Excel Portal</p>
-    <div class="portal-box">
-      <input type="text" id="secretKeyInput" class="key-input" placeholder="ENTER ACCESS KEY">
-      <button class="key-btn" onclick="loginWithKey()">LAUNCH WORKSPACE</button>
-    </div>
-  </div>
-
-  <div id="app-container">
-    <sidebar>
-      <div class="sidebar-header"><i class="fa-solid fa-file-excel"></i> <span>CareerBoot</span></div>
-      <ul class="nav-links">
-        <li class="nav-item active" id="nav-live-excel" onclick="switchTab('live-excel')"><i class="fa-solid fa-table"></i> <span>Practice Canvas</span></li>
-        <li class="nav-item" id="nav-ai-trainer" onclick="switchTab('ai-trainer')"><i class="fa-solid fa-robot"></i> <span>AI Trainer</span></li>
-        <li class="nav-item" id="nav-sheets" onclick="switchTab('sheets')"><i class="fa-solid fa-folder-open"></i> <span>Practice Sheets</span></li>
-        <li class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('admin')"><i class="fa-solid fa-user-shield"></i> <span>Admin Suite</span></li>
-      </ul>
-    </sidebar>
-
-    <main>
-      <header>
-        <span id="active-tab-title" style="color: var(--accent-blue); font-weight: 700; font-size: 13px;">Practice Sheet Canvas</span>
-        <div style="display: flex; gap: 8px;">
-          <input type="file" id="importExcelInput" style="display:none;" accept=".xlsx, .xls, .csv" onchange="importLocalExcel(this)">
-          <button class="action-btn" onclick="document.getElementById('importExcelInput').click()"><i class="fa-solid fa-file-import"></i> <span>Import .XLSX</span></button>
-          <button class="action-btn" style="background: var(--green-excel); color: #fff; border: none;" onclick="exportToExcel()"><i class="fa-solid fa-file-export"></i> <span>Export .XLSX</span></button>
-        </div>
-      </header>
-
-      <div id="live-excel" class="tab-content active">
-        <div id="luckysheet"></div>
-      </div>
-
-      <div id="ai-trainer" class="tab-content">
-        <div class="chat-container" id="chat">
-          <div class="msg bot">Welcome to CareerBoot AI Trainer! Ask questions regarding formulas (XLOOKUP, INDEX/MATCH), Power Query logic, or VBA macro code. Attach screenshots for visual debugging.</div>
-        </div>
-        
-        <div class="prompt-suggestions">
-          <div class="prompt-chip" onclick="usePrompt('How to write XLOOKUP with multiple criteria?')">XLOOKUP Multi-Criteria</div>
-          <div class="prompt-chip" onclick="usePrompt('Write a VBA macro to combine all worksheets into one.')">VBA Merge Worksheets</div>
-          <div class="prompt-chip" onclick="usePrompt('Explain INDEX MATCH vs VLOOKUP with practical examples.')">INDEX/MATCH Guide</div>
-        </div>
-
-        <div class="controls">
-          <input type="file" id="chatFileInput" style="display:none;" onchange="handleFileSelect(this)">
-          <button class="action-btn" onclick="document.getElementById('chatFileInput').click()"><i class="fa-solid fa-paperclip"></i></button>
-          <input type="text" id="userInput" placeholder="Ask Excel query, formula, VBA code..." onkeypress="if(event.key==='Enter') sendQuery()">
-          <button class="action-btn" style="background:var(--green-excel); color:#fff; border:none;" onclick="sendQuery()"><i class="fa-solid fa-paper-plane"></i></button>
-        </div>
-        <span id="selectedFileName" style="font-size: 11px; color: var(--accent-blue); padding: 0 20px 6px 20px; display: none;"></span>
-      </div>
-
-      <div id="sheets" class="tab-content">
-        <div class="sheet-card-grid" id="sheetsContainer"></div>
-      </div>
-
-      <div id="admin" class="tab-content admin-panel">
-        <h3 style="color: #fff; margin-bottom: 18px; font-weight: 800; font-size: 18px;">Master Key & Resource Management</h3>
-        
-        <div class="admin-card">
-          <h4><i class="fa-solid fa-key"></i> Generate Secret Access Key</h4>
-          <div class="form-group">
-            <input type="text" id="newKeyVal" placeholder="NEW KEY (e.g. USER-9821)">
-            <input type="text" id="newKeyLabel" placeholder="STUDENT NAME / ASSIGNED LABEL">
-            <select id="newKeyMulti">
-              <option value="false">Single Device Locked</option>
-              <option value="true">Multi-Device Allowed</option>
-            </select>
-            <button class="action-btn" style="background:var(--green-excel); color:#fff; border:none;" onclick="generateKey()">Generate Key</button>
-          </div>
-        </div>
-
-        <div class="admin-card">
-          <h4><i class="fa-solid fa-cloud-arrow-up"></i> Upload Practice Template (.XLSX)</h4>
-          <div class="form-group">
-            <input type="text" id="sheetTitle" placeholder="Title (e.g. VLOOKUP Practice)">
-            <input type="text" id="sheetCategory" placeholder="Category (e.g. Advanced Formulas)">
-            <input type="file" id="adminSheetFile" accept=".xlsx, .xls">
-            <button class="action-btn" style="background:var(--green-excel); color:#fff; border:none;" onclick="uploadAdminSheet()">Upload Template</button>
-          </div>
-        </div>
-
-        <div class="admin-card">
-          <h4><i class="fa-solid fa-list-check"></i> Registered Key Directory</h4>
-          <div id="keysList"></div>
-        </div>
-      </div>
-    </main>
-  </div>
-
-  <script>
-    var currentActiveKey = null;
-    var isAdminUser = false;
-    var luckysheetInitialized = false;
-
-    function showToast(message, isSuccess) {
-      var toast = document.getElementById('toast-notification');
-      document.getElementById('toast-msg').innerText = message;
-      toast.className = isSuccess ? 'success' : '';
-      toast.style.display = 'flex';
-      setTimeout(function() { toast.style.display = 'none'; }, 3500);
-    }
-
-    function getSessionId() {
-      var sid = localStorage.getItem('cb_session_id');
-      if (!sid) {
-        sid = 'SESS-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
-        localStorage.setItem('cb_session_id', sid);
-      }
-      return sid;
-    }
-
-    function loginWithKey() {
-      var keyInput = document.getElementById('secretKeyInput').value.trim();
-      if(!keyInput) return showToast("Please enter a valid Access Key.", false);
-
-      fetch('/api/auth/key-login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ secretKey: keyInput, sessionId: getSessionId() })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          currentActiveKey = data.userKey;
-          isAdminUser = data.isAdmin || false;
-          showToast("Workspace Authenticated!", true);
-          document.getElementById('entry-screen').style.display = 'none';
-          document.getElementById('app-container').style.display = 'flex';
-          
-          if(isAdminUser) {
-            document.getElementById('nav-admin').style.display = 'flex';
-            loadAdminKeys();
-          }
-
-          setTimeout(initLuckysheetEngine, 100);
-          loadPracticeSheets();
-        } else {
-          showToast(data.error || "Authentication Failed", false);
-        }
-      });
-    }
-
-    function initLuckysheetEngine() {
-      if (luckysheetInitialized) {
-        if(window.luckysheet) luckysheet.resize();
-        return;
-      }
-
-      luckysheet.create({
-        container: 'luckysheet',
-        title: 'CareerBoot Practice Canvas',
-        lang: 'en',
-        showtoolbar: true,
-        showinfobar: false,
-        showsheetbar: true,
-        allowEdit: true,
-        data: [{ 
-          "name": "Practice Sheet 1", 
-          "status": "1", 
-          "data": [
-            [{"v":"Product ID"},{"v":"Category"},{"v":"Units Sold"},{"v":"Revenue INR"}],
-            [{"v":"CB-101"},{"v":"Software"},{"v":120},{"v":240000}],
-            [{"v":"CB-102"},{"v":"Hardware"},{"v":45},{"v":135000}]
-          ] 
-        }]
-      });
-
-      luckysheetInitialized = true;
-      window.addEventListener('resize', function() {
-        if (window.luckysheet) luckysheet.resize();
-      });
-    }
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
-      
-      document.getElementById(tabId).classList.add('active');
-      document.getElementById('nav-' + tabId).classList.add('active');
-
-      const titles = {
-        'live-excel': 'Practice Sheet Canvas',
-        'ai-trainer': 'CareerBoot AI Master Trainer',
-        'sheets': 'Practice Content Library',
-        'admin': 'Master Administrative Suite'
-      };
-      document.getElementById('active-tab-title').innerText = titles[tabId] || 'Workspace';
-
-      if (tabId === 'live-excel' && window.luckysheet) {
-        setTimeout(function() { luckysheet.resize(); }, 150);
-      }
-    }
-
-    function importLocalExcel(input) {
-      var file = input.files[0];
-      if (!file) return;
-
-      var reader = new FileReader();
-      reader.onload = function(e) {
-        var data = new Uint8Array(e.target.result);
-        var workbook = XLSX.read(data, { type: 'array' });
-        
-        var sheetsData = [];
-        workbook.SheetNames.forEach(function(name, index) {
-          var worksheet = workbook.Sheets[name];
-          var jsonArr = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-          
-          var celldata = [];
-          for (var r = 0; r < jsonArr.length; r++) {
-            if(!jsonArr[r]) continue;
-            for (var c = 0; c < jsonArr[r].length; c++) {
-              if (jsonArr[r][c] !== undefined && jsonArr[r][c] !== null) {
-                celldata.push({ r: r, c: c, v: { v: jsonArr[r][c], m: String(jsonArr[r][c]) } });
-              }
-            }
-          }
-
-          sheetsData.push({ name: name, status: index === 0 ? "1" : "0", celldata: celldata });
-        });
-
-        luckysheet.destroy();
-        luckysheet.create({ container: 'luckysheet', title: file.name, data: sheetsData });
-        switchTab('live-excel');
-        showToast("Workbook imported successfully!", true);
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    function loadSheetToCanvas(sheetId) {
-      fetch('/api/practice-sheets/data/' + sheetId)
-        .then(res => res.json())
-        .then(data => {
-          if(data.success && data.fileData) {
-            var binaryStr = atob(data.fileData);
-            var bytes = new Uint8Array(binaryStr.length);
-            for (var i = 0; i < binaryStr.length; i++) {
-              bytes[i] = binaryStr.charCodeAt(i);
-            }
+    <!-- PAGE 1: LOGIN -->
+    <div id="page1" class="page active">
+        <div class="login-top">
+            <div class="brand-logo">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="13"></line><line x1="8" y1="17" x2="16" y2="17"></line></svg>
+                CareerBoot
+            </div>
+            <div class="welcome-text">MS Excel AI Trainer Access Portal</div>
             
-            var workbook = XLSX.read(bytes.buffer, { type: 'array' });
-            var sheetsData = [];
-            workbook.SheetNames.forEach(function(name, index) {
-              var worksheet = workbook.Sheets[name];
-              var jsonArr = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
-              
-              var celldata = [];
-              for (var r = 0; r < jsonArr.length; r++) {
-                if(!jsonArr[r]) continue;
-                for (var c = 0; c < jsonArr[r].length; c++) {
-                  if (jsonArr[r][c] !== undefined && jsonArr[r][c] !== null) {
-                    celldata.push({ r: r, c: c, v: { v: jsonArr[r][c], m: String(jsonArr[r][c]) } });
-                  }
-                }
-              }
-              sheetsData.push({ name: name, status: index === 0 ? "1" : "0", celldata: celldata });
-            });
-
-            luckysheet.destroy();
-            luckysheet.create({ container: 'luckysheet', title: data.fileName, data: sheetsData });
-            switchTab('live-excel');
-            showToast("Template loaded into Excel Canvas!", true);
-          }
-        });
-    }
-
-    function exportToExcel() {
-      if(!window.luckysheet) return;
-      var sheetData = luckysheet.getluckysheetfile();
-      var wb = XLSX.utils.book_new();
-      sheetData.forEach(function(sheet) {
-        var arr = luckysheet.gettransdata(sheet.data);
-        var ws = XLSX.utils.aoa_to_sheet(arr);
-        XLSX.utils.book_append_sheet(wb, ws, sheet.name);
-      });
-      XLSX.writeFile(wb, "CareerBoot_Export.xlsx");
-    }
-
-    function handleFileSelect(input) {
-      var fileNameSpan = document.getElementById('selectedFileName');
-      if (input.files && input.files[0]) {
-        fileNameSpan.innerText = "Attachment: " + input.files[0].name;
-        fileNameSpan.style.display = "block";
-      } else {
-        fileNameSpan.style.display = "none";
-      }
-    }
-
-    function usePrompt(text) {
-      document.getElementById('userInput').value = text;
-      sendQuery();
-    }
-
-    async function sendQuery() {
-      var input = document.getElementById('userInput');
-      var fileInput = document.getElementById('chatFileInput');
-      var text = input.value.trim();
-      var file = fileInput.files[0];
-      if (!text && !file) return;
-
-      appendMsg(text || '[Attached Image/File]', 'user');
-      input.value = '';
-      fileInput.value = '';
-      document.getElementById('selectedFileName').style.display = 'none';
-
-      var loadingId = appendMsg("CareerBoot AI is thinking...", 'bot');
-
-      var formData = new FormData();
-      formData.append('userKey', currentActiveKey);
-      if (text) formData.append('text', text);
-      if (file) formData.append('file', file);
-
-      try {
-        var res = await fetch('/api/chat', { method: 'POST', body: formData });
-        var data = await res.json();
-        
-        var loadingElem = document.getElementById(loadingId);
-        if(loadingElem) loadingElem.remove();
-
-        if (data.success) appendMsg(data.answer, 'bot');
-        else appendMsg("Error: " + data.error, 'bot');
-      } catch (err) {
-        var loadingElem = document.getElementById(loadingId);
-        if(loadingElem) loadingElem.remove();
-        appendMsg("Connection error to server.", 'bot');
-      }
-    }
-
-    function appendMsg(msg, sender) {
-      var chat = document.getElementById('chat');
-      var div = document.createElement('div');
-      var msgId = 'msg-' + Date.now() + '-' + Math.random().toString(36).substr(2, 5);
-      div.id = msgId;
-      div.className = 'msg ' + sender;
-      div.innerHTML = msg.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
-      chat.appendChild(div);
-      chat.scrollTop = chat.scrollHeight;
-      return msgId;
-    }
-
-    function loadPracticeSheets() {
-      fetch('/api/practice-sheets')
-        .then(res => res.json())
-        .then(data => {
-          if(data.success) {
-            var container = document.getElementById('sheetsContainer');
-            container.innerHTML = '';
-            if(data.sheets.length === 0) {
-              container.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">No practice templates found.</p>';
-              return;
-            }
-            data.sheets.forEach(s => {
-              container.innerHTML += \`
-                <div class="sheet-card">
-                  <h4>\${s.title}</h4>
-                  <p style="color:var(--accent-blue); font-weight:600;">\${s.category}</p>
-                  <p>\${s.description || 'Practice worksheet designed to improve data analytics skills.'}</p>
-                  <div style="display:flex; gap:8px; margin-top:auto;">
-                    <button class="load-canvas-btn" style="flex:1;" onclick="loadSheetToCanvas('\${s._id}')"><i class="fa-solid fa-play"></i> Open in Excel</button>
-                    <a class="download-btn" style="flex:1;" href="/api/practice-sheets/download/\${s._id}"><i class="fa-solid fa-download"></i> Download</a>
-                  </div>
+            <div class="tracker-wrapper">
+                <div class="walker-avatar" id="walker">🚶</div>
+                <div class="tracker-line">
+                    <div class="tracker-progress" id="progressBar"></div>
                 </div>
-              \`;
-            });
-          }
-        });
-    }
+                <div class="tracker-labels">
+                    <span>Interest</span>
+                    <span>Success</span>
+                </div>
+            </div>
+        </div>
 
-    function generateKey() {
-      var key = document.getElementById('newKeyVal').value.trim();
-      var label = document.getElementById('newKeyLabel').value.trim();
-      var isMultiDevice = document.getElementById('newKeyMulti').value === "true";
-      
-      if(!key) return showToast("Provide an Access Key string.", false);
+        <div class="login-middle">
+            <div class="key-box">
+                <input type="password" id="secretKey" class="input-key" placeholder="Enter Secret Access Key" autocomplete="off">
+                <button class="btn-unlock" onclick="executeUnlockProcess()">Unlock</button>
+            </div>
+        </div>
 
-      fetch('/api/admin/create-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminKey: currentActiveKey, key, label, isMultiDevice })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          showToast("Access Key Created!", true);
-          document.getElementById('newKeyVal').value = '';
-          document.getElementById('newKeyLabel').value = '';
-          loadAdminKeys();
-        } else showToast(data.error, false);
-      });
-    }
+        <div class="login-bottom">
+            <div id="lottieContainer" class="typing-anim-container"></div>
+            <div id="statusBadge" class="status-badge"></div>
+        </div>
+    </div>
 
-    function uploadAdminSheet() {
-      var title = document.getElementById('sheetTitle').value.trim();
-      var category = document.getElementById('sheetCategory').value.trim();
-      var fileInput = document.getElementById('adminSheetFile');
-      var file = fileInput.files[0];
+    <!-- PAGE 2: USER AI CHAT -->
+    <div id="page2" class="page">
+        <div class="chat-header">
+            <div class="chat-title">CareerBoot Excel AI Trainer</div>
+            <div class="chat-actions">
+                <button class="icon-btn" onclick="fetchHistory()" title="History">📜</button>
+                <button class="icon-btn" onclick="openDrawer()" title="Menu">|||</button>
+            </div>
+        </div>
 
-      if (!title || !file) return showToast("Title and file required.", false);
+        <div class="chat-body" id="chatBody">
+            <div class="chat-bubble model">Hello! I am your CareerBoot MS Excel AI Trainer. Ask me anything about Excel formulas, keyboard shortcuts, or data analysis!</div>
+        </div>
 
-      var formData = new FormData();
-      formData.append('adminKey', currentActiveKey);
-      formData.append('title', title);
-      formData.append('category', category);
-      formData.append('sheet', file);
+        <div class="pinned-bar">
+            <button class="chip-btn" onclick="sendQuickQuery('List all important shortcut keys in MS Excel')">Shortcut Keys</button>
+            <button class="chip-btn" onclick="sendQuickQuery('List all essential Excel formulas with examples')">All Formulas</button>
+            <button class="chip-btn" onclick="sendQuickQuery('What is VLOOKUP and how do I use it with examples?')">What is VLOOKUP</button>
+        </div>
 
-      fetch('/api/admin/upload-sheet', { method: 'POST', body: formData })
-        .then(res => res.json())
-        .then(data => {
-          if(data.success) {
-            showToast("Practice Template Uploaded!", true);
-            loadPracticeSheets();
-          } else showToast(data.error, false);
-        });
-    }
+        <div class="chat-input-container">
+            <input type="file" id="fileAttach" hidden accept="image/*,.xlsx,.xls,.csv">
+            <button class="icon-btn" onclick="document.getElementById('fileAttach').click()">📁</button>
+            <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel question..." onkeypress="handleKeyPress(event)">
+            <button class="icon-btn" onclick="startVoiceRecognition()">🎤</button>
+            <button class="btn-unlock" onclick="processUserQuery()" style="padding: 10px 16px;">Send</button>
+        </div>
+    </div>
 
-    function loadAdminKeys() {
-      fetch('/api/admin/keys', { headers: { 'Authorization': currentActiveKey } })
-        .then(res => res.json())
-        .then(data => {
-          if(data.success) {
-            var list = document.getElementById('keysList');
-            list.innerHTML = '';
-            data.keys.forEach(k => {
-              list.innerHTML += \`
-                <div style="background:var(--bg-dark); padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:12px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border-color);">
-                  <div>
-                    <span style="font-weight:700; color:var(--accent-blue);">\${k.key}</span> 
-                    <span style="color:var(--text-muted);">(\${k.label})</span>
-                  </div>
-                  <div>
-                    <span style="margin-right:10px; color:\${k.boundSessionId ? '#ef4444' : '#10b981'}; font-weight:700;">
-                      \${k.boundSessionId ? 'LOCKED' : 'UNLOCKED'}
-                    </span>
-                    \${k.boundSessionId ? \`<button class="action-btn" style="padding:4px 8px; font-size:11px;" onclick="resetKeyLock('\${k._id}')">Release Lock</button>\` : ''}
-                  </div>
-                </div>\`;
-            });
-          }
-        });
-    }
+    <!-- PAGE 3: DRAWER PAGE -->
+    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+    <div class="drawer-menu" id="drawerMenu">
+        <h3 style="color: var(--primary);">Options</h3>
+        <button class="btn-unlock" onclick="downloadPracticeSheet()" style="width: 100%;">Download Practice Sheet</button>
+        <button class="btn-unlock" onclick="closeDrawer()" style="background: #334155; margin-top: auto;">Close</button>
+    </div>
 
-    function resetKeyLock(keyId) {
-      fetch('/api/admin/reset-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminKey: currentActiveKey, keyId })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if(data.success) {
-          showToast("Device Lock Released!", true);
-          loadAdminKeys();
+    <!-- ADMIN DASHBOARD PAGE -->
+    <div id="adminPage" class="page" style="padding: 20px; overflow-y: auto;">
+        <h2 style="color: var(--primary); margin-bottom: 20px;">Admin Control Panel</h2>
+        
+        <div style="background: var(--card-dark); padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+            <h4>Create Access Key</h4>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <input type="text" id="newKeyInput" class="chat-input" placeholder="Enter New Key Name">
+                <button class="btn-unlock" onclick="adminCreateKey()">Create</button>
+            </div>
+        </div>
+
+        <div style="background: var(--card-dark); padding: 20px; border-radius: 12px; margin-bottom: 16px;">
+            <h4>Revoke Access Key</h4>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+                <input type="text" id="revokeKeyInput" class="chat-input" placeholder="Enter Key to Delete">
+                <button class="btn-unlock" onclick="adminDeleteKey()" style="background: #ef4444;">Delete</button>
+            </div>
+        </div>
+
+        <div style="background: var(--card-dark); padding: 20px; border-radius: 12px;">
+            <h4>Upload Practice Sheet (.xlsx)</h4>
+            <input type="file" id="adminSheetFile" style="margin-top: 10px; font-size: 12px;">
+            <button class="btn-unlock" onclick="adminUploadSheet()" style="margin-top: 12px; width: 100%;">Upload Sheet</button>
+        </div>
+    </div>
+
+    <!-- SYSTEM MODAL POPUP -->
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal-box">
+            <p id="modalMessage" style="font-size: 14px; color: var(--text-main); margin-bottom: 16px;"></p>
+            <button class="btn-unlock" onclick="closeModal()" style="width: 100%;">OK</button>
+        </div>
+    </div>
+
+    <script>
+        // Production System Core Logic
+        let jwtToken = localStorage.getItem('jwt_token') || null;
+
+        // Generate Persistent Browser Signature
+        function getDeviceSignature() {
+            let sig = localStorage.getItem('cb_device_sig');
+            if(!sig) {
+                sig = 'CB-' + Math.random().toString(36).substring(2) + '-' + Date.now();
+                localStorage.setItem('cb_device_sig', sig);
+            }
+            return sig;
         }
-      });
-    }
-  </script>
+
+        // Initialize Progress Animation
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.getElementById('walker').style.left = '35%';
+                document.getElementById('progressBar').style.width = '35%';
+            }, 300);
+            
+            // Render High Quality Character Typing Lottie
+            bodymovin.loadAnimation({
+                container: document.getElementById('lottieContainer'),
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                path: 'https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json' // Premium Typing Developer Lottie
+            });
+        });
+
+        function showNotification(msg) {
+            document.getElementById('modalMessage').innerText = msg;
+            document.getElementById('modalOverlay').style.display = 'flex';
+        }
+        function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+        // Unlock Login Action with 3sec Animation Transition
+        async function executeUnlockProcess() {
+            const key = document.getElementById('secretKey').value.trim();
+            if(!key) return showNotification("Please enter a valid secret key!");
+
+            const statusBadge = document.getElementById('statusBadge');
+            const lottieContainer = document.getElementById('lottieContainer');
+
+            statusBadge.style.display = 'none';
+            lottieContainer.style.display = 'block';
+
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key, deviceSignature: getDeviceSignature() })
+                });
+
+                const data = await res.json();
+
+                // 3 Seconds Delay to complete Stand-Up / Hand Result Animation
+                setTimeout(() => {
+                    lottieContainer.style.display = 'none';
+                    statusBadge.style.display = 'block';
+
+                    if(data.success) {
+                        statusBadge.innerText = '👍🏻';
+                        jwtToken = data.token;
+                        localStorage.setItem('jwt_token', jwtToken);
+
+                        setTimeout(() => {
+                            document.getElementById('page1').classList.remove('active');
+                            if(data.role === 'admin') {
+                                document.getElementById('adminPage').classList.add('active');
+                            } else {
+                                document.getElementById('page2').classList.add('active');
+                            }
+                        }, 1000);
+                    } else {
+                        statusBadge.innerText = '🙅‍♂️';
+                        setTimeout(() => { showNotification(data.message); }, 500);
+                    }
+                }, 2500);
+
+            } catch (err) {
+                showNotification("Network Connection Error");
+            }
+        }
+
+        // Chat Handlers
+        async function processUserQuery() {
+            const input = document.getElementById('userInput');
+            const fileInput = document.getElementById('fileAttach');
+            const chatBody = document.getElementById('chatBody');
+
+            const query = input.value.trim();
+            if(!query && !fileInput.files[0]) return;
+
+            if(query) {
+                chatBody.innerHTML += \`<div class="chat-bubble user">\${query}</div>\`;
+            }
+
+            const formData = new FormData();
+            if(query) formData.append('message', query);
+            if(fileInput.files[0]) formData.append('file', fileInput.files[0]);
+
+            input.value = '';
+            fileInput.value = '';
+            chatBody.scrollTop = chatBody.scrollHeight;
+
+            try {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Authorization': 'Bearer ' + jwtToken },
+                    body: formData
+                });
+                const data = await res.json();
+                chatBody.innerHTML += \`<div class="chat-bubble model">\${data.reply}</div>\`;
+                chatBody.scrollTop = chatBody.scrollHeight;
+            } catch (err) {
+                chatBody.innerHTML += \`<div class="chat-bubble model">Failed to fetch response. Check connection.</div>\`;
+            }
+        }
+
+        function handleKeyPress(e) { if(e.key === 'Enter') processUserQuery(); }
+        function sendQuickQuery(text) { document.getElementById('userInput').value = text; processUserQuery(); }
+
+        // Speech Recognition Integration
+        function startVoiceRecognition() {
+            if(!('webkitSpeechRecognition' in window)) return showNotification("Speech Recognition not supported on this browser.");
+            const recognition = new webkitSpeechRecognition();
+            recognition.lang = 'en-US';
+            recognition.onresult = (e) => {
+                document.getElementById('userInput').value = e.results[0][0].transcript;
+            };
+            recognition.start();
+        }
+
+        // Drawer Actions
+        function openDrawer() {
+            document.getElementById('drawerOverlay').style.display = 'block';
+            document.getElementById('drawerMenu').classList.add('open');
+        }
+        function closeDrawer() {
+            document.getElementById('drawerOverlay').style.display = 'none';
+            document.getElementById('drawerMenu').classList.remove('open');
+        }
+
+        async function downloadPracticeSheet() {
+            window.open('/api/download-sheet?token=' + jwtToken, '_blank');
+        }
+
+        async function fetchHistory() {
+            const res = await fetch('/api/chat-history', {
+                headers: { 'Authorization': 'Bearer ' + jwtToken }
+            });
+            const data = await res.json();
+            if(data.success) {
+                const chatBody = document.getElementById('chatBody');
+                chatBody.innerHTML = '';
+                data.history.forEach(item => {
+                    chatBody.innerHTML += \`<div class="chat-bubble \${item.role}">\${item.message}</div>\`;
+                });
+            }
+        }
+
+        // Admin Panel Functions
+        async function adminCreateKey() {
+            const newKey = document.getElementById('newKeyInput').value.trim();
+            const res = await fetch('/api/admin/create-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
+                body: JSON.stringify({ newKey })
+            });
+            const data = await res.json();
+            showNotification(data.message);
+        }
+
+        async function adminDeleteKey() {
+            const key = document.getElementById('revokeKeyInput').value.trim();
+            const res = await fetch('/api/admin/delete-key', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
+                body: JSON.stringify({ key })
+            });
+            const data = await res.json();
+            showNotification(data.message);
+        }
+
+        async function adminUploadSheet() {
+            const file = document.getElementById('adminSheetFile').files[0];
+            if(!file) return showNotification("Select a file first");
+            const formData = new FormData();
+            formData.append('sheet', file);
+
+            const res = await fetch('/api/admin/upload-sheet', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + jwtToken },
+                body: formData
+            });
+            const data = await res.json();
+            showNotification(data.message);
+        }
+    </script>
 </body>
-</html>`);
+</html>
+    `);
 });
 
-const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`[SERVER ACTIVE] CareerBoot Enterprise Engine running on port ${PORT}`));
+app.listen(PORT, () => console.log(`CareerBoot Server active on port ${PORT}`));
