@@ -624,7 +624,7 @@ app.get('*', (req, res) => {
       var chat = document.getElementById('chat');
       var div = document.createElement('div');
       div.className = 'msg ' + sender;
-      div.innerHTML = msg.replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>');
+      div.innerHTML = msg.replace(/\`\`\`([\\s\\S]*?)\`\`\`/g, '<pre><code>$1</code></pre>');
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
@@ -637,14 +637,14 @@ app.get('*', (req, res) => {
             var container = document.getElementById('sheetsContainer');
             container.innerHTML = '';
             data.sheets.forEach(s => {
-              container.innerHTML += `
+              container.innerHTML += \`
                 <div class="sheet-card">
-                  <h4>${s.title}</h4>
-                  <p>Category: ${s.category}</p>
-                  <p>${s.description || 'Download practice template for hands-on learning.'}</p>
-                  <a class="download-btn" href="/api/practice-sheets/download/${s._id}"><i class="fa-solid fa-download"></i> Download Practice Template</a>
+                  <h4>\${s.title}</h4>
+                  <p>Category: \${s.category}</p>
+                  <p>\${s.description || 'Download practice template for hands-on learning.'}</p>
+                  <a class="download-btn" href="/api/practice-sheets/download/\${s._id}"><i class="fa-solid fa-download"></i> Download Practice Template</a>
                 </div>
-              `;
+              \`;
             });
           }
         });
@@ -705,19 +705,19 @@ app.get('*', (req, res) => {
             var list = document.getElementById('keysList');
             list.innerHTML = '';
             data.keys.forEach(k => {
-              list.innerHTML += `
+              list.innerHTML += \`
                 <div style="background:var(--bg-dark); padding:10px 14px; margin-bottom:8px; border-radius:8px; font-size:12px; display:flex; justify-content:space-between; align-items:center; border: 1px solid var(--border-color);">
                   <div>
-                    <span style="font-weight:700; color:var(--accent-blue);">${k.key}</span> 
-                    <span style="color:var(--text-muted);">(${k.label})</span>
+                    <span style="font-weight:700; color:var(--accent-blue);">\${k.key}</span> 
+                    <span style="color:var(--text-muted);">(\${k.label})</span>
                   </div>
                   <div>
-                    <span style="margin-right:10px; color:${k.boundSessionId ? '#ef4444' : '#10b981'}; font-weight:700;">
-                      ${k.boundSessionId ? 'LOCKED TO DEVICE' : 'UNLOCKED'}
+                    <span style="margin-right:10px; color:\${k.boundSessionId ? '#ef4444' : '#10b981'}; font-weight:700;">
+                      \${k.boundSessionId ? 'LOCKED TO DEVICE' : 'UNLOCKED'}
                     </span>
-                    ${k.boundSessionId ? `<button class="action-btn" style="padding:4px 8px; font-size:11px;" onclick="resetKeyLock('${k._id}')">Release Lock</button>` : ''}
+                    \${k.boundSessionId ? \`<button class="action-btn" style="padding:4px 8px; font-size:11px;" onclick="resetKeyLock('\${k._id}')">Release Lock</button>\` : ''}
                   </div>
-                </div>`;
+                </div>\`;
             });
           }
         });
