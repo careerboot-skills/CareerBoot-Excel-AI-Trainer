@@ -8,7 +8,7 @@ const multer = require('multer');
 
 const app = express();
 
-// --- CORS & SECURITY HEADERS FOR OAUTH & CROSS-ORIGIN POPUPS ---
+// --- CORS & SECURITY HEADERS FOR GOOGLE OAUTH POPUPS ---
 app.use(cors({
   origin: ['https://careerboot-excel-ai-trainer.onrender.com', 'http://localhost:10000', 'http://localhost:3000'],
   credentials: true
@@ -18,7 +18,7 @@ app.use(express.json());
 
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
-  res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+  res.setHeader('Cross-Origin-Embedder-Policy', 'unsafe-none');
   res.setHeader('Referrer-Policy', 'no-referrer-when-downgrade');
   next();
 });
@@ -143,6 +143,12 @@ app.get('/', (req, res) => {
       border-radius: 20px; padding: 40px; text-align: center; max-width: 440px; width: 100%;
       box-shadow: 0 25px 50px rgba(0,0,0,0.8);
     }
+    .g-btn-container {
+      margin-top: 20px;
+      display: flex;
+      justify-content: center;
+      min-height: 44px;
+    }
     
     #app-container { display: none; flex: 1; height: 100vh; flex-direction: row; }
     
@@ -187,19 +193,14 @@ app.get('/', (req, res) => {
       <h2 style="margin-bottom: 15px; color: #38bdf8;">CAREERBOOT EXCEL HUB</h2>
       <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Verification required to access Excel Platform.</p>
       
-      <div id="g_id_onload"
-           data-client_id="720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com"
-           data-callback="handleCredentialResponse"
-           data-auto_prompt="false"
-           data-context="signin">
-      </div>
-      <div class="g_id_signin" 
-           data-type="standard" 
-           data-shape="rectangular" 
-           data-theme="filled_blue" 
-           data-size="large"
-           data-text="sign_in_with"
-           data-logo_alignment="left">
+      <div class="g-btn-container">
+        <div id="g_id_onload"
+             data-client_id="720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com"
+             data-callback="handleCredentialResponse"
+             data-auto_select="false"
+             data-itp_support="true">
+        </div>
+        <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="filled_blue" data-size="large"></div>
       </div>
     </div>
   </div>
@@ -376,7 +377,7 @@ app.get('/', (req, res) => {
 Sub SaveSheetToPDF()
     Dim pdfPath As String
     pdfPath = Application.ActiveWorkbook.Path & "\\Report_" & Format(Now(), "YYYYMMDD") & ".pdf"
-    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfPath
+    ActiveSheet.ExportAsFixedFormat Type: = xlTypePDF, Filename: = pdfPath
     MsgBox "PDF Exported Successfully!", vbInformation
 End Sub
           </pre>
@@ -434,6 +435,19 @@ End Sub
   <script>
     var authenticatedUser = null;
     var luckysheetInitialized = false;
+
+    window.onload = function() {
+      if (window.google && google.accounts && google.accounts.id) {
+        google.accounts.id.initialize({
+          client_id: "720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com",
+          callback: handleCredentialResponse
+        });
+        google.accounts.id.renderButton(
+          document.querySelector(".g_id_signin"),
+          { theme: "filled_blue", size: "large", type: "standard" }
+        );
+      }
+    };
 
     function handleCredentialResponse(response) {
       if(!response || !response.credential) {
