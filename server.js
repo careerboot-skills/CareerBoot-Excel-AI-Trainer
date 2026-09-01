@@ -12,13 +12,7 @@ app.use(express.json());
 
 // --- 1. MONGODB CONNECTION & SCHEMAS ---
 const MONGO_URI = process.env.MONGO_URI;
-if (MONGO_URI) {
-  mongoose.connect(MONGO_URI)
-    .then(() => console.log("MongoDB Atlas Connected Successfully"))
-    .catch(err => console.error("MongoDB Connection Error:", err));
-} else {
-  console.warn("WARNING: MONGO_URI environment variable missing.");
-}
+const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || "T-FOR-TOPA/420";
 
 const keySchema = new mongoose.Schema({
   key: { type: String, required: true, unique: true },
@@ -47,10 +41,23 @@ const sheetSchema = new mongoose.Schema({
 });
 const PracticeSheet = mongoose.model('PracticeSheet', sheetSchema);
 
+if (MONGO_URI) {
+  mongoose.connect(MONGO_URI)
+    .then(async () => {
+      console.log("MongoDB Atlas Connected Successfully");
+      // Ensure Admin Passcode is valid as a Secret Key as well
+      await SecretKey.updateOne(
+        { key: ADMIN_PASSCODE.trim().toUpperCase() },
+        { $setOnInsert: { key: ADMIN_PASSCODE.trim().toUpperCase(), label: "Master Admin Access", isActive: true } },
+        { upsert: true }
+      );
+    })
+    .catch(err => console.error("MongoDB Connection Error:", err));
+}
+
 // --- 2. CONFIGURATION ---
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const upload = multer({ storage: multer.memoryStorage() });
-const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || "t-for-topa/420";
 
 function generateRandomKey() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -65,11 +72,17 @@ function generateRandomKey() {
 app.post('/api/auth/key-login', async (req, res) => {
   const { secretKey, sessionId } = req.body;
   if (!secretKey || !sessionId) {
-    return res.status(400).json({ success: false, error: "Secret Key and Session Identification are required." });
+    return res.status(400).json({ success: false, error: "Secret Key and Session ID are required." });
   }
 
   try {
     const formattedKey = secretKey.trim().toUpperCase();
+    
+    // Check if it matches Admin Passcode directly
+    if (formattedKey === ADMIN_PASSCODE.trim().toUpperCase()) {
+      return res.json({ success: true, userKey: formattedKey, label: "Master Admin Access", isAdmin: true });
+    }
+
     const foundKey = await SecretKey.findOne({ key: formattedKey, isActive: true });
 
     if (!foundKey) {
@@ -177,15 +190,12 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
     const { userKey, text } = req.body;
     if (!userKey) return res.status(401).json({ success: false, error: "Unauthorized Access" });
 
-    const validKey = await SecretKey.findOne({ key: userKey, isActive: true });
-    if (!validKey) return res.status(401).json({ success: false, error: "Invalid Key Session." });
-
     if (mongoose.connection.readyState === 1) {
       await Chat.create({ userKey, message: text || '[File Attached]', sender: 'user' });
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    let systemInstruction = "You are CareerBoot AI Excel Trainer. Provide comprehensive, structured Excel resources. If user requests shortcuts or formulas, output them clearly formatted inside Markdown Code Blocks categorization from A to Z (Basic to Advanced).";
+    let systemInstruction = "You are CareerBoot AI Excel Trainer. Provide comprehensive, structured Excel resources inside Markdown Code Blocks.";
 
     let promptContents = [systemInstruction];
     if (text) promptContents.push(text);
@@ -209,164 +219,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
   }
 });
 
-// --- 6. ADMIN UI FRONTEND (/admin) ---
-app.get('/admin', (req, res) => {
-  const htmlContent = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Admin Dashboard - CareerBoot Excel Hub</title>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;800&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; font-family: 'Plus Jakarta Sans', sans-serif; margin: 0; padding: 0; }
-    body { background: #070d19; color: #fff; padding: 30px 20px; display: flex; justify-content: center; }
-    .admin-card { background: #0f172a; border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; width: 100%; max-width: 850px; padding: 30px; }
-    h2 { color: #38bdf8; margin-bottom: 20px; text-align: center; }
-    .form-group { display: flex; gap: 10px; margin-bottom: 20px; }
-    input { background: #070d19; border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 12px; border-radius: 8px; flex: 1; outline: none; }
-    button { background: #0284c7; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-    th, td { padding: 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
-    th { background: #1e293b; color: #38bdf8; }
-    .status-active { color: #10b981; font-weight: bold; }
-    .status-inactive { color: #ef4444; font-weight: bold; }
-    .status-bound { color: #f59e0b; font-weight: bold; }
-    .btn-sm { padding: 6px 10px; font-size: 11px; margin-right: 4px; border-radius: 4px; }
-    .section-title { margin-top: 30px; margin-bottom: 10px; color: #38bdf8; font-size: 16px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); padding-bottom: 6px; }
-  </style>
-</head>
-<body>
-  <div class="admin-card">
-    <h2>CAREERBOOT ADMIN CONTROL PANEL</h2>
-    <div class="form-group" id="auth-box">
-      <input type="password" id="adminCode" placeholder="Enter Admin Passcode">
-      <button onclick="authenticateAdmin()">Login as Admin</button>
-    </div>
-    <div id="admin-controls" style="display: none;">
-      <div class="section-title">1. Secret Key Management</div>
-      <div class="form-group">
-        <input type="text" id="keyLabel" placeholder="Candidate Name / Description">
-        <button onclick="generateKey()">Generate Secret Key</button>
-      </div>
-      <table>
-        <thead>
-          <tr><th>Secret Key</th><th>Label</th><th>Status</th><th>Bound Device</th><th>Actions</th></tr>
-        </thead>
-        <tbody id="keys-list"></tbody>
-      </table>
-
-      <div class="section-title">2. Upload Practice Sheets</div>
-      <form id="uploadForm" class="form-group" style="flex-direction: column;">
-        <input type="text" id="sheetTitle" placeholder="Sheet Title">
-        <input type="text" id="sheetCategory" placeholder="Category">
-        <input type="file" id="sheetFile" accept=".xlsx,.xls,.csv" required>
-        <button type="button" onclick="uploadSheet()">Upload Template Sheet</button>
-      </form>
-    </div>
-  </div>
-
-  <script>
-    function authenticateAdmin() {
-      const adminCode = document.getElementById('adminCode').value;
-      fetch('/api/admin/keys', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode: adminCode })
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if(data.success) {
-          document.getElementById('auth-box').style.display = 'none';
-          document.getElementById('admin-controls').style.display = 'block';
-          renderTable(data.keys);
-        } else { alert("Error: " + data.error); }
-      });
-    }
-
-    function generateKey() {
-      const adminCode = document.getElementById('adminCode').value;
-      const label = document.getElementById('keyLabel').value;
-      fetch('/api/admin/generate-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode: adminCode, label: label })
-      })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if(data.success) {
-          document.getElementById('keyLabel').value = '';
-          authenticateAdmin();
-        } else alert(data.error);
-      });
-    }
-
-    function toggleKey(keyId) {
-      const adminCode = document.getElementById('adminCode').value;
-      fetch('/api/admin/toggle-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode: adminCode, keyId: keyId })
-      }).then(function() { authenticateAdmin(); });
-    }
-
-    function unbindSession(keyId) {
-      const adminCode = document.getElementById('adminCode').value;
-      fetch('/api/admin/reset-session', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminCode: adminCode, keyId: keyId })
-      }).then(function() { authenticateAdmin(); });
-    }
-
-    function uploadSheet() {
-      const adminCode = document.getElementById('adminCode').value;
-      const title = document.getElementById('sheetTitle').value;
-      const category = document.getElementById('sheetCategory').value;
-      const fileInput = document.getElementById('sheetFile');
-      if (!fileInput.files[0]) return alert("Please select a file.");
-
-      const formData = new FormData();
-      formData.append('adminCode', adminCode);
-      formData.append('title', title);
-      formData.append('category', category);
-      formData.append('sheetFile', fileInput.files[0]);
-
-      fetch('/api/admin/upload-sheet', { method: 'POST', body: formData })
-      .then(function(res) { return res.json(); })
-      .then(function(data) {
-        if (data.success) {
-          alert("Practice Sheet Uploaded!");
-          document.getElementById('sheetTitle').value = '';
-          document.getElementById('sheetCategory').value = '';
-          fileInput.value = '';
-        } else alert("Upload Failed: " + data.error);
-      });
-    }
-
-    function renderTable(keys) {
-      const tbody = document.getElementById('keys-list');
-      tbody.innerHTML = '';
-      keys.forEach(function(k) {
-        const tr = document.createElement('tr');
-        const boundStatus = k.boundSessionId ? '<span class="status-bound">Bound</span>' : 'Unbound';
-        tr.innerHTML = '<td><b style="color:#38bdf8">' + k.key + '</b></td>' +
-          '<td>' + k.label + '</td>' +
-          '<td class="' + (k.isActive ? 'status-active' : 'status-inactive') + '">' + (k.isActive ? 'Active' : 'Disabled') + '</td>' +
-          '<td>' + boundStatus + '</td>' +
-          '<td>' +
-            '<button class="btn-sm" style="background:#334155;" onclick="toggleKey(\'' + k._id + '\')">' + (k.isActive ? 'Disable' : 'Enable') + '</button>' +
-            '<button class="btn-sm" style="background:#0284c7;" onclick="unbindSession(\'' + k._id + '\')">Reset Device</button>' +
-          '</td>';
-        tbody.appendChild(tr);
-      });
-    }
-  </script>
-</body>
-</html>`;
-  res.send(htmlContent);
-});
-
-// --- 7. MAIN USER APPLICATION UI (/) ---
+// --- 6. MAIN APPLICATION & FRONTEND UI ---
 app.get('/', (req, res) => {
   const userHtml = `<!DOCTYPE html>
 <html lang="en">
@@ -386,31 +239,40 @@ app.get('/', (req, res) => {
 
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
-    body, html { height: 100%; background: #070d19; color: #fff; overflow: hidden; }
+    body, html { height: 100%; background: #070d19; color: #fff; overflow-x: hidden; }
+
+    #toast-notification {
+      position: fixed; top: 20px; right: 20px; z-index: 9999;
+      background: rgba(15, 23, 42, 0.95); border: 1px solid #ef4444; color: #fff;
+      padding: 14px 22px; border-radius: 12px; font-size: 13px; font-weight: 600;
+      box-shadow: 0 10px 25px rgba(239, 68, 68, 0.25); display: none; align-items: center; gap: 10px;
+      backdrop-filter: blur(10px); transition: 0.3s ease;
+    }
+    #toast-notification.success { border-color: #10b981; box-shadow: 0 10px 25px rgba(16, 185, 129, 0.25); }
 
     #entry-screen {
-      height: 100vh; width: 100vw; display: flex; flex-direction: column;
+      min-height: 100vh; width: 100vw; display: flex; flex-direction: column;
       background: linear-gradient(135deg, #070d19 0%, #0f172a 100%);
     }
 
     .entry-top {
-      height: 35vh; padding: 20px 40px; display: flex; align-items: center; justify-content: space-between;
-      border-bottom: 1px solid rgba(56, 189, 248, 0.15); position: relative; overflow: hidden;
+      padding: 35px 20px 20px 20px; display: flex; flex-direction: column; align-items: center;
+      text-align: center; border-bottom: 1px solid rgba(56, 189, 248, 0.15); width: 100%;
     }
-    .branding-box { display: flex; flex-direction: column; gap: 8px; max-width: 45%; z-index: 2; }
-    .brand-svg { width: 220px; height: auto; }
-    .welcome-note { color: #94a3b8; font-size: 14px; line-height: 1.5; }
+    .branding-box { display: flex; flex-direction: column; align-items: center; gap: 10px; max-width: 600px; width: 100%; }
+    .brand-svg { width: 240px; height: auto; }
+    .welcome-note { color: #94a3b8; font-size: 14px; line-height: 1.6; text-align: center; margin-bottom: 25px; }
 
     .walk-animation-container {
-      width: 50%; height: 100%; display: flex; align-items: center; justify-content: space-around;
-      position: relative; z-index: 2;
+      width: 100%; max-width: 450px; display: flex; align-items: center; justify-content: space-between;
+      position: relative; margin-top: 10px; padding: 0 10px;
     }
-    .stage-node { text-align: center; font-size: 12px; font-weight: 700; color: #38bdf8; }
+    .stage-node { text-align: center; font-size: 11px; font-weight: 800; color: #38bdf8; letter-spacing: 1px; }
     .path-line { flex: 1; height: 3px; background: linear-gradient(90deg, #38bdf8, #10b981); margin: 0 15px; position: relative; border-radius: 2px; }
 
     .walker-icon {
-      position: absolute; top: -20px; left: 0%; transform: translateX(-50%);
-      font-size: 24px; color: #38bdf8; animation: walkAlong 6s infinite ease-in-out;
+      position: absolute; top: -18px; left: 0%; transform: translateX(-50%);
+      font-size: 20px; color: #38bdf8; animation: walkAlong 6s infinite ease-in-out;
     }
     @keyframes walkAlong {
       0% { left: 0%; color: #38bdf8; }
@@ -419,86 +281,77 @@ app.get('/', (req, res) => {
     }
 
     .entry-middle {
-      height: 15vh; display: flex; justify-content: center; align-items: center;
+      padding: 30px 20px; display: flex; justify-content: center; align-items: center;
       background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(10px); border-bottom: 1px solid rgba(56, 189, 248, 0.15);
     }
-    .key-portal-form { display: flex; gap: 12px; width: 100%; max-width: 550px; padding: 0 20px; }
+    .key-portal-form { display: flex; gap: 12px; width: 100%; max-width: 500px; }
     .key-portal-input {
       flex: 1; background: #070d19; border: 1px solid rgba(56, 189, 248, 0.4);
-      color: #38bdf8; font-size: 15px; font-weight: 700; padding: 12px 18px; border-radius: 8px;
+      color: #38bdf8; font-size: 14px; font-weight: 700; padding: 14px 18px; border-radius: 10px;
       outline: none; text-transform: uppercase; letter-spacing: 2px; text-align: center;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
     }
     .key-portal-btn {
       background: linear-gradient(135deg, #0284c7, #0369a1); color: #fff; border: none;
-      padding: 12px 24px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.3s;
+      padding: 14px 24px; border-radius: 10px; font-weight: 700; cursor: pointer; transition: 0.3s;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.3);
     }
+    .key-portal-btn:hover { background: linear-gradient(135deg, #0369a1, #075985); }
 
-    .entry-bottom {
-      height: 50vh; padding: 24px 40px; display: flex; flex-direction: column; align-items: center; overflow-y: auto;
-    }
-    .bottom-title { color: #94a3b8; font-size: 13px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 18px; }
+    .entry-bottom { padding: 30px 20px; display: flex; flex-direction: column; align-items: center; }
+    .bottom-title { color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; font-weight: 700; }
     
-    .ecosystem-grid {
-      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; width: 100%; max-width: 1100px;
-    }
+    .ecosystem-grid { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 500px; }
     .eco-card {
       background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(56, 189, 248, 0.2);
       border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 14px;
     }
-    .eco-icon { width: 36px; height: 36px; fill: #38bdf8; }
-    .eco-text h4 { font-size: 13px; color: #fff; margin-bottom: 2px; }
-    .eco-text p { font-size: 11px; color: #64748b; }
+    .eco-icon { width: 32px; height: 32px; fill: #38bdf8; flex-shrink: 0; }
+    .eco-text h4 { font-size: 14px; color: #fff; margin-bottom: 2px; font-weight: 700; }
+    .eco-text p { font-size: 12px; color: #64748b; }
 
-    #app-container { display: none; flex: 1; height: 100vh; flex-direction: row; }
+    #app-container { display: none; height: 100vh; flex-direction: row; width: 100vw; }
     
     sidebar { width: 260px; background: #0f172a; border-right: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; }
-    .sidebar-header { padding: 20px; font-weight: 800; color: #38bdf8; font-size: 17px; border-bottom: 1px solid rgba(56, 189, 248, 0.1); }
-    .nav-links { list-style: none; padding: 15px 10px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; }
-    .nav-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; color: #94a3b8; display: flex; align-items: center; gap: 10px; font-size: 13px; transition: 0.2s; }
+    .sidebar-header { padding: 20px; font-weight: 800; color: #38bdf8; font-size: 16px; border-bottom: 1px solid rgba(56, 189, 248, 0.1); }
+    .nav-links { list-style: none; padding: 15px 10px; display: flex; flex-direction: column; gap: 6px; }
+    .nav-item { padding: 10px 14px; border-radius: 8px; cursor: pointer; color: #94a3b8; display: flex; align-items: center; gap: 10px; font-size: 13px; }
     .nav-item:hover, .nav-item.active { background: #0284c7; color: #fff; }
 
-    main { flex: 1; display: flex; flex-direction: column; background: #070d19; overflow-y: auto; }
+    main { flex: 1; display: flex; flex-direction: column; background: #070d19; overflow: hidden; }
     header { background: #0f172a; padding: 16px 24px; border-bottom: 1px solid rgba(56, 189, 248, 0.2); display: flex; justify-content: space-between; align-items: center; }
 
-    .tab-content { display: none; padding: 24px; height: 100%; }
-    .tab-content.active { display: flex; flex-direction: column; }
+    .tab-content { display: none; padding: 24px; height: 100%; flex-direction: column; }
+    .tab-content.active { display: flex; }
 
     .chat-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px; }
-    .msg { max-width: 85%; padding: 14px 18px; border-radius: 12px; font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+    .msg { max-width: 85%; padding: 14px 18px; border-radius: 12px; font-size: 14px; line-height: 1.5; }
     .msg.bot { background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(56, 189, 248, 0.2); align-self: flex-start; }
     .msg.user { background: #0284c7; align-self: flex-end; }
-    
-    .msg pre {
-      background: #030712; border: 1px solid #38bdf8; border-radius: 8px;
-      padding: 12px; margin-top: 10px; font-family: monospace; font-size: 13px;
-      color: #38bdf8; overflow-x: auto; white-space: pre;
-    }
+    .msg pre { background: #030712; border: 1px solid #38bdf8; border-radius: 8px; padding: 12px; margin-top: 10px; font-family: monospace; font-size: 13px; color: #38bdf8; overflow-x: auto; }
 
-    .quick-actions {
-      display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px;
-      background: #0f172a; border-bottom: 1px solid rgba(56, 189, 248, 0.15);
-    }
-    .action-btn {
-      background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3);
-      color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-size: 12px;
-      font-weight: 600; cursor: pointer; transition: 0.2s; display: flex; align-items: center; gap: 6px;
-    }
-    .action-btn:hover { background: #0284c7; color: #fff; border-color: #0284c7; }
+    .quick-actions { display: flex; gap: 8px; flex-wrap: wrap; padding: 10px 20px; background: #0f172a; border-bottom: 1px solid rgba(56, 189, 248, 0.15); }
+    .action-btn { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; cursor: pointer; }
 
     .controls { padding: 16px; background: #0f172a; border-top: 1px solid rgba(56, 189, 248, 0.2); display: flex; flex-direction: column; gap: 10px; }
     .row { display: flex; gap: 10px; }
     input[type="text"] { flex: 1; background: #070d19; border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 12px; border-radius: 8px; outline: none; }
     button { background: #0284c7; color: #fff; border: none; padding: 12px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; }
-    .file-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); padding: 8px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; color: #fff; }
 
     table { width: 100%; border-collapse: collapse; margin-top: 15px; background: #0f172a; border-radius: 8px; overflow: hidden; }
-    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+    th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
     th { background: #1e293b; color: #38bdf8; }
   </style>
 </head>
 <body>
 
+  <div id="toast-notification">
+    <i id="toast-icon" class="fa-solid fa-circle-exclamation"></i>
+    <span id="toast-msg">Error Message</span>
+  </div>
+
   <div id="entry-screen">
+    <!-- TOP SECTION: Centered Vertical Hierarchy (Logo -> Welcome -> Animation) -->
     <div class="entry-top">
       <div class="branding-box">
         <svg class="brand-svg" viewBox="0 0 300 60" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -507,6 +360,7 @@ app.get('/', (req, res) => {
         </svg>
         <p class="welcome-note">Empowering your career growth with real-time AI Excel intelligence, VBA automation, and practice environments.</p>
       </div>
+
       <div class="walk-animation-container">
         <div class="stage-node"><i class="fa-solid fa-lightbulb"></i><br>INTEREST</div>
         <div class="path-line"><i class="fa-solid fa-person-walking walker-icon"></i></div>
@@ -514,6 +368,7 @@ app.get('/', (req, res) => {
       </div>
     </div>
 
+    <!-- MIDDLE SECTION: Secret Key Input Portal -->
     <div class="entry-middle">
       <div class="key-portal-form">
         <input type="text" id="secretKeyInput" class="key-portal-input" placeholder="ENTER SECRET KEY">
@@ -521,8 +376,9 @@ app.get('/', (req, res) => {
       </div>
     </div>
 
+    <!-- BOTTOM SECTION: Feature Highlights -->
     <div class="entry-bottom">
-      <div class="bottom-title">You are just a step away to dive into</div>
+      <div class="bottom-title">YOU ARE JUST A STEP AWAY TO DIVE INTO</div>
       <div class="ecosystem-grid">
         <div class="eco-card">
           <svg class="eco-icon" viewBox="0 0 24 24"><path d="M19,3H5C3.9,3,3,3.9,3,5v14c0,1.1,0.9,2,2,2h14c1.1,0,2-0.9,2-2V5C21,3.9,20.1,3,19,3z M7,7h4v4H7V7z M13,7h4v4h-4V7z"/></svg>
@@ -554,35 +410,18 @@ app.get('/', (req, res) => {
 
       <div id="ai-trainer" class="tab-content active" style="padding:0;">
         <div class="quick-actions">
-          <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Shortcut Keys from A-Z (Basic to Advanced) in a clean Code Box.')">
-            <i class="fa-solid fa-keyboard"></i> A-Z All Shortcuts
-          </button>
-          <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Formulas & Functions (Lookup, Math, Dynamic Arrays, Text) with syntax in a Code Box.')">
-            <i class="fa-solid fa-calculator"></i> A-Z All Formulas
-          </button>
-          <button class="action-btn" onclick="triggerQuickAction('Provide top 5 Useful VBA Macro Codes (e.g., Export PDF, Auto Email, Clean Data) in Code Blocks.')">
-            <i class="fa-solid fa-code"></i> Essential VBA Macros
-          </button>
-          <button class="action-btn" onclick="triggerQuickAction('Provide complete Excel Error Troubleshooting Guide (#N/A, #REF!, #SPILL!, #VALUE!) in Code Box.')">
-            <i class="fa-solid fa-triangle-exclamation"></i> Error Solutions
-          </button>
+          <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Shortcut Keys from A-Z inside Code Box.')">A-Z Shortcuts</button>
+          <button class="action-btn" onclick="triggerQuickAction('List ALL Excel Formulas & Functions with syntax.')">A-Z Formulas</button>
+          <button class="action-btn" onclick="triggerQuickAction('Provide top 5 Essential VBA Macro Codes.')">Essential VBA</button>
         </div>
 
         <div class="chat-area" id="chat">
-          <div class="msg bot">Welcome! Click any of the Quick Action buttons above to instantly generate complete A-Z Shortcuts, Formulas, or VBA codes inside a Code Box, or type your own question below.</div>
+          <div class="msg bot">Welcome to CareerBoot AI! Ask any Excel query or click options above to get started.</div>
         </div>
 
         <div class="controls">
           <div class="row">
-            <label class="file-btn">
-              <i class="fa-solid fa-paperclip"></i> Upload File / Image
-              <input type="file" id="fileInput" accept="image/*,.xlsx,.csv" hidden onchange="showFileName(this)">
-            </label>
-            <button class="file-btn" onclick="toggleVoice()"><i class="fa-solid fa-microphone"></i> Voice Input</button>
-            <span id="fileNameDisplay" style="font-size: 12px; color: #38bdf8; align-self: center;"></span>
-          </div>
-          <div class="row">
-            <input type="text" id="userInput" placeholder="Ask Excel formula, VBA macro, or click Quick Action buttons above..." onkeypress="handleKeyPress(event)">
+            <input type="text" id="userInput" placeholder="Ask Excel formula, VBA macro..." onkeypress="handleKeyPress(event)">
             <button onclick="sendQuery()">Send Query</button>
           </div>
         </div>
@@ -599,17 +438,34 @@ app.get('/', (req, res) => {
             <tr><th>Template Title</th><th>Category</th><th>File Format</th><th>Action</th></tr>
           </thead>
           <tbody id="sheets-table-body">
-            <tr><td colspan="4" style="text-align:center; color:#64748b;">Loading downloadable practice sheets...</td></tr>
+            <tr><td colspan="4" style="text-align:center; color:#64748b;">Loading practice sheets...</td></tr>
           </tbody>
         </table>
       </div>
-
     </main>
   </div>
 
   <script>
     var currentActiveKey = null;
     var luckysheetInitialized = false;
+
+    function showToast(message, isSuccess = false) {
+      var toast = document.getElementById('toast-notification');
+      var toastMsg = document.getElementById('toast-msg');
+      var toastIcon = document.getElementById('toast-icon');
+
+      toastMsg.innerText = message;
+      if (isSuccess) {
+        toast.classList.add('success');
+        toastIcon.className = "fa-solid fa-circle-check";
+      } else {
+        toast.classList.remove('success');
+        toastIcon.className = "fa-solid fa-circle-exclamation";
+      }
+
+      toast.style.display = 'flex';
+      setTimeout(function() { toast.style.display = 'none'; }, 3500);
+    }
 
     function getSessionId() {
       var sid = localStorage.getItem('cb_session_id');
@@ -622,7 +478,7 @@ app.get('/', (req, res) => {
 
     function loginWithKey() {
       var keyInput = document.getElementById('secretKeyInput').value.trim();
-      if(!keyInput) return alert("Please enter your Secret Key.");
+      if(!keyInput) return showToast("Please enter your Secret Key.");
 
       fetch('/api/auth/key-login', {
         method: 'POST',
@@ -633,11 +489,17 @@ app.get('/', (req, res) => {
       .then(function(data) {
         if(data.success) {
           currentActiveKey = data.userKey;
-          document.getElementById('entry-screen').style.display = 'none';
-          document.getElementById('app-container').style.display = 'flex';
-          loadPracticeSheets();
-        } else { alert(data.error || "Login Failed"); }
-      });
+          showToast("Session Unlocked Successfully!", true);
+          setTimeout(function() {
+            document.getElementById('entry-screen').style.display = 'none';
+            document.getElementById('app-container').style.display = 'flex';
+            loadPracticeSheets();
+          }, 800);
+        } else { 
+          showToast(data.error || "Login Failed"); 
+        }
+      })
+      .catch(function() { showToast("Server connection error."); });
     }
 
     function switchTab(tabId) {
@@ -651,11 +513,8 @@ app.get('/', (req, res) => {
         setTimeout(function() {
           luckysheet.create({
             container: 'luckysheet',
-            title: 'Live MS Excel Sandbox Workspace',
-            lang: 'en',
-            showtoolbar: true,
-            showinfobar: true,
-            showsheetbar: true
+            title: 'Live Practice Screen',
+            lang: 'en'
           });
           luckysheetInitialized = true;
         }, 100);
@@ -678,24 +537,11 @@ app.get('/', (req, res) => {
               tr.innerHTML = '<td><b>' + s.title + '</b></td>' +
                 '<td><span style="color:#38bdf8">' + s.category + '</span></td>' +
                 '<td>' + s.fileName.split('.').pop().toUpperCase() + '</td>' +
-                '<td><a href="/api/practice-sheets/download/' + s._id + '" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i> Download Sheet</a></td>';
+                '<td><a href="/api/practice-sheets/download/' + s._id + '" style="color:#10b981; font-weight:bold; text-decoration:none;"><i class="fa-solid fa-download"></i> Download</a></td>';
               tbody.appendChild(tr);
             });
           }
         });
-    }
-
-    function showFileName(input) {
-      if (input.files && input.files[0]) document.getElementById('fileNameDisplay').innerText = input.files[0].name;
-    }
-
-    function toggleVoice() {
-      if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) return alert("Voice recognition not supported.");
-      var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      var recognition = new SpeechRecognition();
-      recognition.lang = 'hi-IN';
-      recognition.start();
-      recognition.onresult = function(event) { document.getElementById('userInput').value = event.results[0][0].transcript; };
     }
 
     function triggerQuickAction(promptText) {
@@ -707,25 +553,19 @@ app.get('/', (req, res) => {
 
     async function sendQuery() {
       var input = document.getElementById('userInput');
-      var fileInput = document.getElementById('fileInput');
       var text = input.value.trim();
+      if (!text) return;
 
-      if (!text && (!fileInput.files || !fileInput.files[0])) return;
-
-      var fileLabel = (fileInput.files && fileInput.files[0]) ? " [File: " + fileInput.files[0].name + "]" : "";
-      appendMsg(text + fileLabel, 'user');
-
-      var formData = new FormData();
-      formData.append('userKey', currentActiveKey);
-      formData.append('text', text);
-      if (fileInput.files && fileInput.files[0]) formData.append('file', fileInput.files[0]);
-
+      appendMsg(text, 'user');
       input.value = '';
-      document.getElementById('fileNameDisplay').innerText = '';
-      appendMsg("Generating response in Code Box...", 'bot');
+      appendMsg("Thinking...", 'bot');
 
       try {
-        var res = await fetch('/api/chat', { method: 'POST', body: formData });
+        var res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userKey: currentActiveKey, text: text })
+        });
         var data = await res.json();
         
         var chat = document.getElementById('chat');
@@ -736,8 +576,6 @@ app.get('/', (req, res) => {
       } catch (err) {
         appendMsg("Connection error to server.", 'bot');
       }
-
-      fileInput.value = '';
     }
 
     function appendMsg(msg, sender) {
