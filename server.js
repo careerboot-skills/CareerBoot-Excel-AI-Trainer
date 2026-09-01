@@ -8,7 +8,7 @@ const multer = require('multer');
 
 const app = express();
 
-// --- CROSS-ORIGIN HEADERS FOR GOOGLE AUTH POPUP ---
+// --- CROSS-ORIGIN HEADERS FOR GOOGLE AUTH FIX ---
 app.use(cors());
 app.use(express.json());
 app.use((req, res, next) => {
@@ -73,7 +73,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
       await Chat.create({ userEmail, message: text || '[File/Image Attached]', sender: 'user' });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     let promptContents = [
       "You are CareerBoot AI Excel Trainer. Provide exact MS Excel formulas, VBA macros, or step-by-step error solutions (#REF!, #N/A, VLOOKUP, XLOOKUP)."
     ];
@@ -180,9 +180,17 @@ app.get('/', (req, res) => {
       <div id="g_id_onload"
            data-client_id="${GOOGLE_CLIENT_ID}"
            data-callback="handleCredentialResponse"
-           data-auto_prompt="false">
+           data-auto_select="false"
+           data-itp_support="true">
       </div>
-      <div class="g_id_signin" data-type="standard" data-theme="filled_blue" data-size="large"></div>
+      <div class="g_id_signin" 
+           data-type="standard" 
+           data-shape="rectangular"
+           data-theme="filled_blue" 
+           data-text="signin_with"
+           data-size="large"
+           data-logo_alignment="left">
+      </div>
     </div>
   </div>
 
@@ -217,6 +225,10 @@ app.get('/', (req, res) => {
     let authenticatedUser = null;
 
     function handleCredentialResponse(response) {
+      if(!response || !response.credential) {
+        alert("Google Verification Failed. Please try again.");
+        return;
+      }
       fetch('/api/auth/google', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -229,10 +241,10 @@ app.get('/', (req, res) => {
           document.getElementById('login-overlay').style.display = 'none';
           document.getElementById('app-container').style.display = 'flex';
         } else {
-          alert("Authentication Failed: " + (data.error || "Unknown Error"));
+          alert("Authentication Error: " + (data.error || "Verification failed"));
         }
       })
-      .catch(err => alert("Server Verification Connection Failed"));
+      .catch(err => alert("Network Connection Error"));
     }
 
     function showFileName(input) {
