@@ -342,9 +342,10 @@ app.get('/', (req, res) => {
     th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 12px; }
     th { background: #1e293b; color: #38bdf8; }
 
-    /* LUCKEYSHEET MOBILE SCROLL FIX */
+    /* LUCKEYSHEET FULL INTERACTIVE STYLING */
     .luckysheet-toolbar { overflow-x: auto !important; white-space: nowrap !important; }
-    .luckysheet-wa-editor { background: #fff !important; color: #000 !important; }
+    .luckysheet-input-box { z-index: 10000 !important; }
+    .luckysheet-cell-input { color: #000 !important; background: #fff !important; }
 
     /* MOBILE BREAKPOINT CSS */
     @media (max-width: 768px) {
@@ -439,7 +440,7 @@ app.get('/', (req, res) => {
         </div>
       </div>
 
-      <div id="live-excel" class="tab-content" style="position: relative; width: 100%; height: calc(100vh - 55px);">
+      <div id="live-excel" class="tab-content" style="position: relative; width: 100%; height: calc(100vh - 55px); overflow: hidden;">
         <div id="luckysheet" style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left:0px;top:0px;"></div>
       </div>
 
@@ -526,6 +527,7 @@ app.get('/', (req, res) => {
               container: 'luckysheet',
               title: 'Live Workspace',
               lang: 'en',
+              allowEdit: true,
               showtoolbar: true,
               showtoolbarConfig: {
                 undoRedo: true,
@@ -567,10 +569,11 @@ app.get('/', (req, res) => {
               enableAddRow: true
             });
             luckysheetInitialized = true;
-          } else {
-            luckysheet.resize();
           }
-        }, 150);
+          if (window.luckysheet) {
+            window.luckysheet.resize();
+          }
+        }, 300);
       }
     }
 
