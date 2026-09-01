@@ -36,7 +36,7 @@ const chatSchema = new mongoose.Schema({
 const Chat = mongoose.model('Chat', chatSchema);
 
 // --- 2. AUTH & AI CONFIGURATION ---
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_HERE";
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "720197932809-gg6bia1caq1pcqjsb2cil4vc6hm2r2aj.apps.googleusercontent.com";
 
 const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
