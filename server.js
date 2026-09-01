@@ -12,12 +12,11 @@ app.use(express.json({ limit: '100mb' }));
 app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 
 // ==========================================
-// 1. ADVANCED MONGODB SCHEMAS (100% FEATURES)
+// 1. MONGODB SCHEMAS
 // ==========================================
 const MONGO_URI = process.env.MONGO_URI;
 const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || "T-FOR-TOPA/420";
 
-// Key Security Schema with Expiry & Device Toggles
 const keySchema = new mongoose.Schema({
   key: { type: String, required: true, unique: true },
   label: { type: String, default: "User Key" },
@@ -31,33 +30,30 @@ const keySchema = new mongoose.Schema({
 });
 const SecretKey = mongoose.model('SecretKey', keySchema);
 
-// Chat Memory Schema with Multimodal Snapshot Reference
 const chatSchema = new mongoose.Schema({
   userKey: { type: String, required: true },
   message: { type: String, required: true },
   sender: { type: String, enum: ['user', 'bot'], required: true },
   attachmentMeta: { type: Object, default: null },
-  createdAt: { type: Date, default: Date.now, expires: 86400 * 30 } // 30-day chat retention
+  createdAt: { type: Date, default: Date.now, expires: 86400 * 30 }
 });
 const Chat = mongoose.model('Chat', chatSchema);
 
-// Binary Practice Sheet Store Schema
 const sheetSchema = new mongoose.Schema({
   title: { type: String, required: true },
   category: { type: String, default: "General Practice" },
   description: { type: String, default: "" },
   fileName: { type: String, required: true },
-  fileData: { type: String, required: true }, // Base64 Raw Excel Data
+  fileData: { type: String, required: true },
   mimeType: { type: String, required: true },
   uploadedAt: { type: Date, default: Date.now }
 });
 const PracticeSheet = mongoose.model('PracticeSheet', sheetSchema);
 
-// DB Connection & Auto-Admin Initialization
 if (MONGO_URI) {
   mongoose.connect(MONGO_URI)
     .then(async () => {
-      console.log("[DATABASE] MongoDB Enterprise Engine Connected.");
+      console.log("[DATABASE] MongoDB Engine Connected.");
       await SecretKey.updateOne(
         { key: ADMIN_PASSCODE.trim().toUpperCase() },
         { 
@@ -76,19 +72,17 @@ if (MONGO_URI) {
 }
 
 // ==========================================
-// 2. MULTIMODAL GEMINI AI & UPLOAD STORAGE
+// 2. GEMINI AI & UPLOAD CONFIG
 // ==========================================
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 50 * 1024 * 1024 } // 50MB Upload limit for practice files
+  limits: { fileSize: 50 * 1024 * 1024 }
 });
 
 // ==========================================
-// 3. FULL BACKEND API ENDPOINTS
+// 3. API ENDPOINTS
 // ==========================================
-
-// --- AUTHENTICATION & DEVICE SESSION LOCKING ---
 app.post('/api/auth/key-login', async (req, res) => {
   const { secretKey, sessionId } = req.body;
   if (!secretKey || !sessionId) {
@@ -106,14 +100,12 @@ app.post('/api/auth/key-login', async (req, res) => {
       return res.status(401).json({ success: false, error: "Invalid, expired, or deactivated key." });
     }
 
-    // Check expiration date
     if (foundKey.expiresAt && new Date() > new Date(foundKey.expiresAt)) {
       foundKey.isActive = false;
       await foundKey.save();
       return res.status(401).json({ success: false, error: "This Secret Key has expired." });
     }
 
-    // Handle session / multi-device locks
     if (!foundKey.isMultiDevice && foundKey.boundSessionId && foundKey.boundSessionId !== sessionId) {
       return res.status(403).json({ success: false, error: "Security Lock: Key bound to another active device." });
     }
@@ -136,7 +128,6 @@ app.post('/api/auth/key-login', async (req, res) => {
   }
 });
 
-// --- ADMIN MANAGEMENT APIS ---
 app.post('/api/admin/create-key', async (req, res) => {
   const { adminKey, key, label, isMultiDevice, expiresAt } = req.body;
   if (adminKey !== ADMIN_PASSCODE.trim().toUpperCase()) return res.status(403).json({ error: "Unauthorized access." });
@@ -188,7 +179,6 @@ app.post('/api/admin/upload-sheet', upload.single('sheet'), async (req, res) => 
   res.json({ success: true, sheet });
 });
 
-// --- AI EXCEL TUTOR & MULTIMODAL SCREENSHOT ENGINE ---
 app.post('/api/chat', upload.single('file'), async (req, res) => {
   try {
     const { userKey, text } = req.body;
@@ -206,13 +196,10 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
     }
 
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    const systemInstruction = `You are CareerBoot AI, the world's leading Microsoft Excel Master & Enterprise Data Specialist. 
-    Provide step-by-step guidance, exact formulas (e.g., INDEX/MATCH, XLOOKUP, Dynamic Arrays, Power Query), VBA Macros, and data cleansing logic. 
-    Format formulas in code blocks. Be concise, precise, and professional.`;
+    const systemInstruction = `You are CareerBoot AI, an expert Microsoft Excel tutor. Provide accurate formulas, VBA macros, and troubleshooting guidance. Keep responses concise and clear.`;
 
     let promptContents = [systemInstruction];
 
-    // Build context memory chain
     chatHistory.reverse().forEach(c => {
       promptContents.push(`${c.sender.toUpperCase()}: ${c.message}`);
     });
@@ -233,12 +220,11 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
 
     res.json({ success: true, answer: botAnswer });
   } catch (err) {
-    console.error("[AI ENGINE ERROR]", err);
-    res.status(500).json({ success: false, error: "AI Engine processing failed: " + err.message });
+    console.error("[AI ERROR]", err);
+    res.status(500).json({ success: false, error: "AI Engine error: " + err.message });
   }
 });
 
-// --- PRACTICE SHEETS DISCOVERY & STREAMING ---
 app.get('/api/practice-sheets', async (req, res) => {
   try {
     const sheets = await PracticeSheet.find({}, { fileData: 0 }).sort({ uploadedAt: -1 });
@@ -249,7 +235,7 @@ app.get('/api/practice-sheets', async (req, res) => {
 app.get('/api/practice-sheets/download/:id', async (req, res) => {
   try {
     const sheet = await PracticeSheet.findById(req.params.id);
-    if (!sheet) return res.status(404).json({ success: false, error: "Requested practice template not found." });
+    if (!sheet) return res.status(404).json({ success: false, error: "Practice sheet not found." });
 
     const fileBuffer = Buffer.from(sheet.fileData, 'base64');
     res.setHeader('Content-Type', sheet.mimeType);
@@ -259,7 +245,7 @@ app.get('/api/practice-sheets/download/:id', async (req, res) => {
 });
 
 // ==========================================
-// 4. EMBEDDED SINGLE-FILE FRONTEND (PART 2)
+// 4. FRONTEND APPLICATION
 // ==========================================
 app.get('*', (req, res) => {
   res.setHeader('Content-Type', 'text/html');
@@ -268,12 +254,11 @@ app.get('*', (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CareerBoot AI - Master Enterprise Excel Workspace</title>
+  <title>CareerBoot AI - Enterprise Workspace</title>
   
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   
-  <!-- LUCKYSHEET CORE ENGINE DEPENDENCIES -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/css/pluginsCss.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/plugins/plugins.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/luckysheet/dist/css/luckysheet.css" />
@@ -353,6 +338,18 @@ app.get('*', (req, res) => {
     .admin-card h4 { color: var(--accent-blue); margin-bottom: 14px; font-size: 15px; }
     .form-group { display: flex; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
     .form-group input, .form-group select { flex: 1; min-width: 200px; background: var(--bg-dark); border: 1px solid rgba(56, 189, 248, 0.3); color: #fff; padding: 10px 14px; border-radius: 8px; outline: none; font-size: 13px; }
+
+    /* MOBILE RESPONSIVE FIXES */
+    @media (max-width: 768px) {
+      sidebar { width: 60px !important; }
+      .sidebar-header, .nav-item span { display: none !important; }
+      .nav-item { justify-content: center; padding: 12px 0; }
+      header { padding: 0 10px; height: 48px; }
+      header span { font-size: 11px !important; }
+      .action-btn { padding: 6px 10px; font-size: 11px; }
+      #live-excel { width: calc(100vw - 60px) !important; overflow: hidden; }
+      .luckysheet-share-logo { display: none !important; }
+    }
   </style>
 </head>
 <body>
@@ -375,10 +372,10 @@ app.get('*', (req, res) => {
     <sidebar>
       <div class="sidebar-header"><i class="fa-solid fa-file-excel"></i> CareerBoot Hub</div>
       <ul class="nav-links">
-        <li class="nav-item active" id="nav-live-excel" onclick="switchTab('live-excel')"><i class="fa-solid fa-table"></i> Practice Canvas</li>
-        <li class="nav-item" id="nav-ai-trainer" onclick="switchTab('ai-trainer')"><i class="fa-solid fa-robot"></i> AI Trainer</li>
-        <li class="nav-item" id="nav-sheets" onclick="switchTab('sheets')"><i class="fa-solid fa-folder-open"></i> Practice Sheets</li>
-        <li class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('admin')"><i class="fa-solid fa-user-shield"></i> Admin Panel</li>
+        <li class="nav-item active" id="nav-live-excel" onclick="switchTab('live-excel')"><i class="fa-solid fa-table"></i> <span>Practice Canvas</span></li>
+        <li class="nav-item" id="nav-ai-trainer" onclick="switchTab('ai-trainer')"><i class="fa-solid fa-robot"></i> <span>AI Trainer</span></li>
+        <li class="nav-item" id="nav-sheets" onclick="switchTab('sheets')"><i class="fa-solid fa-folder-open"></i> <span>Practice Sheets</span></li>
+        <li class="nav-item" id="nav-admin" style="display:none;" onclick="switchTab('admin')"><i class="fa-solid fa-user-shield"></i> <span>Admin Panel</span></li>
       </ul>
     </sidebar>
 
@@ -502,16 +499,29 @@ app.get('*', (req, res) => {
 
     function initLuckysheetEngine() {
       if (luckysheetInitialized) return;
+      
+      var isMobile = window.innerWidth <= 768;
+
       luckysheet.create({
         container: 'luckysheet',
-        title: 'CareerBoot Master Practice Canvas',
+        title: 'CareerBoot Practice Canvas',
         lang: 'en',
-        showtoolbar: true,
+        showtoolbar: !isMobile,
+        showinfobar: false,
         showsheetbar: true,
         allowEdit: true,
-        data: [{ "name": "Practice Sheet 1", "status": "1", "data": [[{"v":"Item"},{"v":"Category"},{"v":"Sales INR"}],[{"v":"Laptop"},{"v":"Hardware"},{"v":45000}]] }]
+        data: [{ 
+          "name": "Practice Sheet 1", 
+          "status": "1", 
+          "data": [[{"v":"Item"},{"v":"Category"},{"v":"Sales INR"}],[{"v":"Laptop"},{"v":"Hardware"},{"v":45000}]] 
+        }]
       });
+
       luckysheetInitialized = true;
+      
+      window.addEventListener('resize', function() {
+        if (window.luckysheet) luckysheet.resize();
+      });
     }
 
     function switchTab(tabId) {
@@ -624,7 +634,7 @@ app.get('*', (req, res) => {
       var chat = document.getElementById('chat');
       var div = document.createElement('div');
       div.className = 'msg ' + sender;
-      div.innerHTML = msg.replace(/\`\`\`([\\s\\S]*?)\`\`\`/g, '<pre><code>$1</code></pre>');
+      div.innerHTML = msg.replace(/\\\`\\\`\\\`([\\s\\S]*?)\\\`\\\`\\\`/g, '<pre><code>$1</code></pre>');
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
     }
@@ -743,4 +753,4 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`[SERVER RUNNING] CareerBoot Enterprise Server active on port ${PORT}`));
+app.listen(PORT, () => console.log(`[SERVER RUNNING] Active on port ${PORT}`));
