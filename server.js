@@ -356,7 +356,7 @@ app.get('/', (req, res) => {
           <pre>
 Sub SaveSheetToPDF()
     Dim pdfPath As String
-    pdfPath = Application.ActiveWorkbook.Path & "\Report_" & Format(Now(), "YYYYMMDD") & ".pdf"
+    pdfPath = Application.ActiveWorkbook.Path & "\\Report_" & Format(Now(), "YYYYMMDD") & ".pdf"
     ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=pdfPath
     MsgBox "PDF Exported Successfully!", vbInformation
 End Sub
@@ -413,8 +413,8 @@ End Sub
   </div>
 
   <script>
-    let authenticatedUser = null;
-    let luckysheetInitialized = false;
+    var authenticatedUser = null;
+    var luckysheetInitialized = false;
 
     function handleCredentialResponse(response) {
       if(!response || !response.credential) {
@@ -426,8 +426,8 @@ End Sub
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ credential: response.credential })
       })
-      .then(res => res.json())
-      .then(data => {
+      .then(function(res) { return res.json(); })
+      .then(function(data) {
         if (data.success) {
           authenticatedUser = data.user;
           document.getElementById('login-overlay').style.display = 'none';
@@ -436,20 +436,20 @@ End Sub
           alert("Authentication Error: " + (data.error || "Verification failed"));
         }
       })
-      .catch(err => alert("Network Connection Error"));
+      .catch(function(err) { alert("Network Connection Error"); });
     }
 
     function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(function(el) { el.classList.remove('active'); });
+      document.querySelectorAll('.nav-item').forEach(function(el) { el.classList.remove('active'); });
       
       document.getElementById(tabId).classList.add('active');
       
-      if(event && event.currentTarget) {
-        event.currentTarget.classList.add('active');
+      if(window.event && window.event.currentTarget) {
+        window.event.currentTarget.classList.add('active');
       }
 
-      const titles = {
+      var titles = {
         'ai-trainer': 'AI Excel Trainer Engine',
         'live-excel': 'Live Excel Practice Sandbox (Full Spreadsheet Canvas)',
         'shortcuts': 'Complete Keyboard Shortcuts Directory',
@@ -463,7 +463,7 @@ End Sub
       document.getElementById('active-tab-title').innerText = titles[tabId];
 
       if (tabId === 'live-excel' && !luckysheetInitialized) {
-        setTimeout(() => {
+        setTimeout(function() {
           luckysheet.create({
             container: 'luckysheet',
             title: 'Live Excel Sandbox',
@@ -475,7 +475,7 @@ End Sub
     }
 
     function showFileName(input) {
-      if (input.files[0]) {
+      if (input.files && input.files[0]) {
         document.getElementById('fileNameDisplay').innerText = input.files[0].name;
       }
     }
@@ -485,8 +485,8 @@ End Sub
         alert("Voice recognition not supported in browser.");
         return;
       }
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      const recognition = new SpeechRecognition();
+      var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      var recognition = new SpeechRecognition();
       recognition.lang = 'hi-IN';
       recognition.start();
       recognition.onresult = function(event) {
@@ -499,28 +499,29 @@ End Sub
     }
 
     async function sendQuery() {
-      const input = document.getElementById('userInput');
-      const fileInput = document.getElementById('fileInput');
-      const text = input.value.trim();
+      var input = document.getElementById('userInput');
+      var fileInput = document.getElementById('fileInput');
+      var text = input.value.trim();
 
-      if (!text && !fileInput.files[0]) return;
+      if (!text && (!fileInput.files || !fileInput.files[0])) return;
 
-      appendMsg(text + (fileInput.files[0] ? ` [File: ${fileInput.files[0].name}]` : ''), 'user');
+      var fileLabel = (fileInput.files && fileInput.files[0]) ? " [File: " + fileInput.files[0].name + "]" : "";
+      appendMsg(text + fileLabel, 'user');
 
-      const formData = new FormData();
+      var formData = new FormData();
       formData.append('userEmail', authenticatedUser.email);
       formData.append('text', text);
-      if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+      if (fileInput.files && fileInput.files[0]) formData.append('file', fileInput.files[0]);
 
       input.value = '';
       document.getElementById('fileNameDisplay').innerText = '';
       appendMsg("Analyzing query...", 'bot');
 
       try {
-        const res = await fetch('/api/chat', { method: 'POST', body: formData });
-        const data = await res.json();
+        var res = await fetch('/api/chat', { method: 'POST', body: formData });
+        var data = await res.json();
         
-        const chat = document.getElementById('chat');
+        var chat = document.getElementById('chat');
         chat.removeChild(chat.lastChild);
 
         if (data.success) {
@@ -536,9 +537,9 @@ End Sub
     }
 
     function appendMsg(msg, sender) {
-      const chat = document.getElementById('chat');
-      const div = document.createElement('div');
-      div.className = `msg ${sender}`;
+      var chat = document.getElementById('chat');
+      var div = document.createElement('div');
+      div.className = 'msg ' + sender;
       div.innerText = msg;
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
