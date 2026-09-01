@@ -29,7 +29,9 @@ const chatSchema = new mongoose.Schema({
 const Chat = mongoose.model('Chat', chatSchema);
 
 // --- 2. AUTH & AI CONFIGURATION ---
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID_HERE";
+
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -41,7 +43,7 @@ app.post('/api/auth/google', async (req, res) => {
   try {
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
+      audience: GOOGLE_CLIENT_ID
     });
     const payload = ticket.getPayload();
     res.json({ 
@@ -64,7 +66,7 @@ app.post('/api/chat', upload.single('file'), async (req, res) => {
       await Chat.create({ userEmail, message: text || '[File/Image Attached]', sender: 'user' });
     }
 
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     let promptContents = [
       "You are CareerBoot AI Excel Trainer. Provide exact MS Excel formulas, VBA macros, or step-by-step error solutions (#REF!, #N/A, VLOOKUP, XLOOKUP)."
     ];
@@ -141,7 +143,6 @@ app.get('/', (req, res) => {
   <!-- MANDATORY LOGIN OVERLAY -->
   <div id="login-overlay">
     <div class="login-card">
-      <!-- EXACT SVG LOGO AS PROVIDED IN IMAGE -->
       <svg width="140" height="140" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom: 15px;">
         <rect width="200" height="200" fill="#0A192F" rx="20"/>
         <g transform="translate(100,85)">
@@ -170,7 +171,7 @@ app.get('/', (req, res) => {
       <p style="color: #94a3b8; font-size: 13px; margin-bottom: 20px;">Verification required. History auto-deleted in 24h from MongoDB.</p>
       
       <div id="g_id_onload"
-           data-client_id="${process.env.GOOGLE_CLIENT_ID || ''}"
+           data-client_id="${GOOGLE_CLIENT_ID}"
            data-callback="handleCredentialResponse">
       </div>
       <div class="g_id_signin" data-type="standard" data-theme="filled_blue" data-size="large"></div>
@@ -198,7 +199,7 @@ app.get('/', (req, res) => {
         <span id="fileNameDisplay" style="font-size: 12px; color: #38bdf8; align-self: center;"></span>
       </div>
       <div class="row">
-        <input type="text" id="userInput" placeholder="Ask Excel formula or error query...">
+        <input type="text" id="userInput" placeholder="Ask Excel formula or error query..." onkeypress="handleKeyPress(event)">
         <button onclick="sendQuery()">Send</button>
       </div>
     </div>
@@ -243,6 +244,12 @@ app.get('/', (req, res) => {
       recognition.onresult = function(event) {
         document.getElementById('userInput').value = event.results[0][0].transcript;
       };
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') {
+        sendQuery();
+      }
     }
 
     async function sendQuery() {
