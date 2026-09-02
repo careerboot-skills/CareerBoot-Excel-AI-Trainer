@@ -41,7 +41,7 @@ const ChatSchema = new mongoose.Schema({
     deviceId: { type: String, required: true },
     role: { type: String, enum: ['user', 'model'], required: true },
     message: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now, expires: 432000 } // Auto-delete after 5 days
+    createdAt: { type: Date, default: Date.now, expires: 432000 }
 });
 
 const PracticeSheetSchema = new mongoose.Schema({
@@ -147,7 +147,7 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// Production Groq AI Route
+// Production Groq AI Route (Fixed Model Name)
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
@@ -170,7 +170,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
+                model: 'llama-3-70b-8192', // Active Stable Groq Model
                 messages: [
                     { role: 'system', content: systemInstruction },
                     { role: 'user', content: message }
@@ -378,17 +378,7 @@ app.get('*', (req, res) => {
                 autoplay: true,
                 path: 'https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json'
             });
-
-            // Auto Auto-login session restore
-            if (jwtToken) {
-                document.getElementById('page1').classList.remove('active');
-                if (userRole === 'admin') {
-                    document.getElementById('adminPage').classList.add('active');
-                } else {
-                    document.getElementById('page2').classList.add('active');
-                    fetchHistory();
-                }
-            }
+            // Direct Page1 Enforcement (Entry screen will always show on page open/refresh)
         });
 
         function showModal(msg) {
