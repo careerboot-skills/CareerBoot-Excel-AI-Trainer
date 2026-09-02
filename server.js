@@ -41,6 +41,7 @@ const ChatSchema = new mongoose.Schema({
     deviceId: { type: String, required: true },
     role: { type: String, enum: ['user', 'model'], required: true },
     message: { type: String, required: true },
+    fileUrl: { type: String, default: null },
     createdAt: { type: Date, default: Date.now, expires: 432000 }
 });
 
@@ -147,20 +148,44 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// Production Groq AI Route (Fixed Model Name)
+// Production AI Chat Route supporting Vision Models & File Attachments
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
         const deviceId = req.user.deviceId;
+        const attachedFile = req.file;
 
-        if (!message) return res.status(400).json({ success: false, reply: "Please enter a query." });
+        if (!message && !attachedFile) {
+            return res.status(400).json({ success: false, reply: "Please enter a query or upload a file." });
+        }
 
-        const systemInstruction = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Keep responses direct, well-structured, easy to learn, and step-by-step.";
+        const systemInstruction = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Render clean Markdown tables and bold formatting. Keep responses direct, well-structured, easy to learn, and step-by-step.";
 
         const groqKey = process.env.GROQ_API_KEY || GROQ_API_KEY;
-
-        if(!groqKey) {
+        if (!groqKey) {
             return res.status(500).json({ success: false, reply: "Groq API Key is not configured on server." });
+        }
+
+        let userContent = [];
+        let selectedModel = 'llama-3.3-70b-versatile';
+
+        // Add user text
+        userContent.push({ type: 'text', text: message || "Analyze the attached context/image." });
+
+        // Image Attachment Handling (Base64 encoding for Multimodal API)
+        if (attachedFile) {
+            if (attachedFile.mimetype.startsWith('image/')) {
+                const base64Image = attachedFile.buffer.toString('base64');
+                const imageUrl = `data:${attachedFile.mimetype};base64,${base64Image}`;
+                userContent.push({
+                    type: 'image_url',
+                    image_url: { url: imageUrl }
+                });
+                selectedModel = 'llama-3.2-11b-vision-preview';
+            } else {
+                const fileText = attachedFile.buffer.toString('utf-8');
+                userContent[0].text += `\n\n[Attached File Content (${attachedFile.originalname})]:\n${fileText.substring(0, 4000)}`;
+            }
         }
 
         const apiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -170,12 +195,12 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'openai/gpt-oss-120b', // Active Groq Model
+                model: selectedModel,
                 messages: [
                     { role: 'system', content: systemInstruction },
-                    { role: 'user', content: message }
+                    { role: 'user', content: userContent }
                 ],
-                temperature: 0.3
+                temperature: 0.2
             })
         });
 
@@ -191,7 +216,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
         const reply = data.choices?.[0]?.message?.content || "No response generated.";
 
-        await Chat.create({ deviceId, role: 'user', message: message });
+        await Chat.create({ deviceId, role: 'user', message: message || "[File Attached]" });
         await Chat.create({ deviceId, role: 'model', message: reply });
 
         res.json({ success: true, reply });
@@ -201,7 +226,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
     }
 });
 
-// FRONTEND INTERFACE
+// FRONTEND INTERFACE WITH PREMIUM CHAT UI & MARKDOWN PARSER
 app.get('*', (req, res) => {
     res.send(`
 <!DOCTYPE html>
@@ -211,24 +236,29 @@ app.get('*', (req, res) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>CareerBoot Excel AI Trainer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
         :root {
             --primary: #10b981;
-            --bg-dark: #0f172a;
-            --card-dark: #1e293b;
+            --primary-hover: #059669;
+            --bg-dark: #090d16;
+            --card-dark: #131c2e;
+            --border-color: #1e293b;
             --text-main: #f8fafc;
             --text-muted: #94a3b8;
-            --user-msg: #2563eb;
+            --user-msg: #1d4ed8;
+            --ai-msg: #1e293b;
         }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
         html, body { height: 100%; width: 100%; background-color: var(--bg-dark); color: var(--text-main); overflow: hidden; }
 
         .page { display: none; height: 100dvh; width: 100vw; flex-direction: column; position: relative; }
         .page.active { display: flex; }
 
+        /* Login Interface */
         .login-top { height: 35vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
-        .brand-logo { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
+        .brand-logo { font-size: 28px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
         .welcome-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
         
         .tracker-wrapper { width: 85%; max-width: 350px; margin-top: 25px; position: relative; }
@@ -238,34 +268,76 @@ app.get('*', (req, res) => {
         .walker-avatar { position: absolute; top: -25px; left: 0%; transform: translateX(-50%); transition: left 2.5s ease; font-size: 18px; }
 
         .login-middle { height: 15vh; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
-        .input-key { width: 220px; padding: 12px; background: var(--card-dark); border: 1.5px solid #334155; border-radius: 8px; color: white; text-align: center; font-size: 15px; outline: none; }
-        .btn-unlock { padding: 12px 18px; background: var(--primary); border: none; border-radius: 8px; color: white; font-weight: 700; cursor: pointer; margin-left: 8px; }
+        .input-key { width: 220px; padding: 12px; background: var(--card-dark); border: 1.5px solid var(--border-color); border-radius: 8px; color: white; text-align: center; font-size: 15px; outline: none; }
+        .btn-unlock { padding: 12px 18px; background: var(--primary); border: none; border-radius: 8px; color: white; font-weight: 700; cursor: pointer; transition: background 0.2s ease; }
+        .btn-unlock:hover { background: var(--primary-hover); }
 
         .login-bottom { height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .typing-anim-container { width: 200px; height: 200px; }
         .status-badge { display: none; font-size: 50px; }
 
-        .chat-header { height: 55px; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
-        .chat-title { font-weight: 700; font-size: 15px; color: var(--primary); }
+        /* Modern Premium Chat Header */
+        .chat-header { height: 60px; background: rgba(19, 28, 46, 0.8); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; border-bottom: 1px solid var(--border-color); flex-shrink: 0; z-index: 10; }
+        .chat-header-info { display: flex; align-items: center; gap: 10px; }
+        .ai-status-dot { width: 8px; height: 8px; background: var(--primary); border-radius: 50%; box-shadow: 0 0 8px var(--primary); }
+        .chat-title { font-weight: 700; font-size: 16px; color: #ffffff; letter-spacing: -0.3px; }
 
-        .chat-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-        .chat-bubble { max-width: 88%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
-        .chat-bubble.user { background: var(--user-msg); align-self: flex-end; }
-        .chat-bubble.model { background: var(--card-dark); align-self: flex-start; border: 1px solid #334155; }
+        /* Chat Workspace */
+        .chat-body { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+        
+        .chat-row { display: flex; gap: 12px; max-width: 90%; }
+        .chat-row.user { align-self: flex-end; flex-direction: row-reverse; }
+        .chat-row.model { align-self: flex-start; }
 
-        .pinned-bar { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; background: var(--bg-dark); flex-shrink: 0; border-top: 1px solid #1e293b; }
-        .chip-btn { background: var(--card-dark); border: 1px solid #334155; padding: 6px 12px; border-radius: 16px; font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
+        .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; font-weight: bold; }
+        .avatar.user { background: var(--user-msg); color: white; }
+        .avatar.model { background: var(--primary); color: white; }
 
-        .chat-input-container { min-height: 60px; padding: 8px 12px; background: var(--card-dark); border-top: 1px solid #334155; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .chat-input { flex: 1; background: var(--bg-dark); border: 1px solid #334155; padding: 10px 12px; border-radius: 8px; color: white; font-size: 14px; outline: none; }
-        .icon-btn { background: none; border: none; color: var(--text-main); font-size: 18px; cursor: pointer; padding: 4px; }
+        .chat-bubble { padding: 14px 18px; border-radius: 16px; font-size: 14.5px; line-height: 1.6; color: #f1f5f9; position: relative; width: 100%; overflow-x: auto; }
+        .chat-row.user .chat-bubble { background: var(--user-msg); border-bottom-right-radius: 4px; }
+        .chat-row.model .chat-bubble { background: var(--ai-msg); border: 1px solid var(--border-color); border-bottom-left-radius: 4px; }
 
-        .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
-        .drawer-menu { position: fixed; right: -280px; top: 0; width: 260px; height: 100%; background: var(--card-dark); transition: right 0.3s ease; z-index: 100; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
+        /* Dynamic Markdown Formatting Improvements */
+        .chat-bubble p { margin-bottom: 10px; }
+        .chat-bubble p:last-child { margin-bottom: 0; }
+        .chat-bubble ul, .chat-bubble ol { margin: 8px 0 12px 20px; }
+        .chat-bubble li { margin-bottom: 4px; }
+        .chat-bubble h1, .chat-bubble h2, .chat-bubble h3 { color: var(--primary); margin: 14px 0 8px 0; font-weight: 700; }
+        .chat-bubble code { background: rgba(0,0,0,0.4); padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #38bdf8; }
+        .chat-bubble pre { background: #090d16; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); overflow-x: auto; margin: 10px 0; }
+        .chat-bubble pre code { background: none; padding: 0; color: #e2e8f0; }
+
+        /* Formatted Markdown Table Styling */
+        .chat-bubble table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; overflow-x: auto; display: block; }
+        .chat-bubble th, .chat-bubble td { border: 1px solid var(--border-color); padding: 8px 12px; text-align: left; }
+        .chat-bubble th { background: #0f172a; color: var(--primary); font-weight: 600; }
+        .chat-bubble tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+
+        /* Quick Action Bar */
+        .pinned-bar { display: flex; gap: 8px; padding: 10px 16px; overflow-x: auto; background: var(--bg-dark); flex-shrink: 0; border-top: 1px solid var(--border-color); }
+        .chip-btn { background: var(--card-dark); border: 1px solid var(--border-color); padding: 7px 14px; border-radius: 20px; font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: all 0.2s ease; }
+        .chip-btn:hover { border-color: var(--primary); color: white; background: #1a263d; }
+
+        /* ChatGPT Style Bottom Input Bar */
+        .chat-input-wrapper { padding: 12px 16px; background: var(--bg-dark); flex-shrink: 0; }
+        .chat-input-container { background: var(--card-dark); border: 1px solid var(--border-color); border-radius: 24px; padding: 6px 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
+        .chat-input-container:focus-within { border-color: var(--primary); }
+        .chat-input { flex: 1; background: transparent; border: none; padding: 10px 4px; color: white; font-size: 14.5px; outline: none; }
+        .icon-btn { background: none; border: none; color: var(--text-muted); font-size: 18px; cursor: pointer; padding: 6px; border-radius: 50%; transition: color 0.2s ease; display: flex; align-items: center; justify-content: center; }
+        .icon-btn:hover { color: white; background: rgba(255,255,255,0.05); }
+        .send-btn { background: var(--primary); border: none; color: white; width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.1s ease; }
+        .send-btn:active { transform: scale(0.92); }
+
+        /* File Attachment Preview Bar */
+        .attachment-preview { display: none; padding: 6px 12px; background: #1e293b; border-radius: 8px; margin-bottom: 8px; font-size: 12px; align-items: center; justify-content: space-between; color: var(--primary); }
+
+        /* Drawer Overlay & Menus */
+        .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 99; }
+        .drawer-menu { position: fixed; right: -280px; top: 0; width: 260px; height: 100%; background: var(--card-dark); transition: right 0.3s ease; z-index: 100; padding: 24px; display: flex; flex-direction: column; gap: 15px; border-left: 1px solid var(--border-color); }
         .drawer-menu.open { right: 0; }
 
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; justify-content: center; align-items: center; }
-        .modal-box { background: var(--card-dark); padding: 20px; border-radius: 12px; width: 80%; max-width: 300px; text-align: center; }
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 200; justify-content: center; align-items: center; }
+        .modal-box { background: var(--card-dark); padding: 24px; border-radius: 16px; width: 85%; max-width: 320px; text-align: center; border: 1px solid var(--border-color); }
     </style>
 </head>
 <body>
@@ -283,7 +355,7 @@ app.get('*', (req, res) => {
 
         <div class="login-middle">
             <input type="password" id="secretKey" class="input-key" placeholder="Enter Secret Key">
-            <button class="btn-unlock" onclick="executeUnlockProcess()">Unlock</button>
+            <button class="btn-unlock" onclick="executeUnlockProcess()" style="margin-left:8px;">Unlock</button>
         </div>
 
         <div class="login-bottom">
@@ -294,51 +366,65 @@ app.get('*', (req, res) => {
 
     <div id="page2" class="page">
         <div class="chat-header">
-            <div class="chat-title">CareerBoot Excel AI Trainer</div>
+            <div class="chat-header-info">
+                <div class="ai-status-dot"></div>
+                <div class="chat-title">CareerBoot Excel AI</div>
+            </div>
             <div>
-                <button class="icon-btn" onclick="fetchHistory()">📜</button>
-                <button class="icon-btn" onclick="openDrawer()">|||</button>
+                <button class="icon-btn" onclick="fetchHistory()" title="History">📜</button>
+                <button class="icon-btn" onclick="openDrawer()" title="Menu">☰</button>
             </div>
         </div>
 
         <div class="chat-body" id="chatBody">
-            <div class="chat-bubble model">Welcome! I am your CareerBoot MS Excel Trainer. Ask any Excel query or select a topic below to start learning!</div>
+            <div class="chat-row model">
+                <div class="avatar model">AI</div>
+                <div class="chat-bubble">Welcome! I am your **CareerBoot MS Excel Trainer**. Ask any Excel question, upload images or spreadsheets for analysis, or click a quick prompt below.</div>
+            </div>
         </div>
 
         <div class="pinned-bar">
-            <button class="chip-btn" onclick="sendQuickQuery('List top 20 essential shortcut keys in MS Excel with their usage')">Shortcut Keys</button>
-            <button class="chip-btn" onclick="sendQuickQuery('Explain top 10 important Excel formulas with simple examples')">All Formulas</button>
-            <button class="chip-btn" onclick="sendQuickQuery('How do I use VLOOKUP step-by-step with an example?')">VLOOKUP Guide</button>
-            <button class="chip-btn" onclick="sendQuickQuery('How to create an interactive Pivot Table in Excel?')">Pivot Table</button>
+            <button class="chip-btn" onclick="sendQuickQuery('List top 20 essential shortcut keys in MS Excel with their usage')">⌨️ Shortcut Keys</button>
+            <button class="chip-btn" onclick="sendQuickQuery('Explain top 10 important Excel formulas with simple examples')">📊 All Formulas</button>
+            <button class="chip-btn" onclick="sendQuickQuery('How do I use VLOOKUP step-by-step with an example?')">🔍 VLOOKUP Guide</button>
+            <button class="chip-btn" onclick="sendQuickQuery('How to create an interactive Pivot Table in Excel?')">📈 Pivot Table</button>
         </div>
 
-        <div class="chat-input-container">
-            <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel question..." onkeypress="if(event.key==='Enter') processUserQuery()">
-            <button class="icon-btn" onclick="startVoiceRecognition()">🎤</button>
-            <button class="btn-unlock" onclick="processUserQuery()" style="padding: 8px 14px;">Send</button>
+        <div class="chat-input-wrapper">
+            <div class="attachment-preview" id="attachmentPreview">
+                <span id="attachmentName">file.png</span>
+                <span style="cursor:pointer;" onclick="clearAttachment()">✖</span>
+            </div>
+            <div class="chat-input-container">
+                <input type="file" id="fileInput" style="display: none;" onchange="handleFileSelect(event)">
+                <button class="icon-btn" onclick="document.getElementById('fileInput').click()" title="Attach File or Image">📎</button>
+                <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel question or attach sheet..." onkeypress="if(event.key==='Enter') processUserQuery()">
+                <button class="icon-btn" onclick="startVoiceRecognition()" title="Voice Input">🎤</button>
+                <button class="send-btn" onclick="processUserQuery()" title="Send Message">➤</button>
+            </div>
         </div>
     </div>
 
     <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
     <div class="drawer-menu" id="drawerMenu">
-        <h3 style="color: var(--primary);">Menu</h3>
+        <h3 style="color: var(--primary);">Menu Options</h3>
         <button class="btn-unlock" onclick="downloadPracticeSheet()" style="width: 100%;">Download Practice Sheet</button>
         <button class="btn-unlock" onclick="logout()" style="background: #ef4444; margin-top: auto;">Logout</button>
     </div>
 
     <div id="adminPage" class="page" style="padding: 20px; overflow-y: auto;">
         <h2 style="color: var(--primary); margin-bottom: 20px;">Admin Panel</h2>
-        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 12px;">
+        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 12px; border:1px solid var(--border-color);">
             <h4>Create Access Key</h4>
-            <input type="text" id="newKeyInput" class="chat-input" placeholder="New Key" style="margin-top: 8px; width: 100%;">
+            <input type="text" id="newKeyInput" class="chat-input" placeholder="New Key" style="margin-top: 8px; width: 100%; border:1px solid var(--border-color); border-radius:6px; padding:8px;">
             <button class="btn-unlock" onclick="adminCreateKey()" style="margin-top: 8px; width: 100%;">Create</button>
         </div>
-        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 12px;">
+        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 12px; border:1px solid var(--border-color);">
             <h4>Revoke Key</h4>
-            <input type="text" id="revokeKeyInput" class="chat-input" placeholder="Key Name" style="margin-top: 8px; width: 100%;">
+            <input type="text" id="revokeKeyInput" class="chat-input" placeholder="Key Name" style="margin-top: 8px; width: 100%; border:1px solid var(--border-color); border-radius:6px; padding:8px;">
             <button class="btn-unlock" onclick="adminDeleteKey()" style="background: #ef4444; margin-top: 8px; width: 100%;">Delete</button>
         </div>
-        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px;">
+        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; border:1px solid var(--border-color);">
             <h4>Upload Practice Sheet</h4>
             <input type="file" id="adminSheetFile" style="margin-top: 8px;">
             <button class="btn-unlock" onclick="adminUploadSheet()" style="margin-top: 8px; width: 100%;">Upload Sheet</button>
@@ -355,6 +441,13 @@ app.get('*', (req, res) => {
     <script>
         let jwtToken = localStorage.getItem('jwt_token') || null;
         let userRole = localStorage.getItem('user_role') || null;
+        let selectedFile = null;
+
+        // Configure Markdown Renderer
+        marked.setOptions({
+            gfm: true,
+            breaks: true
+        });
 
         function getDeviceSignature() {
             let sig = localStorage.getItem('cb_device_sig');
@@ -378,7 +471,6 @@ app.get('*', (req, res) => {
                 autoplay: true,
                 path: 'https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json'
             });
-            // Direct Page1 Enforcement (Entry screen will always show on page open/refresh)
         });
 
         function showModal(msg) {
@@ -386,6 +478,21 @@ app.get('*', (req, res) => {
             document.getElementById('modalOverlay').style.display = 'flex';
         }
         function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('attachmentName').innerText = "📎 " + file.name;
+                document.getElementById('attachmentPreview').style.display = 'flex';
+            }
+        }
+
+        function clearAttachment() {
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('attachmentPreview').style.display = 'none';
+        }
 
         async function executeUnlockProcess() {
             const key = document.getElementById('secretKey').value.trim();
@@ -442,26 +549,59 @@ app.get('*', (req, res) => {
             const chatBody = document.getElementById('chatBody');
 
             const query = input.value.trim();
-            if(!query) return;
+            if(!query && !selectedFile) return;
 
-            chatBody.innerHTML += \`<div class="chat-bubble user">\${query}</div>\`;
+            // Render User Bubble
+            let userDisplayHtml = query;
+            if(selectedFile) {
+                userDisplayHtml += `<br><small style="opacity:0.8;">📎 Attached: ${selectedFile.name}</small>`;
+            }
+
+            chatBody.innerHTML += `
+                <div class="chat-row user">
+                    <div class="avatar user">U</div>
+                    <div class="chat-bubble">${userDisplayHtml}</div>
+                </div>
+            `;
+            
             input.value = '';
             chatBody.scrollTop = chatBody.scrollHeight;
+
+            const formData = new FormData();
+            formData.append('message', query);
+            if(selectedFile) {
+                formData.append('file', selectedFile);
+            }
+
+            clearAttachment();
 
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
                     headers: { 
-                        'Content-Type': 'application/json',
                         'Authorization': 'Bearer ' + jwtToken 
                     },
-                    body: JSON.stringify({ message: query })
+                    body: formData
                 });
                 const data = await res.json();
-                chatBody.innerHTML += \`<div class="chat-bubble model">\${data.reply}</div>\`;
+                
+                // Parse AI response markdown
+                const parsedReply = marked.parse(data.reply);
+
+                chatBody.innerHTML += `
+                    <div class="chat-row model">
+                        <div class="avatar model">AI</div>
+                        <div class="chat-bubble">${parsedReply}</div>
+                    </div>
+                `;
                 chatBody.scrollTop = chatBody.scrollHeight;
             } catch (err) {
-                chatBody.innerHTML += \`<div class="chat-bubble model">Connection error. Please try again.</div>\`;
+                chatBody.innerHTML += `
+                    <div class="chat-row model">
+                        <div class="avatar model">AI</div>
+                        <div class="chat-bubble">Connection error. Please try again.</div>
+                    </div>
+                `;
             }
         }
 
@@ -496,7 +636,15 @@ app.get('*', (req, res) => {
                     const chatBody = document.getElementById('chatBody');
                     chatBody.innerHTML = '';
                     data.history.forEach(item => {
-                        chatBody.innerHTML += \`<div class="chat-bubble \${item.role}">\${item.message}</div>\`;
+                        const avatarText = item.role === 'user' ? 'U' : 'AI';
+                        const bubbleContent = item.role === 'model' ? marked.parse(item.message) : item.message;
+                        
+                        chatBody.innerHTML += `
+                            <div class="chat-row ${item.role}">
+                                <div class="avatar ${item.role}">${avatarText}</div>
+                                <div class="chat-bubble">${bubbleContent}</div>
+                            </div>
+                        `;
                     });
                     chatBody.scrollTop = chatBody.scrollHeight;
                 }
