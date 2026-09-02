@@ -170,7 +170,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                model: 'llama-3-70b-8192', // Active Stable Groq Model
+                model: 'openai/gpt-oss-120b', // Active Groq Model
                 messages: [
                     { role: 'system', content: systemInstruction },
                     { role: 'user', content: message }
@@ -549,4 +549,9 @@ app.get('*', (req, res) => {
     `);
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Server Initialization
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+});
+
+export default app;
