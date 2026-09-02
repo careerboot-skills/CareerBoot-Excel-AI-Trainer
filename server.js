@@ -167,12 +167,11 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
         }
 
         let userContent = [];
-        let selectedModel = 'llama-3.3-70b-versatile';
+        // UPDATED: Standard Groq supported text model
+        let selectedModel = 'llama3-70b-8192';
 
-        // Add user text
         userContent.push({ type: 'text', text: message || "Analyze the attached context/image." });
 
-        // Image Attachment Handling (Base64 encoding for Multimodal API)
         if (attachedFile) {
             if (attachedFile.mimetype.startsWith('image/')) {
                 const base64Image = attachedFile.buffer.toString('base64');
@@ -181,7 +180,8 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
                     type: 'image_url',
                     image_url: { url: imageUrl }
                 });
-                selectedModel = 'llama-3.2-11b-vision-preview';
+                // UPDATED: Standard Groq supported vision model
+                selectedModel = 'llama-3.2-11b-vision-instruct';
             } else {
                 const fileText = attachedFile.buffer.toString('utf-8');
                 userContent[0].text += `\n\n[Attached File Content (${attachedFile.originalname})]:\n${fileText.substring(0, 4000)}`;
@@ -318,7 +318,7 @@ app.get('*', (req, res) => {
         .chip-btn { background: var(--card-dark); border: 1px solid var(--border-color); padding: 7px 14px; border-radius: 20px; font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; transition: all 0.2s ease; }
         .chip-btn:hover { border-color: var(--primary); color: white; background: #1a263d; }
 
-        /* ChatGPT Style Bottom Input Bar */
+        /* Bottom Input Bar */
         .chat-input-wrapper { padding: 12px 16px; background: var(--bg-dark); flex-shrink: 0; }
         .chat-input-container { background: var(--card-dark); border: 1px solid var(--border-color); border-radius: 24px; padding: 6px 14px; display: flex; align-items: center; gap: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); }
         .chat-input-container:focus-within { border-color: var(--primary); }
