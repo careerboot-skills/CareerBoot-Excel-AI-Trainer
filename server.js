@@ -17,9 +17,9 @@ const upload = multer({
 // Environment Variables
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6Icc0bXNFgSQGH0u5ntB1DKseC4P48SV2yAXLYbQVkTzw";
+const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "ADMIN123KEY";
-const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_SECURE_JWT_SECRET_2026";
+const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_PROD_SECURE_KEY_2026";
 
 // MongoDB Connection
 if (MONGO_URI) {
@@ -41,7 +41,7 @@ const ChatSchema = new mongoose.Schema({
     deviceId: { type: String, required: true },
     role: { type: String, enum: ['user', 'model'], required: true },
     message: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now, expires: 432000 }
+    createdAt: { type: Date, default: Date.now, expires: 432000 } // Auto-delete after 5 days
 });
 
 const PracticeSheetSchema = new mongoose.Schema({
@@ -81,13 +81,13 @@ app.post('/api/login', async (req, res) => {
         }
 
         if (key === ADMIN_SECRET) {
-            const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '24h' });
+            const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '30d' });
             return res.json({ success: true, role: 'admin', token });
         }
 
         const keyDoc = await Key.findOne({ key });
         if (!keyDoc) {
-            return res.status(401).json({ success: false, message: "Invalid Secret Key" });
+            return res.status(401).json({ success: false, message: "Invalid Access Key" });
         }
 
         if (!keyDoc.deviceId) {
@@ -95,10 +95,10 @@ app.post('/api/login', async (req, res) => {
             keyDoc.boundAt = new Date();
             await keyDoc.save();
         } else if (keyDoc.deviceId !== deviceSignature) {
-            return res.status(403).json({ success: false, message: "Key bound to another device!" });
+            return res.status(403).json({ success: false, message: "This Key is registered to another device!" });
         }
 
-        const token = jwt.sign({ key: keyDoc.key, deviceId: deviceSignature, role: 'user' }, JWT_SECRET, { expiresIn: '30d' });
+        const token = jwt.sign({ key: keyDoc.key, deviceId: deviceSignature, role: 'user' }, JWT_SECRET, { expiresIn: '60d' });
         return res.json({ success: true, role: 'user', token });
     } catch (err) {
         res.status(500).json({ success: false, message: "Authentication Error" });
@@ -118,7 +118,7 @@ app.post('/api/admin/create-key', authMiddleware, async (req, res) => {
 app.post('/api/admin/delete-key', authMiddleware, async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
     await Key.deleteOne({ key: req.body.key });
-    res.json({ success: true, message: "Key Removed Successfully!" });
+    res.json({ success: true, message: "Key Revoked Successfully!" });
 });
 
 app.post('/api/admin/upload-sheet', authMiddleware, upload.single('sheet'), async (req, res) => {
@@ -136,7 +136,7 @@ app.post('/api/admin/upload-sheet', authMiddleware, upload.single('sheet'), asyn
 
 app.get('/api/download-sheet', authMiddleware, async (req, res) => {
     const sheet = await PracticeSheet.findOne().sort({ uploadedAt: -1 });
-    if (!sheet) return res.status(404).send("No practice sheet available.");
+    if (!sheet) return res.status(404).send("No practice sheet uploaded yet.");
     res.setHeader('Content-Type', sheet.contentType);
     res.setHeader('Content-Disposition', `attachment; filename="${sheet.filename}"`);
     res.send(sheet.data);
@@ -147,47 +147,51 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// Direct REST Call Route for Gemini API
+// Production Groq AI Route
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
         const deviceId = req.user.deviceId;
 
-        let parts = [];
+        if (!message) return res.status(400).json({ success: false, reply: "Please enter a query." });
 
-        if (req.file) {
-            parts.push({
-                inlineData: {
-                    mimeType: req.file.mimetype,
-                    data: req.file.buffer.toString("base64")
-                }
-            });
+        const systemInstruction = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Keep responses direct, well-structured, easy to learn, and step-by-step.";
+
+        const groqKey = process.env.GROQ_API_KEY || GROQ_API_KEY;
+
+        if(!groqKey) {
+            return res.status(500).json({ success: false, reply: "Groq API Key is not configured on server." });
         }
 
-        const systemInstruction = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Keep responses clear and step-by-step.";
-        parts.push({ text: `${systemInstruction}\n\nUser Question: ${message || ''}` });
-
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY.trim()}`;
-
-        const apiRes = await fetch(apiUrl, {
+        const apiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts }] })
+            headers: {
+                'Authorization': `Bearer ${groqKey.trim()}`,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                model: 'llama-3.3-70b-versatile',
+                messages: [
+                    { role: 'system', content: systemInstruction },
+                    { role: 'user', content: message }
+                ],
+                temperature: 0.3
+            })
         });
 
         const data = await apiRes.json();
 
         if (data.error) {
-            console.error("Gemini Direct Error:", data.error);
+            console.error("Groq API Error:", data.error);
             return res.status(400).json({ 
                 success: false, 
-                reply: `API Error (${data.error.code}): ${data.error.message}` 
+                reply: `AI Engine Error: ${data.error.message}` 
             });
         }
 
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No answer generated.";
+        const reply = data.choices?.[0]?.message?.content || "No response generated.";
 
-        await Chat.create({ deviceId, role: 'user', message: message || '[Attachment]' });
+        await Chat.create({ deviceId, role: 'user', message: message });
         await Chat.create({ deviceId, role: 'model', message: reply });
 
         res.json({ success: true, reply });
@@ -224,13 +228,13 @@ app.get('*', (req, res) => {
         .page.active { display: flex; }
 
         .login-top { height: 35vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
-        .brand-logo { font-size: 24px; font-weight: 800; color: var(--primary); }
+        .brand-logo { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
         .welcome-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
         
-        .tracker-wrapper { width: 85%; max-width: 350px; margin-top: 20px; position: relative; }
+        .tracker-wrapper { width: 85%; max-width: 350px; margin-top: 25px; position: relative; }
         .tracker-line { height: 4px; background: #334155; border-radius: 2px; position: relative; width: 100%; }
         .tracker-progress { position: absolute; height: 100%; background: var(--primary); width: 0%; transition: width 2.5s ease; }
-        .tracker-labels { display: flex; justify-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+        .tracker-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
         .walker-avatar { position: absolute; top: -25px; left: 0%; transform: translateX(-50%); transition: left 2.5s ease; font-size: 18px; }
 
         .login-middle { height: 15vh; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
@@ -244,8 +248,8 @@ app.get('*', (req, res) => {
         .chat-header { height: 55px; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
         .chat-title { font-weight: 700; font-size: 15px; color: var(--primary); }
 
-        .chat-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 10px; }
-        .chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.4; word-wrap: break-word; }
+        .chat-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+        .chat-bubble { max-width: 88%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.5; word-wrap: break-word; white-space: pre-wrap; }
         .chat-bubble.user { background: var(--user-msg); align-self: flex-end; }
         .chat-bubble.model { background: var(--card-dark); align-self: flex-start; border: 1px solid #334155; }
 
@@ -298,18 +302,17 @@ app.get('*', (req, res) => {
         </div>
 
         <div class="chat-body" id="chatBody">
-            <div class="chat-bubble model">Hello! I am your CareerBoot MS Excel AI Trainer. Ask me any Excel queries!</div>
+            <div class="chat-bubble model">Welcome! I am your CareerBoot MS Excel Trainer. Ask any Excel query or select a topic below to start learning!</div>
         </div>
 
         <div class="pinned-bar">
-            <button class="chip-btn" onclick="sendQuickQuery('List all important shortcut keys in MS Excel')">Shortcut Keys</button>
-            <button class="chip-btn" onclick="sendQuickQuery('List all essential Excel formulas with examples')">All Formulas</button>
-            <button class="chip-btn" onclick="sendQuickQuery('What is VLOOKUP and how do I use it with examples?')">What is VLOOKUP</button>
+            <button class="chip-btn" onclick="sendQuickQuery('List top 20 essential shortcut keys in MS Excel with their usage')">Shortcut Keys</button>
+            <button class="chip-btn" onclick="sendQuickQuery('Explain top 10 important Excel formulas with simple examples')">All Formulas</button>
+            <button class="chip-btn" onclick="sendQuickQuery('How do I use VLOOKUP step-by-step with an example?')">VLOOKUP Guide</button>
+            <button class="chip-btn" onclick="sendQuickQuery('How to create an interactive Pivot Table in Excel?')">Pivot Table</button>
         </div>
 
         <div class="chat-input-container">
-            <input type="file" id="fileAttach" hidden accept="image/*,.xlsx,.xls,.csv">
-            <button class="icon-btn" onclick="document.getElementById('fileAttach').click()">📁</button>
             <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel question..." onkeypress="if(event.key==='Enter') processUserQuery()">
             <button class="icon-btn" onclick="startVoiceRecognition()">🎤</button>
             <button class="btn-unlock" onclick="processUserQuery()" style="padding: 8px 14px;">Send</button>
@@ -320,7 +323,7 @@ app.get('*', (req, res) => {
     <div class="drawer-menu" id="drawerMenu">
         <h3 style="color: var(--primary);">Menu</h3>
         <button class="btn-unlock" onclick="downloadPracticeSheet()" style="width: 100%;">Download Practice Sheet</button>
-        <button class="btn-unlock" onclick="closeDrawer()" style="background: #ef4444; margin-top: auto;">Close</button>
+        <button class="btn-unlock" onclick="logout()" style="background: #ef4444; margin-top: auto;">Logout</button>
     </div>
 
     <div id="adminPage" class="page" style="padding: 20px; overflow-y: auto;">
@@ -338,7 +341,7 @@ app.get('*', (req, res) => {
         <div style="background: var(--card-dark); padding: 15px; border-radius: 10px;">
             <h4>Upload Practice Sheet</h4>
             <input type="file" id="adminSheetFile" style="margin-top: 8px;">
-            <button class="btn-unlock" onclick="adminUploadSheet()" style="margin-top: 8px; width: 100%;">Upload</button>
+            <button class="btn-unlock" onclick="adminUploadSheet()" style="margin-top: 8px; width: 100%;">Upload Sheet</button>
         </div>
     </div>
 
@@ -351,6 +354,7 @@ app.get('*', (req, res) => {
 
     <script>
         let jwtToken = localStorage.getItem('jwt_token') || null;
+        let userRole = localStorage.getItem('user_role') || null;
 
         function getDeviceSignature() {
             let sig = localStorage.getItem('cb_device_sig');
@@ -374,6 +378,17 @@ app.get('*', (req, res) => {
                 autoplay: true,
                 path: 'https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json'
             });
+
+            // Auto Auto-login session restore
+            if (jwtToken) {
+                document.getElementById('page1').classList.remove('active');
+                if (userRole === 'admin') {
+                    document.getElementById('adminPage').classList.add('active');
+                } else {
+                    document.getElementById('page2').classList.add('active');
+                    fetchHistory();
+                }
+            }
         });
 
         function showModal(msg) {
@@ -408,7 +423,9 @@ app.get('*', (req, res) => {
                     if(data.success) {
                         statusBadge.innerText = '👍🏻';
                         jwtToken = data.token;
+                        userRole = data.role;
                         localStorage.setItem('jwt_token', jwtToken);
+                        localStorage.setItem('user_role', userRole);
 
                         setTimeout(() => {
                             document.getElementById('page1').classList.remove('active');
@@ -416,13 +433,14 @@ app.get('*', (req, res) => {
                                 document.getElementById('adminPage').classList.add('active');
                             } else {
                                 document.getElementById('page2').classList.add('active');
+                                fetchHistory();
                             }
                         }, 1000);
                     } else {
                         statusBadge.innerText = '🙅‍♂️';
                         setTimeout(() => { showModal(data.message); }, 500);
                     }
-                }, 2500);
+                }, 2000);
 
             } catch (err) {
                 showModal("Network Connection Error");
@@ -431,40 +449,36 @@ app.get('*', (req, res) => {
 
         async function processUserQuery() {
             const input = document.getElementById('userInput');
-            const fileInput = document.getElementById('fileAttach');
             const chatBody = document.getElementById('chatBody');
 
             const query = input.value.trim();
-            if(!query && !fileInput.files[0]) return;
+            if(!query) return;
 
-            if(query) chatBody.innerHTML += \`<div class="chat-bubble user">\${query}</div>\`;
-
-            const formData = new FormData();
-            if(query) formData.append('message', query);
-            if(fileInput.files[0]) formData.append('file', fileInput.files[0]);
-
+            chatBody.innerHTML += \`<div class="chat-bubble user">\${query}</div>\`;
             input.value = '';
-            fileInput.value = '';
             chatBody.scrollTop = chatBody.scrollHeight;
 
             try {
                 const res = await fetch('/api/chat', {
                     method: 'POST',
-                    headers: { 'Authorization': 'Bearer ' + jwtToken },
-                    body: formData
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer ' + jwtToken 
+                    },
+                    body: JSON.stringify({ message: query })
                 });
                 const data = await res.json();
                 chatBody.innerHTML += \`<div class="chat-bubble model">\${data.reply}</div>\`;
                 chatBody.scrollTop = chatBody.scrollHeight;
             } catch (err) {
-                chatBody.innerHTML += \`<div class="chat-bubble model">Failed to fetch response.</div>\`;
+                chatBody.innerHTML += \`<div class="chat-bubble model">Connection error. Please try again.</div>\`;
             }
         }
 
         function sendQuickQuery(text) { document.getElementById('userInput').value = text; processUserQuery(); }
 
         function startVoiceRecognition() {
-            if(!('webkitSpeechRecognition' in window)) return showModal("Speech recognition not supported");
+            if(!('webkitSpeechRecognition' in window)) return showModal("Speech recognition not supported in this browser");
             const recognition = new webkitSpeechRecognition();
             recognition.onresult = (e) => { document.getElementById('userInput').value = e.results[0][0].transcript; };
             recognition.start();
@@ -477,22 +491,33 @@ app.get('*', (req, res) => {
             window.open('/api/download-sheet?token=' + jwtToken, '_blank');
         }
 
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
         async function fetchHistory() {
-            const res = await fetch('/api/chat-history', {
-                headers: { 'Authorization': 'Bearer ' + jwtToken }
-            });
-            const data = await res.json();
-            if(data.success) {
-                const chatBody = document.getElementById('chatBody');
-                chatBody.innerHTML = '';
-                data.history.forEach(item => {
-                    chatBody.innerHTML += \`<div class="chat-bubble \${item.role}">\${item.message}</div>\`;
+            try {
+                const res = await fetch('/api/chat-history', {
+                    headers: { 'Authorization': 'Bearer ' + jwtToken }
                 });
+                const data = await res.json();
+                if(data.success && data.history.length > 0) {
+                    const chatBody = document.getElementById('chatBody');
+                    chatBody.innerHTML = '';
+                    data.history.forEach(item => {
+                        chatBody.innerHTML += \`<div class="chat-bubble \${item.role}">\${item.message}</div>\`;
+                    });
+                    chatBody.scrollTop = chatBody.scrollHeight;
+                }
+            } catch (e) {
+                console.log("History sync error");
             }
         }
 
         async function adminCreateKey() {
             const newKey = document.getElementById('newKeyInput').value.trim();
+            if(!newKey) return showModal("Enter Key Name");
             const res = await fetch('/api/admin/create-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
@@ -504,6 +529,7 @@ app.get('*', (req, res) => {
 
         async function adminDeleteKey() {
             const key = document.getElementById('revokeKeyInput').value.trim();
+            if(!key) return showModal("Enter Key Name");
             const res = await fetch('/api/admin/delete-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
