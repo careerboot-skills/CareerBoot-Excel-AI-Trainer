@@ -167,8 +167,8 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
         }
 
         let userContent = [];
-        // UPDATED: Standard Groq supported text model
-        let selectedModel = 'llama3-70b-8192';
+        // UPDATED: Active and supported Groq text model
+        let selectedModel = 'llama-3.3-70b-versatile';
 
         userContent.push({ type: 'text', text: message || "Analyze the attached context/image." });
 
@@ -180,8 +180,8 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
                     type: 'image_url',
                     image_url: { url: imageUrl }
                 });
-                // UPDATED: Standard Groq supported vision model
-                selectedModel = 'llama-3.2-11b-vision-instruct';
+                // UPDATED: Active Groq supported vision model
+                selectedModel = 'llama-3.2-11b-vision-preview';
             } else {
                 const fileText = attachedFile.buffer.toString('utf-8');
                 userContent[0].text += `\n\n[Attached File Content (${attachedFile.originalname})]:\n${fileText.substring(0, 4000)}`;
