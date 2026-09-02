@@ -379,7 +379,7 @@ app.get('*', (req, res) => {
         <div class="chat-body" id="chatBody">
             <div class="chat-row model">
                 <div class="avatar model">AI</div>
-                <div class="chat-bubble">Welcome! I am your **CareerBoot MS Excel Trainer**. Ask any Excel question, upload images or spreadsheets for analysis, or click a quick prompt below.</div>
+                <div class="chat-bubble">Welcome! I am your <b>CareerBoot MS Excel Trainer</b>. Ask any Excel question, upload images or spreadsheets for analysis, or click a quick prompt below.</div>
             </div>
         </div>
 
@@ -443,7 +443,6 @@ app.get('*', (req, res) => {
         let userRole = localStorage.getItem('user_role') || null;
         let selectedFile = null;
 
-        // Configure Markdown Renderer
         marked.setOptions({
             gfm: true,
             breaks: true
@@ -551,19 +550,14 @@ app.get('*', (req, res) => {
             const query = input.value.trim();
             if(!query && !selectedFile) return;
 
-            // Render User Bubble
-            let userDisplayHtml = query;
-            if(selectedFile) {
-                userDisplayHtml += `<br><small style="opacity:0.8;">📎 Attached: ${selectedFile.name}</small>`;
-            }
+            let fileInfoHtml = selectedFile ? '<br><small style="opacity:0.8;">📎 Attached: ' + selectedFile.name + '</small>' : '';
+            let userDisplayHtml = query + fileInfoHtml;
 
-            chatBody.innerHTML += `
-                <div class="chat-row user">
-                    <div class="avatar user">U</div>
-                    <div class="chat-bubble">${userDisplayHtml}</div>
-                </div>
-            `;
-            
+            const userRow = document.createElement('div');
+            userRow.className = 'chat-row user';
+            userRow.innerHTML = '<div class="avatar user">U</div><div class="chat-bubble">' + userDisplayHtml + '</div>';
+            chatBody.appendChild(userRow);
+
             input.value = '';
             chatBody.scrollTop = chatBody.scrollHeight;
 
@@ -585,23 +579,18 @@ app.get('*', (req, res) => {
                 });
                 const data = await res.json();
                 
-                // Parse AI response markdown
                 const parsedReply = marked.parse(data.reply);
+                const aiRow = document.createElement('div');
+                aiRow.className = 'chat-row model';
+                aiRow.innerHTML = '<div class="avatar model">AI</div><div class="chat-bubble">' + parsedReply + '</div>';
+                chatBody.appendChild(aiRow);
 
-                chatBody.innerHTML += `
-                    <div class="chat-row model">
-                        <div class="avatar model">AI</div>
-                        <div class="chat-bubble">${parsedReply}</div>
-                    </div>
-                `;
                 chatBody.scrollTop = chatBody.scrollHeight;
             } catch (err) {
-                chatBody.innerHTML += `
-                    <div class="chat-row model">
-                        <div class="avatar model">AI</div>
-                        <div class="chat-bubble">Connection error. Please try again.</div>
-                    </div>
-                `;
+                const errRow = document.createElement('div');
+                errRow.className = 'chat-row model';
+                errRow.innerHTML = '<div class="avatar model">AI</div><div class="chat-bubble">Connection error. Please try again.</div>';
+                chatBody.appendChild(errRow);
             }
         }
 
@@ -639,12 +628,10 @@ app.get('*', (req, res) => {
                         const avatarText = item.role === 'user' ? 'U' : 'AI';
                         const bubbleContent = item.role === 'model' ? marked.parse(item.message) : item.message;
                         
-                        chatBody.innerHTML += `
-                            <div class="chat-row ${item.role}">
-                                <div class="avatar ${item.role}">${avatarText}</div>
-                                <div class="chat-bubble">${bubbleContent}</div>
-                            </div>
-                        `;
+                        const row = document.createElement('div');
+                        row.className = 'chat-row ' + item.role;
+                        row.innerHTML = '<div class="avatar ' + item.role + '">' + avatarText + '</div><div class="chat-bubble">' + bubbleContent + '</div>';
+                        chatBody.appendChild(row);
                     });
                     chatBody.scrollTop = chatBody.scrollHeight;
                 }
