@@ -167,8 +167,8 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
         }
 
         let userContent = [];
-        // UPDATED: Active and supported Groq text model
-        let selectedModel = 'llama-3.3-70b-versatile';
+        // UPDATED: Standard fully-supported Groq text model
+        let selectedModel = 'llama-3.1-8b-instant';
 
         userContent.push({ type: 'text', text: message || "Analyze the attached context/image." });
 
@@ -180,7 +180,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
                     type: 'image_url',
                     image_url: { url: imageUrl }
                 });
-                // UPDATED: Active Groq supported vision model
+                // UPDATED: Active vision model for image processing
                 selectedModel = 'llama-3.2-11b-vision-preview';
             } else {
                 const fileText = attachedFile.buffer.toString('utf-8');
@@ -264,7 +264,7 @@ app.get('*', (req, res) => {
         .tracker-wrapper { width: 85%; max-width: 350px; margin-top: 25px; position: relative; }
         .tracker-line { height: 4px; background: #334155; border-radius: 2px; position: relative; width: 100%; }
         .tracker-progress { position: absolute; height: 100%; background: var(--primary); width: 0%; transition: width 2.5s ease; }
-        .tracker-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+        .tracker-labels { display: flex; justify-space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
         .walker-avatar { position: absolute; top: -25px; left: 0%; transform: translateX(-50%); transition: left 2.5s ease; font-size: 18px; }
 
         .login-middle { height: 15vh; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
