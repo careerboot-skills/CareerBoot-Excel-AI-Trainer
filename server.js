@@ -4,7 +4,6 @@ import multer from 'multer';
 import path from 'path';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,18 +17,18 @@ const upload = multer({
 // Environment Variables
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6IFft0bnldVNuw4C1Qv6GV0W7RuxNzqjYL3oPv7Hfi50g";
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || "AQ.Ab8RN6Icc0bXNFgSQGH0u5ntB1DKseC4P48SV2yAXLYbQVkTzw";
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "ADMIN123KEY";
 const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_SECURE_JWT_SECRET_2026";
 
-// Database Connection
+// MongoDB Connection
 if (MONGO_URI) {
     mongoose.connect(MONGO_URI)
         .then(() => console.log("MongoDB Connected Successfully"))
         .catch(err => console.error("MongoDB Connection Error:", err));
 }
 
-// Schemas
+// Database Schemas
 const KeySchema = new mongoose.Schema({
     key: { type: String, required: true, unique: true },
     deviceId: { type: String, default: null },
@@ -56,9 +55,6 @@ const Key = mongoose.model('Key', KeySchema);
 const Chat = mongoose.model('Chat', ChatSchema);
 const PracticeSheet = mongoose.model('PracticeSheet', PracticeSheetSchema);
 
-// Gemini AI Config
-const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-
 app.use(express.json({ limit: '20mb' }));
 
 // Auth Middleware
@@ -75,7 +71,7 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// API ROUTES
+// --- ROUTES ---
 
 app.post('/api/login', async (req, res) => {
     try {
@@ -99,7 +95,7 @@ app.post('/api/login', async (req, res) => {
             keyDoc.boundAt = new Date();
             await keyDoc.save();
         } else if (keyDoc.deviceId !== deviceSignature) {
-            return res.status(403).json({ success: false, message: "Key already bound to another device!" });
+            return res.status(403).json({ success: false, message: "Key bound to another device!" });
         }
 
         const token = jwt.sign({ key: keyDoc.key, deviceId: deviceSignature, role: 'user' }, JWT_SECRET, { expiresIn: '30d' });
@@ -151,52 +147,57 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// AI Chat Endpoint with Dynamic Model Allocation
+// Direct REST Call Route for Gemini API
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
         const deviceId = req.user.deviceId;
 
-        let contents = [];
+        let parts = [];
+
         if (req.file) {
-            contents.push({
+            parts.push({
                 inlineData: {
-                    data: req.file.buffer.toString("base64"),
-                    mimeType: req.file.mimetype
+                    mimeType: req.file.mimetype,
+                    data: req.file.buffer.toString("base64")
                 }
             });
         }
-        
-        const systemPrompt = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Keep responses clear and step-by-step.";
-        if (message) {
-            contents.push(`${systemPrompt}\n\nUser Question: ${message}`);
+
+        const systemInstruction = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Keep responses clear and step-by-step.";
+        parts.push({ text: `${systemInstruction}\n\nUser Question: ${message || ''}` });
+
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY.trim()}`;
+
+        const apiRes = await fetch(apiUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ contents: [{ parts }] })
+        });
+
+        const data = await apiRes.json();
+
+        if (data.error) {
+            console.error("Gemini Direct Error:", data.error);
+            return res.status(400).json({ 
+                success: false, 
+                reply: `API Error (${data.error.code}): ${data.error.message}` 
+            });
         }
 
-        // Try gemini-1.5-flash, fallback to gemini-pro if needed
-        let model;
-        try {
-            model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        } catch(e) {
-            model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        }
-
-        const result = await model.generateContent(contents);
-        const reply = result.response.text();
+        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text || "No answer generated.";
 
         await Chat.create({ deviceId, role: 'user', message: message || '[Attachment]' });
         await Chat.create({ deviceId, role: 'model', message: reply });
 
         res.json({ success: true, reply });
     } catch (err) {
-        console.error("Gemini API Exec Error Log:", err?.message || err);
-        res.status(500).json({ 
-            success: false, 
-            reply: "AI Processing Error: Please verify GEMINI_API_KEY in Render Environment Variables." 
-        });
+        console.error("Server Handler Error:", err);
+        res.status(500).json({ success: false, reply: "Server error processing AI response." });
     }
 });
 
-// SINGLE PAGE FRONTEND
+// FRONTEND INTERFACE
 app.get('*', (req, res) => {
     res.send(`
 <!DOCTYPE html>
@@ -222,7 +223,6 @@ app.get('*', (req, res) => {
         .page { display: none; height: 100dvh; width: 100vw; flex-direction: column; position: relative; }
         .page.active { display: flex; }
 
-        /* Login Screen */
         .login-top { height: 35vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
         .brand-logo { font-size: 24px; font-weight: 800; color: var(--primary); }
         .welcome-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
@@ -230,7 +230,7 @@ app.get('*', (req, res) => {
         .tracker-wrapper { width: 85%; max-width: 350px; margin-top: 20px; position: relative; }
         .tracker-line { height: 4px; background: #334155; border-radius: 2px; position: relative; width: 100%; }
         .tracker-progress { position: absolute; height: 100%; background: var(--primary); width: 0%; transition: width 2.5s ease; }
-        .tracker-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+        .tracker-labels { display: flex; justify-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
         .walker-avatar { position: absolute; top: -25px; left: 0%; transform: translateX(-50%); transition: left 2.5s ease; font-size: 18px; }
 
         .login-middle { height: 15vh; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
@@ -241,7 +241,6 @@ app.get('*', (req, res) => {
         .typing-anim-container { width: 200px; height: 200px; }
         .status-badge { display: none; font-size: 50px; }
 
-        /* Chat Layout */
         .chat-header { height: 55px; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
         .chat-title { font-weight: 700; font-size: 15px; color: var(--primary); }
 
