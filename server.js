@@ -147,7 +147,7 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// Production Groq AI Route with Auto-Fallback Models
+// Production Groq AI Route with Automatic Model Fallback Loop
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
@@ -157,20 +157,20 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
         const systemInstruction = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Format your responses cleanly using Markdown (bold text for formulas, lists for step-by-step guides, tables for comparisons, and code blocks for formulas/VBA). Keep responses direct, well-structured, easy to read, and modern.";
 
-        const groqKey = process.env.GROQ_API_KEY || GROQ_API_KEY;
+        const groqKey = (process.env.GROQ_API_KEY || GROQ_API_KEY || "").trim();
 
         if (!groqKey) {
             return res.status(500).json({ success: false, reply: "Groq API Key is not configured on server." });
         }
 
-        // Complete list of fallback models
+        // Active Groq Fallback List
         const MODELS_TO_TRY = [
             'llama-3.3-70b-versatile',
             'llama-3.1-8b-instant',
-            'llama3-70b-8192',
-            'llama3-8b-8192',
-            'mixtral-8x7b-32768',
-            'gemma2-9b-it'
+            'qwen-2.5-32b',
+            'deepseek-r1-distill-llama-70b',
+            'gemma2-9b-it',
+            'mixtral-8x7b-32768'
         ];
 
         let reply = null;
@@ -178,10 +178,12 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
         for (const modelName of MODELS_TO_TRY) {
             try {
+                console.log(`Attempting query execution with model: ${modelName}`);
+                
                 const apiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${groqKey.trim()}`,
+                        'Authorization': `Bearer ${groqKey}`,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -196,16 +198,17 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
                 const data = await apiRes.json();
 
-                if (apiRes.ok && data.choices?.[0]?.message?.content) {
+                if (apiRes.ok && data.choices && data.choices[0] && data.choices[0].message) {
                     reply = data.choices[0].message.content;
-                    console.log(`Success with model: ${modelName}`);
+                    console.log(`SUCCESS: Responded using model -> ${modelName}`);
                     break;
                 } else {
-                    console.warn(`Model ${modelName} failed:`, data.error?.message || "Unknown error");
-                    lastError = data.error?.message;
+                    const errDetail = data?.error?.message || `HTTP status ${apiRes.status}`;
+                    console.warn(`FAILED model [${modelName}]: ${errDetail}. Trying next model...`);
+                    lastError = errDetail;
                 }
             } catch (err) {
-                console.warn(`Fetch error for model ${modelName}:`, err.message);
+                console.warn(`EXCEPTION on model [${modelName}]: ${err.message}. Trying next model...`);
                 lastError = err.message;
             }
         }
@@ -213,7 +216,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
         if (!reply) {
             return res.status(500).json({ 
                 success: false, 
-                reply: `All AI models failed to respond. Last error: ${lastError}` 
+                reply: `All configured AI models failed to respond. Last error: ${lastError}` 
             });
         }
 
@@ -223,7 +226,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
         res.json({ success: true, reply });
     } catch (err) {
         console.error("Server Handler Error:", err);
-        res.status(500).json({ success: false, reply: "Server error processing AI response." });
+        res.status(500).json({ success: false, reply: "Internal server error during chat completion." });
     }
 });
 
@@ -281,7 +284,6 @@ app.get('*', (req, res) => {
         .chat-bubble.user { background: var(--user-msg); align-self: flex-end; white-space: pre-wrap; }
         .chat-bubble.model { background: var(--card-dark); align-self: flex-start; border: 1px solid #334155; }
 
-        /* Modern Markdown Formatting */
         .chat-bubble.model h1, .chat-bubble.model h2, .chat-bubble.model h3 { color: var(--primary); margin-top: 10px; margin-bottom: 6px; }
         .chat-bubble.model h1 { font-size: 18px; }
         .chat-bubble.model h2 { font-size: 16px; }
