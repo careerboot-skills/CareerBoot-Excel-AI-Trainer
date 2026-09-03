@@ -138,7 +138,7 @@ app.get('/api/download-sheet', authMiddleware, async (req, res) => {
     const sheet = await PracticeSheet.findOne().sort({ uploadedAt: -1 });
     if (!sheet) return res.status(404).send("No practice sheet uploaded yet.");
     res.setHeader('Content-Type', sheet.contentType);
-    res.setHeader('Content-Disposition', `attachment; filename="${sheet.filename}"`);
+    res.setHeader('Content-Disposition', 'attachment; filename="' + sheet.filename + '"');
     res.send(sheet.data);
 });
 
@@ -147,7 +147,7 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// Production Groq AI Route with Automatic Model Fallback Loop
+// AI Dynamic Retry Loop Route
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
@@ -163,7 +163,6 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
             return res.status(500).json({ success: false, reply: "Groq API Key is not configured on server." });
         }
 
-        // Active Groq Fallback List
         const MODELS_TO_TRY = [
             'llama-3.3-70b-versatile',
             'llama-3.1-8b-instant',
@@ -178,12 +177,12 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
         for (const modelName of MODELS_TO_TRY) {
             try {
-                console.log(`Attempting query execution with model: ${modelName}`);
+                console.log("Attempting model: " + modelName);
                 
                 const apiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
-                        'Authorization': `Bearer ${groqKey}`,
+                        'Authorization': 'Bearer ' + groqKey,
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
@@ -200,15 +199,15 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
                 if (apiRes.ok && data.choices && data.choices[0] && data.choices[0].message) {
                     reply = data.choices[0].message.content;
-                    console.log(`SUCCESS: Responded using model -> ${modelName}`);
+                    console.log("SUCCESS using model: " + modelName);
                     break;
                 } else {
-                    const errDetail = data?.error?.message || `HTTP status ${apiRes.status}`;
-                    console.warn(`FAILED model [${modelName}]: ${errDetail}. Trying next model...`);
+                    const errDetail = (data && data.error && data.error.message) ? data.error.message : ("HTTP " + apiRes.status);
+                    console.warn("FAILED model [" + modelName + "]: " + errDetail);
                     lastError = errDetail;
                 }
             } catch (err) {
-                console.warn(`EXCEPTION on model [${modelName}]: ${err.message}. Trying next model...`);
+                console.warn("EXCEPTION on model [" + modelName + "]: " + err.message);
                 lastError = err.message;
             }
         }
@@ -216,7 +215,7 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
         if (!reply) {
             return res.status(500).json({ 
                 success: false, 
-                reply: `All configured AI models failed to respond. Last error: ${lastError}` 
+                reply: "All AI models failed to respond. Last error: " + lastError 
             });
         }
 
@@ -230,10 +229,9 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
     }
 });
 
-// FRONTEND INTERFACE
+// FRONTEND UI
 app.get('*', (req, res) => {
-    res.send(`
-<!DOCTYPE html>
+    res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -242,79 +240,51 @@ app.get('*', (req, res) => {
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <style>
-        :root {
-            --primary: #10b981;
-            --bg-dark: #0f172a;
-            --card-dark: #1e293b;
-            --text-main: #f8fafc;
-            --text-muted: #94a3b8;
-            --user-msg: #2563eb;
-        }
-
+        :root { --primary: #10b981; --bg-dark: #0f172a; --card-dark: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8; --user-msg: #2563eb; }
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
         html, body { height: 100%; width: 100%; background-color: var(--bg-dark); color: var(--text-main); overflow: hidden; }
-
         .page { display: none; height: 100dvh; width: 100vw; flex-direction: column; position: relative; }
         .page.active { display: flex; }
-
         .login-top { height: 35vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
         .brand-logo { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
         .welcome-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-        
         .tracker-wrapper { width: 85%; max-width: 350px; margin-top: 25px; position: relative; }
         .tracker-line { height: 4px; background: #334155; border-radius: 2px; position: relative; width: 100%; }
         .tracker-progress { position: absolute; height: 100%; background: var(--primary); width: 0%; transition: width 2.5s ease; }
         .tracker-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
         .walker-avatar { position: absolute; top: -25px; left: 0%; transform: translateX(-50%); transition: left 2.5s ease; font-size: 18px; }
-
         .login-middle { height: 15vh; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
         .input-key { width: 220px; padding: 12px; background: var(--card-dark); border: 1.5px solid #334155; border-radius: 8px; color: white; text-align: center; font-size: 15px; outline: none; }
         .btn-unlock { padding: 12px 18px; background: var(--primary); border: none; border-radius: 8px; color: white; font-weight: 700; cursor: pointer; margin-left: 8px; }
-
         .login-bottom { height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
         .typing-anim-container { width: 200px; height: 200px; }
         .status-badge { display: none; font-size: 50px; }
-
         .chat-header { height: 55px; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
         .chat-title { font-weight: 700; font-size: 15px; color: var(--primary); }
-
         .chat-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-        
         .chat-bubble { max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
         .chat-bubble.user { background: var(--user-msg); align-self: flex-end; white-space: pre-wrap; }
         .chat-bubble.model { background: var(--card-dark); align-self: flex-start; border: 1px solid #334155; }
-
         .chat-bubble.model h1, .chat-bubble.model h2, .chat-bubble.model h3 { color: var(--primary); margin-top: 10px; margin-bottom: 6px; }
-        .chat-bubble.model h1 { font-size: 18px; }
-        .chat-bubble.model h2 { font-size: 16px; }
-        .chat-bubble.model h3 { font-size: 14px; }
         .chat-bubble.model p { margin-bottom: 8px; }
         .chat-bubble.model ul, .chat-bubble.model ol { margin-left: 20px; margin-bottom: 8px; }
-        .chat-bubble.model li { margin-bottom: 4px; }
         .chat-bubble.model code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #38bdf8; }
         .chat-bubble.model pre { background: #0f172a; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; border: 1px solid #334155; }
-        .chat-bubble.model pre code { background: none; padding: 0; color: #f1f5f9; }
         .chat-bubble.model table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
         .chat-bubble.model th, .chat-bubble.model td { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
-        .chat-bubble.model th { background: #0f172a; color: var(--primary); }
-
         .pinned-bar { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; background: var(--bg-dark); flex-shrink: 0; border-top: 1px solid #1e293b; }
         .chip-btn { background: var(--card-dark); border: 1px solid #334155; padding: 6px 12px; border-radius: 16px; font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
-
         .chat-input-container { min-height: 60px; padding: 8px 12px; background: var(--card-dark); border-top: 1px solid #334155; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
         .chat-input { flex: 1; background: var(--bg-dark); border: 1px solid #334155; padding: 10px 12px; border-radius: 8px; color: white; font-size: 14px; outline: none; }
         .icon-btn { background: none; border: none; color: var(--text-main); font-size: 18px; cursor: pointer; padding: 4px; }
-
         .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
         .drawer-menu { position: fixed; right: -280px; top: 0; width: 260px; height: 100%; background: var(--card-dark); transition: right 0.3s ease; z-index: 100; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
         .drawer-menu.open { right: 0; }
-
         .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; justify-content: center; align-items: center; }
         .modal-box { background: var(--card-dark); padding: 20px; border-radius: 12px; width: 80%; max-width: 300px; text-align: center; }
     </style>
 </head>
 <body>
-
     <div id="page1" class="page active">
         <div class="login-top">
             <div class="brand-logo">CareerBoot</div>
@@ -325,12 +295,10 @@ app.get('*', (req, res) => {
                 <div class="tracker-labels"><span>Interest</span><span>Success</span></div>
             </div>
         </div>
-
         <div class="login-middle">
             <input type="password" id="secretKey" class="input-key" placeholder="Enter Secret Key">
             <button class="btn-unlock" onclick="executeUnlockProcess()">Unlock</button>
         </div>
-
         <div class="login-bottom">
             <div id="lottieContainer" class="typing-anim-container"></div>
             <div id="statusBadge" class="status-badge"></div>
@@ -345,18 +313,15 @@ app.get('*', (req, res) => {
                 <button class="icon-btn" onclick="openDrawer()">|||</button>
             </div>
         </div>
-
         <div class="chat-body" id="chatBody">
             <div class="chat-bubble model">Welcome! I am your CareerBoot MS Excel Trainer. Ask any Excel query or select a topic below to start learning!</div>
         </div>
-
         <div class="pinned-bar">
             <button class="chip-btn" onclick="sendQuickQuery('List top 20 essential shortcut keys in MS Excel with their usage')">Shortcut Keys</button>
             <button class="chip-btn" onclick="sendQuickQuery('Explain top 10 important Excel formulas with simple examples')">All Formulas</button>
             <button class="chip-btn" onclick="sendQuickQuery('How do I use VLOOKUP step-by-step with an example?')">VLOOKUP Guide</button>
             <button class="chip-btn" onclick="sendQuickQuery('How to create an interactive Pivot Table in Excel?')">Pivot Table</button>
         </div>
-
         <div class="chat-input-container">
             <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel question..." onkeypress="if(event.key==='Enter') processUserQuery()">
             <button class="icon-btn" onclick="startVoiceRecognition()">🎤</button>
@@ -417,8 +382,8 @@ app.get('*', (req, res) => {
             return content;
         }
 
-        window.addEventListener('load', () => {
-            setTimeout(() => {
+        window.addEventListener('load', function() {
+            setTimeout(function() {
                 document.getElementById('walker').style.left = '35%';
                 document.getElementById('progressBar').style.width = '35%';
             }, 300);
@@ -452,12 +417,12 @@ app.get('*', (req, res) => {
                 const res = await fetch('/api/login', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key, deviceSignature: getDeviceSignature() })
+                    body: JSON.stringify({ key: key, deviceSignature: getDeviceSignature() })
                 });
 
                 const data = await res.json();
 
-                setTimeout(() => {
+                setTimeout(function() {
                     lottieContainer.style.display = 'none';
                     statusBadge.style.display = 'block';
 
@@ -468,7 +433,7 @@ app.get('*', (req, res) => {
                         localStorage.setItem('jwt_token', jwtToken);
                         localStorage.setItem('user_role', userRole);
 
-                        setTimeout(() => {
+                        setTimeout(function() {
                             document.getElementById('page1').classList.remove('active');
                             if(data.role === 'admin') {
                                 document.getElementById('adminPage').classList.add('active');
@@ -479,7 +444,7 @@ app.get('*', (req, res) => {
                         }, 1000);
                     } else {
                         statusBadge.innerText = '🙅‍♂️';
-                        setTimeout(() => { showModal(data.message); }, 500);
+                        setTimeout(function() { showModal(data.message); }, 500);
                     }
                 }, 2000);
 
@@ -533,21 +498,16 @@ app.get('*', (req, res) => {
         function startVoiceRecognition() {
             if(!('webkitSpeechRecognition' in window)) return showModal("Speech recognition not supported in this browser");
             const recognition = new webkitSpeechRecognition();
-            recognition.onresult = (e) => { document.getElementById('userInput').value = e.results[0][0].transcript; };
+            recognition.onresult = function(e) { document.getElementById('userInput').value = e.results[0][0].transcript; };
             recognition.start();
         }
 
         function openDrawer() { document.getElementById('drawerOverlay').style.display = 'block'; document.getElementById('drawerMenu').classList.add('open'); }
         function closeDrawer() { document.getElementById('drawerOverlay').style.display = 'none'; document.getElementById('drawerMenu').classList.remove('open'); }
 
-        function downloadPracticeSheet() {
-            window.open('/api/download-sheet?token=' + jwtToken, '_blank');
-        }
+        function downloadPracticeSheet() { window.open('/api/download-sheet?token=' + jwtToken, '_blank'); }
 
-        function logout() {
-            localStorage.clear();
-            location.reload();
-        }
+        function logout() { localStorage.clear(); location.reload(); }
 
         async function fetchHistory() {
             try {
@@ -558,9 +518,9 @@ app.get('*', (req, res) => {
                 if(data.success && data.history.length > 0) {
                     const chatBody = document.getElementById('chatBody');
                     chatBody.innerHTML = '';
-                    data.history.forEach(item => {
+                    data.history.forEach(function(item) {
                         const msgDiv = document.createElement('div');
-                        msgDiv.className = `chat-bubble ${item.role}`;
+                        msgDiv.className = 'chat-bubble ' + item.role;
                         if(item.role === 'model') {
                             msgDiv.innerHTML = formatMessage(item.message, 'model');
                         } else {
@@ -581,7 +541,7 @@ app.get('*', (req, res) => {
             const res = await fetch('/api/admin/create-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
-                body: JSON.stringify({ newKey })
+                body: JSON.stringify({ newKey: newKey })
             });
             const data = await res.json();
             showModal(data.message);
@@ -593,7 +553,7 @@ app.get('*', (req, res) => {
             const res = await fetch('/api/admin/delete-key', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
-                body: JSON.stringify({ key })
+                body: JSON.stringify({ key: key })
             });
             const data = await res.json();
             showModal(data.message);
@@ -615,13 +575,12 @@ app.get('*', (req, res) => {
         }
     </script>
 </body>
-</html>
-    `);
+</html>`);
 });
 
 // Server Initialization
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log("Server running on port " + PORT);
 });
 
 export default app;
