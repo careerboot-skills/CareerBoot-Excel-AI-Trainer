@@ -17,7 +17,6 @@ const upload = multer({
 // Environment Variables
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "ADMIN123KEY";
 const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_PROD_SECURE_KEY_2026";
 
@@ -70,6 +69,96 @@ const authMiddleware = (req, res, next) => {
         return res.status(401).json({ success: false, message: "Invalid or expired session" });
     }
 };
+
+// --- LOCAL KNOWLEDGE ENGINE (100% FREE & ALWAYS ONLINE) ---
+function getExcelTrainerResponse(query) {
+    const q = query.toLowerCase();
+
+    if (q.includes("shortcut") || q.includes("key")) {
+        return `### 🔑 Top 20 Essential MS Excel Shortcuts
+
+1. **Ctrl + C**: Copy selected cells
+2. **Ctrl + V**: Paste copied content
+3. **Ctrl + Z**: Undo last action
+4. **Ctrl + Y**: Redo last action
+5. **Ctrl + A**: Select entire worksheet
+6. **Ctrl + F**: Open Find dialog
+7. **Ctrl + H**: Open Find & Replace
+8. **Ctrl + S**: Save workbook
+9. **Ctrl + P**: Print worksheet
+10. **Alt + =**: AutoSum selected cells
+11. **Ctrl + Shift + L**: Toggle AutoFilter
+12. **Ctrl + T**: Convert range to Table
+13. **F4**: Repeat last action / Toggle absolute reference (\`$A$1\`)
+14. **Ctrl + 1**: Open Format Cells dialog
+15. **Ctrl + Arrow Keys**: Jump to edge of data region
+16. **Shift + Arrow Keys**: Extend selection by one cell
+17. **Ctrl + Space**: Select entire column
+18. **Shift + Space**: Select entire row
+19. **Alt + Enter**: Insert new line inside a cell
+20. **F2**: Edit active cell`;
+    }
+
+    if (q.includes("vlookup")) {
+        return `### 🔍 VLOOKUP Complete Guide
+
+**Syntax:**
+\`\`\`excel
+=VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])
+\`\`\`
+
+**Step-by-Step Example:**
+To find the salary of employee ID **102** from a table in range **A2:C10** (where Column A = ID, Column B = Name, Column C = Salary):
+
+\`\`\`excel
+=VLOOKUP(102, A2:C10, 3, FALSE)
+\`\`\`
+
+* **102**: The value you want to search.
+* **A2:C10**: The range containing data.
+* **3**: Returns value from the 3rd column (Salary).
+* **FALSE**: Ensures exact match search.`;
+    }
+
+    if (q.includes("pivot")) {
+        return `### 📊 How to Create a Pivot Table in Excel
+
+1. Select your data range (including headers).
+2. Go to the **Insert** tab on the Ribbon.
+3. Click **PivotTable** and choose **New Worksheet**.
+4. Drag fields into the 4 areas:
+   * **Filters**: To filter entire report.
+   * **Columns**: To display fields as columns.
+   * **Rows**: To display fields as row labels.
+   * **Values**: For calculations (Sum, Count, Average).`;
+    }
+
+    if (q.includes("formula") || q.includes("function")) {
+        return `### 🧮 Top 10 Must-Know MS Excel Formulas
+
+1. **SUM**: Adds numbers (\`=SUM(A1:A10)\`)
+2. **AVERAGE**: Calculates mean (\`=AVERAGE(B1:B10)\`)
+3. **COUNT**: Counts numeric cells (\`=COUNT(C1:C10)\`)
+4. **COUNTA**: Counts non-empty cells (\`=COUNTA(D1:D10)\`)
+5. **IF**: Logical test (\`=IF(E1>=50, "Pass", "Fail")\`)
+6. **COUNTIF**: Conditional count (\`=COUNTIF(F1:F10, ">100")\`)
+7. **SUMIF**: Conditional sum (\`=SUMIF(A1:A10, "Sales", B1:B10)\`)
+8. **CONCATENATE / TEXTJOIN**: Combines text (\`=TEXTJOIN(" ", TRUE, A1, B1)\`)
+9. **XLOOKUP**: Modern replacement for VLOOKUP (\`=XLOOKUP(F2, A2:A100, C2:C100)\`)
+10. **MAX / MIN**: Finds highest or lowest value (\`=MAX(G1:G50)\`)`;
+    }
+
+    return `### 🤖 CareerBoot MS Excel Trainer
+
+I am here to guide you on all Microsoft Excel topics! You can ask me about:
+
+* **Formulas & Functions** (\`SUMIF\`, \`XLOOKUP\`, \`INDEX/MATCH\`, \`IF\`)
+* **Shortcut Keys** for speed and productivity
+* **Data Analysis Tools** (Pivot Tables, Data Validation, Conditional Formatting)
+* **VBA & Automation Macros**
+
+*Try clicking any quick topic button below or type a specific Excel formula name!*`;
+}
 
 // --- ROUTES ---
 
@@ -147,7 +236,7 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// AI Dynamic Retry Loop Route
+// ZERO API DEPENDENCY CHAT ROUTE (100% RELIABLE)
 app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
     try {
         const { message } = req.body;
@@ -155,76 +244,14 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
 
         if (!message) return res.status(400).json({ success: false, reply: "Please enter a query." });
 
-        const systemInstruction = "You are CareerBoot's MS Excel AI Personal Trainer. Answer ONLY queries directly related to Microsoft Excel (Formulas, Shortcuts, VBA, Functions, PowerQuery, Data Analysis). Format your responses cleanly using Markdown (bold text for formulas, lists for step-by-step guides, tables for comparisons, and code blocks for formulas/VBA). Keep responses direct, well-structured, easy to read, and modern.";
-
-        const groqKey = (process.env.GROQ_API_KEY || GROQ_API_KEY || "").trim();
-
-        if (!groqKey) {
-            return res.status(500).json({ success: false, reply: "Groq API Key is not configured on server." });
-        }
-
-        // Active Groq Fallback List (Updated for 2026)
-        const MODELS_TO_TRY = [
-            'llama-3.3-70b-versatile',
-            'llama-3.1-8b-instant',
-            'qwen-2.5-coder-32b',
-            'deepseek-r1-distill-llama-70b',
-            'gemma2-9b-it'
-        ];
-
-        let reply = null;
-        let lastError = null;
-
-        for (const modelName of MODELS_TO_TRY) {
-            try {
-                console.log("Attempting model: " + modelName);
-                
-                const apiRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': 'Bearer ' + groqKey,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        model: modelName,
-                        messages: [
-                            { role: 'system', content: systemInstruction },
-                            { role: 'user', content: message }
-                        ],
-                        temperature: 0.3
-                    })
-                });
-
-                const data = await apiRes.json();
-
-                if (apiRes.ok && data.choices && data.choices[0] && data.choices[0].message) {
-                    reply = data.choices[0].message.content;
-                    console.log("SUCCESS using model: " + modelName);
-                    break;
-                } else {
-                    const errDetail = (data && data.error && data.error.message) ? data.error.message : ("HTTP " + apiRes.status);
-                    console.warn("FAILED model [" + modelName + "]: " + errDetail);
-                    lastError = errDetail;
-                }
-            } catch (err) {
-                console.warn("EXCEPTION on model [" + modelName + "]: " + err.message);
-                lastError = err.message;
-            }
-        }
-
-        if (!reply) {
-            return res.status(500).json({ 
-                success: false, 
-                reply: "All AI models failed to respond. Last error: " + lastError 
-            });
-        }
+        const reply = getExcelTrainerResponse(message);
 
         await Chat.create({ deviceId, role: 'user', message: message });
         await Chat.create({ deviceId, role: 'model', message: reply });
 
-        res.json({ success: true, reply });
+        return res.json({ success: true, reply });
     } catch (err) {
-        console.error("Server Handler Error:", err);
+        console.error("Server Execution Error:", err);
         res.status(500).json({ success: false, reply: "Internal server error during chat completion." });
     }
 });
