@@ -187,8 +187,8 @@ const EXCEL_FORMULAS = [
 function generateLocalAnswer(userText) {
     const query = userText.toLowerCase().trim();
 
-    // 1. ALL SHORTCUT KEYS QUERY
-    if (query.includes("shortcut") && (query.includes("all") || query.includes("list") || query.includes("keys") || query.includes("full"))) {
+    // 1. ALL SHORTCUT KEYS MATCHING ENGINE
+    if (query.includes("shortcut") || query === "all shortcut keys" || query === "all shortcuts") {
         let res = `### ⌨️ Comprehensive MS Excel Keyboard Shortcuts\n\n`;
         res += `| Shortcut Key | Function & Usage |\n| :--- | :--- |\n`;
         EXCEL_SHORTCUTS.forEach(s => {
@@ -197,8 +197,8 @@ function generateLocalAnswer(userText) {
         return res;
     }
 
-    // 2. ALL FORMULAS QUERY
-    if (query.includes("formula") && (query.includes("all") || query.includes("list") || query.includes("every") || query.includes("full"))) {
+    // 2. ALL FORMULAS MATCHING ENGINE
+    if (query.includes("formula") || query === "all formulas list" || query === "all formulas") {
         let res = `### 📐 Complete MS Excel Formulas Master Guide\n\n`;
         let currentCat = "";
         EXCEL_FORMULAS.forEach(f => {
@@ -242,8 +242,8 @@ function generateLocalAnswer(userText) {
     // DEFAULT GUIDANCE RESPONSE
     return `### 💡 CareerBoot Excel Assistant\n\n` +
            `I can answer all your Excel queries instantly for free! Here are things you can ask:\n\n` +
-           `* Type **"all shortcuts"** to view the full list of Excel keyboard shortcuts.\n` +
-           `* Type **"all formulas"** to see all formulas organized by category.\n` +
+           `* Type **"all shortcuts"** or click button below to view the FULL list of Excel shortcuts.\n` +
+           `* Type **"all formulas"** or click button below to see ALL formulas organized by category.\n` +
            `* Type any specific formula name like **"VLOOKUP"**, **"XLOOKUP"**, **"INDEX MATCH"**, or **"SUMIFS"**.\n` +
            `* Ask about **"Pivot Table"**, **"Flash Fill"**, or **"Data Validation"**.`;
 }
@@ -426,7 +426,7 @@ app.get('*', (req, res) => {
             </div>
         </div>
         <div class="chat-body" id="chatBody">
-            <div class="chat-bubble model">Welcome! Ask any MS Excel query. Type <b>"all shortcuts"</b> or <b>"all formulas"</b> for complete reference lists.</div>
+            <div class="chat-bubble model">Welcome! Ask any MS Excel query. Click <b>"All Shortcut Keys"</b> or <b>"All Formulas List"</b> below for full guides.</div>
         </div>
         <div class="pinned-bar">
             <button class="chip-btn" onclick="sendQuickQuery('all shortcuts')">All Shortcut Keys</button>
@@ -602,12 +602,18 @@ app.get('*', (req, res) => {
             }
         }
 
-        function sendQuickQuery(text) { document.getElementById('userInput').value = text; processUserQuery(); }
+        function sendQuickQuery(text) { 
+            document.getElementById('userInput').value = text; 
+            processUserQuery(); 
+        }
 
         function startVoiceRecognition() {
             if(!('webkitSpeechRecognition' in window)) return showModal("Speech recognition not supported");
             const recognition = new webkitSpeechRecognition();
-            recognition.onresult = function(e) { document.getElementById('userInput').value = e.results[0][0].transcript; };
+            recognition.onresult = function(e) { 
+                document.getElementById('userInput').value = e.results[0][0].transcript; 
+                processUserQuery();
+            };
             recognition.start();
         }
 
