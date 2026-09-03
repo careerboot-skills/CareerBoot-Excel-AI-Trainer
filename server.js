@@ -163,13 +163,13 @@ app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) =>
             return res.status(500).json({ success: false, reply: "Groq API Key is not configured on server." });
         }
 
+        // Active Groq Fallback List (Updated for 2026)
         const MODELS_TO_TRY = [
             'llama-3.3-70b-versatile',
             'llama-3.1-8b-instant',
-            'qwen-2.5-32b',
+            'qwen-2.5-coder-32b',
             'deepseek-r1-distill-llama-70b',
-            'gemma2-9b-it',
-            'mixtral-8x7b-32768'
+            'gemma2-9b-it'
         ];
 
         let reply = null;
