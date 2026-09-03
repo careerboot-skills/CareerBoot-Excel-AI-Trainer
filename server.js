@@ -9,10 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const upload = multer({ 
-    storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }
-});
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Environment Variables
 const PORT = process.env.PORT || 3000;
@@ -20,7 +17,7 @@ const MONGO_URI = process.env.MONGO_URI;
 const ADMIN_SECRET = process.env.ADMIN_SECRET || "ADMIN123KEY";
 const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_PROD_SECURE_KEY_2026";
 
-// MongoDB Connection
+// Database Connection
 if (MONGO_URI) {
     mongoose.connect(MONGO_URI)
         .then(() => console.log("MongoDB Connected Successfully"))
@@ -70,94 +67,185 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-// --- LOCAL KNOWLEDGE ENGINE (100% FREE & ALWAYS ONLINE) ---
-function getExcelTrainerResponse(query) {
-    const q = query.toLowerCase();
+// ==========================================
+// COMPLETE LOCAL EXCEL KNOWLEDGE BASE ENGINE
+// ==========================================
 
-    if (q.includes("shortcut") || q.includes("key")) {
-        return `### 🔑 Top 20 Essential MS Excel Shortcuts
+const EXCEL_SHORTCUTS = [
+    { key: "Ctrl + A", desc: "Selects the entire worksheet or active table region." },
+    { key: "Ctrl + B", desc: "Applies or removes bold formatting." },
+    { key: "Ctrl + C", desc: "Copies selected cells." },
+    { key: "Ctrl + D", desc: "Fill Down: Copies content and format of top cell into selected cells below." },
+    { key: "Ctrl + E", desc: "Flash Fill: Automatically recognizes patterns and fills data." },
+    { key: "Ctrl + F", desc: "Opens Find dialog box." },
+    { key: "Ctrl + G", desc: "Opens Go To dialog box." },
+    { key: "Ctrl + H", desc: "Opens Find and Replace dialog box." },
+    { key: "Ctrl + I", desc: "Applies or removes italic formatting." },
+    { key: "Ctrl + K", desc: "Inserts a hyperlink." },
+    { key: "Ctrl + N", desc: "Creates a new blank workbook." },
+    { key: "Ctrl + O", desc: "Opens an existing workbook." },
+    { key: "Ctrl + P", desc: "Opens Print preview/settings." },
+    { key: "Ctrl + R", desc: "Fill Right: Copies left cell content to selected right cells." },
+    { key: "Ctrl + S", desc: "Saves active workbook." },
+    { key: "Ctrl + T", desc: "Converts selected range into an official Excel Table." },
+    { key: "Ctrl + U", desc: "Applies or removes underline." },
+    { key: "Ctrl + V", desc: "Pastes copied content." },
+    { key: "Ctrl + W", desc: "Closes active workbook." },
+    { key: "Ctrl + X", desc: "Cuts selected cells." },
+    { key: "Ctrl + Y", desc: "Redoes last action." },
+    { key: "Ctrl + Z", desc: "Undoes last action." },
+    { key: "Ctrl + 1", desc: "Opens Format Cells dialog box." },
+    { key: "Ctrl + 5", desc: "Applies or removes strikethrough." },
+    { key: "Ctrl + 9", desc: "Hides selected rows." },
+    { key: "Ctrl + 0", desc: "Hides selected columns." },
+    { key: "Ctrl + Shift + (", desc: "Unhides selected rows." },
+    { key: "Ctrl + Shift + )", desc: "Unhides selected columns." },
+    { key: "Ctrl + Shift + L", desc: "Toggles AutoFilter on or off." },
+    { key: "Ctrl + Shift + $", desc: "Applies Currency format ($)." },
+    { key: "Ctrl + Shift + %", desc: "Applies Percentage format (%)." },
+    { key: "Ctrl + Shift + #", desc: "Applies Date format (DD-MMM-YY)." },
+    { key: "Ctrl + Shift + @", desc: "Applies Time format." },
+    { key: "Ctrl + Shift + !", desc: "Applies Number format with commas." },
+    { key: "Ctrl + Shift + &", desc: "Applies outline border to selected cells." },
+    { key: "Ctrl + Shift + _", desc: "Removes outline border." },
+    { key: "Ctrl + Shift + Plus (+)", desc: "Inserts new blank cells/rows/columns." },
+    { key: "Ctrl + Minus (-)", desc: "Deletes selected cells/rows/columns." },
+    { key: "Ctrl + Space", desc: "Selects entire column." },
+    { key: "Shift + Space", desc: "Selects entire row." },
+    { key: "Alt + =", desc: "AutoSum: Automatically inserts SUM formula for adjacent cells." },
+    { key: "Alt + Enter", desc: "Starts a new line inside the same cell." },
+    { key: "Alt + F1", desc: "Creates an embedded chart from selected data." },
+    { key: "Alt + F8", desc: "Opens Macro dialog box." },
+    { key: "Alt + F11", desc: "Opens Visual Basic Editor (VBA)." },
+    { key: "F2", desc: "Edits active cell and places cursor at the end." },
+    { key: "F4", desc: "Repeats last action OR toggles absolute cell reference ($A$1)." },
+    { key: "F7", desc: "Runs Spelling check." },
+    { key: "F9", desc: "Calculates all formulas in all open workbooks." },
+    { key: "F12", desc: "Opens Save As dialog box." }
+];
 
-1. **Ctrl + C**: Copy selected cells
-2. **Ctrl + V**: Paste copied content
-3. **Ctrl + Z**: Undo last action
-4. **Ctrl + Y**: Redo last action
-5. **Ctrl + A**: Select entire worksheet
-6. **Ctrl + F**: Open Find dialog
-7. **Ctrl + H**: Open Find & Replace
-8. **Ctrl + S**: Save workbook
-9. **Ctrl + P**: Print worksheet
-10. **Alt + =**: AutoSum selected cells
-11. **Ctrl + Shift + L**: Toggle AutoFilter
-12. **Ctrl + T**: Convert range to Table
-13. **F4**: Repeat last action / Toggle absolute reference (\`$A$1\`)
-14. **Ctrl + 1**: Open Format Cells dialog
-15. **Ctrl + Arrow Keys**: Jump to edge of data region
-16. **Shift + Arrow Keys**: Extend selection by one cell
-17. **Ctrl + Space**: Select entire column
-18. **Shift + Space**: Select entire row
-19. **Alt + Enter**: Insert new line inside a cell
-20. **F2**: Edit active cell`;
+const EXCEL_FORMULAS = [
+    { category: "Lookup & Reference", name: "VLOOKUP", syntax: "=VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])", desc: "Searches vertically down the first column of a table and returns a value in the same row from a specified column." },
+    { category: "Lookup & Reference", name: "HLOOKUP", syntax: "=HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])", desc: "Searches horizontally across the top row of a table and returns a value in the same column." },
+    { category: "Lookup & Reference", name: "XLOOKUP", syntax: "=XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found], [match_mode])", desc: "Modern replacement for VLOOKUP/HLOOKUP. Can search in any direction and defaults to exact match." },
+    { category: "Lookup & Reference", name: "INDEX", syntax: "=INDEX(array, row_num, [column_num])", desc: "Returns a value or reference to a value from within a table or range." },
+    { category: "Lookup & Reference", name: "MATCH", syntax: "=MATCH(lookup_value, lookup_array, [match_type])", desc: "Searches for a specified item in a range and returns its relative position." },
+    { category: "Lookup & Reference", name: "INDIRECT", syntax: "=INDIRECT(ref_text, [a1])", desc: "Returns the reference specified by a text string." },
+    { category: "Lookup & Reference", name: "OFFSET", syntax: "=OFFSET(reference, rows, cols, [height], [width])", desc: "Returns a reference to a range that is a specified number of rows and columns from a cell or range." },
+
+    { category: "Math & Math Logic", name: "SUM", syntax: "=SUM(number1, [number2], ...)", desc: "Adds all the numbers in a range of cells." },
+    { category: "Math & Math Logic", name: "SUMIF", syntax: "=SUMIF(range, criteria, [sum_range])", desc: "Adds the cells specified by a given condition or criteria." },
+    { category: "Math & Math Logic", name: "SUMIFS", syntax: "=SUMIFS(sum_range, criteria_range1, criteria1, ...)", desc: "Adds cells specified by multiple conditions or criteria." },
+    { category: "Math & Math Logic", name: "PRODUCT", syntax: "=PRODUCT(number1, [number2], ...)", desc: "Multiplies all numbers given as arguments." },
+    { category: "Math & Math Logic", name: "SUBTOTAL", syntax: "=SUBTOTAL(function_num, ref1, ...)", desc: "Returns a subtotal in a list or database, ignoring hidden rows when needed." },
+    { category: "Math & Math Logic", name: "ROUND", syntax: "=ROUND(number, num_digits)", desc: "Rounds a number to a specified number of digits." },
+    { category: "Math & Math Logic", name: "ROUNDUP", syntax: "=ROUNDUP(number, num_digits)", desc: "Rounds a number up, away from zero." },
+    { category: "Math & Math Logic", name: "ROUNDDOWN", syntax: "=ROUNDDOWN(number, num_digits)", desc: "Rounds a number down, toward zero." },
+    { category: "Math & Math Logic", name: "ABS", syntax: "=ABS(number)", desc: "Returns the absolute value of a number (converts negative to positive)." },
+    { category: "Math & Math Logic", name: "MOD", syntax: "=MOD(number, divisor)", desc: "Returns the remainder after a number is divided by a divisor." },
+
+    { category: "Statistical", name: "AVERAGE", syntax: "=AVERAGE(number1, [number2], ...)", desc: "Calculates arithmetic mean of selected numbers." },
+    { category: "Statistical", name: "AVERAGEIF", syntax: "=AVERAGEIF(range, criteria, [average_range])", desc: "Calculates average for cells that meet a given criteria." },
+    { category: "Statistical", name: "COUNT", syntax: "=COUNT(value1, [value2], ...)", desc: "Counts how many cells contain numbers." },
+    { category: "Statistical", name: "COUNTA", syntax: "=COUNTA(value1, [value2], ...)", desc: "Counts how many cells are not empty (numbers + text)." },
+    { category: "Statistical", name: "COUNTBLANK", syntax: "=COUNTBLANK(range)", desc: "Counts empty cells in a specified range." },
+    { category: "Statistical", name: "COUNTIF", syntax: "=COUNTIF(range, criteria)", desc: "Counts the number of cells that meet a condition." },
+    { category: "Statistical", name: "COUNTIFS", syntax: "=COUNTIFS(criteria_range1, criteria1, ...)", desc: "Counts cells that meet multiple criteria." },
+    { category: "Statistical", name: "MAX", syntax: "=MAX(number1, [number2], ...)", desc: "Returns largest value in a set of values." },
+    { category: "Statistical", name: "MIN", syntax: "=MIN(number1, [number2], ...)", desc: "Returns smallest value in a set of values." },
+    { category: "Statistical", name: "LARGE", syntax: "=LARGE(array, k)", desc: "Returns the k-th largest value in a dataset." },
+    { category: "Statistical", name: "SMALL", syntax: "=SMALL(array, k)", desc: "Returns the k-th smallest value in a dataset." },
+
+    { category: "Logical", name: "IF", syntax: "=IF(logical_test, value_if_true, [value_if_false])", desc: "Checks whether a condition is met, returning one value if True, another if False." },
+    { category: "Logical", name: "AND", syntax: "=AND(logical1, [logical2], ...)", desc: "Returns TRUE if all arguments evaluate to TRUE." },
+    { category: "Logical", name: "OR", syntax: "=OR(logical1, [logical2], ...)", desc: "Returns TRUE if any argument evaluates to TRUE." },
+    { category: "Logical", name: "NOT", syntax: "=NOT(logical)", desc: "Reverses the logical value of its argument." },
+    { category: "Logical", name: "IFERROR", syntax: "=IFERROR(value, value_if_error)", desc: "Returns specified value if formula evaluates to error (#N/A, #VALUE!), otherwise returns result." },
+    { category: "Logical", name: "IFS", syntax: "=IFS(logical_test1, value_if_true1, ...)", desc: "Checks multiple conditions and returns a value corresponding to the first TRUE condition." },
+
+    { category: "Text Functions", name: "CONCATENATE / CONCAT", syntax: "=CONCAT(text1, [text2], ...)", desc: "Joins two or more text strings into one string." },
+    { category: "Text Functions", name: "TEXTJOIN", syntax: "=TEXTJOIN(delimiter, ignore_empty, text1, ...)", desc: "Combines text from multiple ranges with a specified delimiter." },
+    { category: "Text Functions", name: "LEFT", syntax: "=LEFT(text, [num_chars])", desc: "Extracts specified number of characters from the left side of text." },
+    { category: "Text Functions", name: "RIGHT", syntax: "=RIGHT(text, [num_chars])", desc: "Extracts specified number of characters from the right side of text." },
+    { category: "Text Functions", name: "MID", syntax: "=MID(text, start_num, num_chars)", desc: "Extracts characters from middle of text string given starting position." },
+    { category: "Text Functions", name: "LEN", syntax: "=LEN(text)", desc: "Returns total character count of a text string." },
+    { category: "Text Functions", name: "TRIM", syntax: "=TRIM(text)", desc: "Removes all leading, trailing, and extra space from text except single spaces." },
+    { category: "Text Functions", name: "PROPER", syntax: "=PROPER(text)", desc: "Capitalizes the first letter of each word in a text string." },
+    { category: "Text Functions", name: "UPPER", syntax: "=UPPER(text)", desc: "Converts text to all uppercase letters." },
+    { category: "Text Functions", name: "LOWER", syntax: "=LOWER(text)", desc: "Converts text to all lowercase letters." },
+    { category: "Text Functions", name: "TEXT", syntax: "=TEXT(value, format_text)", desc: "Converts a number to text in a specified number format." },
+    { category: "Text Functions", name: "SUBSTITUTE", syntax: "=SUBSTITUTE(text, old_text, new_text, [instance_num])", desc: "Replaces existing text with new text in a text string." },
+
+    { category: "Date & Time", name: "TODAY", syntax: "=TODAY()", desc: "Returns current date." },
+    { category: "Date & Time", name: "NOW", syntax: "=NOW()", desc: "Returns current date and exact system time." },
+    { category: "Date & Time", name: "DATEDIF", syntax: "=DATEDIF(start_date, end_date, unit)", desc: "Calculates difference between two dates in Years ('Y'), Months ('M'), or Days ('D')." },
+    { category: "Date & Time", name: "EDATE", syntax: "=EDATE(start_date, months)", desc: "Returns date that is specified number of months before or after start date." },
+    { category: "Date & Time", name: "EOMONTH", syntax: "=EOMONTH(start_date, months)", desc: "Returns date of last day of the month before or after specified months." },
+    { category: "Date & Time", name: "NETWORKDAYS", syntax: "=NETWORKDAYS(start_date, end_date, [holidays])", desc: "Returns total working days between two dates excluding weekends and holidays." }
+];
+
+function generateLocalAnswer(userText) {
+    const query = userText.toLowerCase().trim();
+
+    // 1. ALL SHORTCUT KEYS QUERY
+    if (query.includes("shortcut") && (query.includes("all") || query.includes("list") || query.includes("keys") || query.includes("full"))) {
+        let res = `### ⌨️ Comprehensive MS Excel Keyboard Shortcuts\n\n`;
+        res += `| Shortcut Key | Function & Usage |\n| :--- | :--- |\n`;
+        EXCEL_SHORTCUTS.forEach(s => {
+            res += `| **${s.key}** | ${s.desc} |\n`;
+        });
+        return res;
     }
 
-    if (q.includes("vlookup")) {
-        return `### 🔍 VLOOKUP Complete Guide
-
-**Syntax:**
-\`\`\`excel
-=VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])
-\`\`\`
-
-**Step-by-Step Example:**
-To find the salary of employee ID **102** from a table in range **A2:C10** (where Column A = ID, Column B = Name, Column C = Salary):
-
-\`\`\`excel
-=VLOOKUP(102, A2:C10, 3, FALSE)
-\`\`\`
-
-* **102**: The value you want to search.
-* **A2:C10**: The range containing data.
-* **3**: Returns value from the 3rd column (Salary).
-* **FALSE**: Ensures exact match search.`;
+    // 2. ALL FORMULAS QUERY
+    if (query.includes("formula") && (query.includes("all") || query.includes("list") || query.includes("every") || query.includes("full"))) {
+        let res = `### 📐 Complete MS Excel Formulas Master Guide\n\n`;
+        let currentCat = "";
+        EXCEL_FORMULAS.forEach(f => {
+            if (f.category !== currentCat) {
+                currentCat = f.category;
+                res += `\n#### 📌 ${currentCat}\n`;
+            }
+            res += `* **\`${f.name}\`**: ${f.desc}\n  * *Syntax*: \`${f.syntax}\`\n`;
+        });
+        return res;
     }
 
-    if (q.includes("pivot")) {
-        return `### 📊 How to Create a Pivot Table in Excel
-
-1. Select your data range (including headers).
-2. Go to the **Insert** tab on the Ribbon.
-3. Click **PivotTable** and choose **New Worksheet**.
-4. Drag fields into the 4 areas:
-   * **Filters**: To filter entire report.
-   * **Columns**: To display fields as columns.
-   * **Rows**: To display fields as row labels.
-   * **Values**: For calculations (Sum, Count, Average).`;
+    // 3. SPECIFIC FORMULA SEARCH
+    const matchedFormula = EXCEL_FORMULAS.find(f => query.includes(f.name.toLowerCase()));
+    if (matchedFormula) {
+        return `### 🔍 Formula Details: \`${matchedFormula.name}\`\n\n` +
+               `* **Category:** ${matchedFormula.category}\n` +
+               `* **Syntax:** \`${matchedFormula.syntax}\`\n` +
+               `* **Description:** ${matchedFormula.desc}\n\n` +
+               `**Usage Example:**\nTo use \`${matchedFormula.name}\`, type \`${matchedFormula.syntax}\` into your formula bar and replace arguments with your actual cell references (e.g., A1:A10).`;
     }
 
-    if (q.includes("formula") || q.includes("function")) {
-        return `### 🧮 Top 10 Must-Know MS Excel Formulas
-
-1. **SUM**: Adds numbers (\`=SUM(A1:A10)\`)
-2. **AVERAGE**: Calculates mean (\`=AVERAGE(B1:B10)\`)
-3. **COUNT**: Counts numeric cells (\`=COUNT(C1:C10)\`)
-4. **COUNTA**: Counts non-empty cells (\`=COUNTA(D1:D10)\`)
-5. **IF**: Logical test (\`=IF(E1>=50, "Pass", "Fail")\`)
-6. **COUNTIF**: Conditional count (\`=COUNTIF(F1:F10, ">100")\`)
-7. **SUMIF**: Conditional sum (\`=SUMIF(A1:A10, "Sales", B1:B10)\`)
-8. **CONCATENATE / TEXTJOIN**: Combines text (\`=TEXTJOIN(" ", TRUE, A1, B1)\`)
-9. **XLOOKUP**: Modern replacement for VLOOKUP (\`=XLOOKUP(F2, A2:A100, C2:C100)\`)
-10. **MAX / MIN**: Finds highest or lowest value (\`=MAX(G1:G50)\`)`;
+    // 4. SPECIFIC SHORTCUT SEARCH
+    const matchedShortcut = EXCEL_SHORTCUTS.find(s => query.includes(s.key.toLowerCase().replace("ctrl + ", "").replace("alt + ", "")));
+    if (matchedShortcut) {
+        return `### ⌨️ Shortcut Key Found\n\n` +
+               `* **Shortcut:** **${matchedShortcut.key}**\n` +
+               `* **Action:** ${matchedShortcut.desc}`;
     }
 
-    return `### 🤖 CareerBoot MS Excel Trainer
+    // 5. PIVOT TABLE HELP
+    if (query.includes("pivot")) {
+        return `### 📊 How to Create a Pivot Table in MS Excel\n\n` +
+               `1. **Select Data:** Click on any cell within your data range.\n` +
+               `2. **Insert:** Go to **Insert** tab > Click **PivotTable**.\n` +
+               `3. **Location:** Choose *New Worksheet* or *Existing Worksheet* and click **OK**.\n` +
+               `4. **Arrange Fields:** Drag columns to **Rows**, **Columns**, **Values**, or **Filters** in the right pane.\n` +
+               `5. **Shortcut:** Press **Alt + N + V + T** to open Pivot Table wizard instantly.`;
+    }
 
-I am here to guide you on all Microsoft Excel topics! You can ask me about:
-
-* **Formulas & Functions** (\`SUMIF\`, \`XLOOKUP\`, \`INDEX/MATCH\`, \`IF\`)
-* **Shortcut Keys** for speed and productivity
-* **Data Analysis Tools** (Pivot Tables, Data Validation, Conditional Formatting)
-* **VBA & Automation Macros**
-
-*Try clicking any quick topic button below or type a specific Excel formula name!*`;
+    // DEFAULT GUIDANCE RESPONSE
+    return `### 💡 CareerBoot Excel Assistant\n\n` +
+           `I can answer all your Excel queries instantly for free! Here are things you can ask:\n\n` +
+           `* Type **"all shortcuts"** to view the full list of Excel keyboard shortcuts.\n` +
+           `* Type **"all formulas"** to see all formulas organized by category.\n` +
+           `* Type any specific formula name like **"VLOOKUP"**, **"XLOOKUP"**, **"INDEX MATCH"**, or **"SUMIFS"**.\n` +
+           `* Ask about **"Pivot Table"**, **"Flash Fill"**, or **"Data Validation"**.`;
 }
 
 // --- ROUTES ---
@@ -165,9 +253,7 @@ I am here to guide you on all Microsoft Excel topics! You can ask me about:
 app.post('/api/login', async (req, res) => {
     try {
         const { key, deviceSignature } = req.body;
-        if (!key || !deviceSignature) {
-            return res.status(400).json({ success: false, message: "Key required" });
-        }
+        if (!key || !deviceSignature) return res.status(400).json({ success: false, message: "Key required" });
 
         if (key === ADMIN_SECRET) {
             const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '30d' });
@@ -175,22 +261,20 @@ app.post('/api/login', async (req, res) => {
         }
 
         const keyDoc = await Key.findOne({ key });
-        if (!keyDoc) {
-            return res.status(401).json({ success: false, message: "Invalid Access Key" });
-        }
+        if (!keyDoc) return res.status(401).json({ success: false, message: "Invalid Access Key" });
 
         if (!keyDoc.deviceId) {
             keyDoc.deviceId = deviceSignature;
             keyDoc.boundAt = new Date();
             await keyDoc.save();
         } else if (keyDoc.deviceId !== deviceSignature) {
-            return res.status(403).json({ success: false, message: "This Key is registered to another device!" });
+            return res.status(403).json({ success: false, message: "Key registered to another device!" });
         }
 
         const token = jwt.sign({ key: keyDoc.key, deviceId: deviceSignature, role: 'user' }, JWT_SECRET, { expiresIn: '60d' });
         return res.json({ success: true, role: 'user', token });
     } catch (err) {
-        res.status(500).json({ success: false, message: "Authentication Error" });
+        res.status(500).json({ success: false, message: "Auth error" });
     }
 });
 
@@ -198,7 +282,7 @@ app.post('/api/admin/create-key', authMiddleware, async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
     try {
         await Key.create({ key: req.body.newKey.trim() });
-        res.json({ success: true, message: "Key Created Successfully!" });
+        res.json({ success: true, message: "Key Created!" });
     } catch (err) {
         res.status(400).json({ success: false, message: "Key already exists" });
     }
@@ -207,12 +291,12 @@ app.post('/api/admin/create-key', authMiddleware, async (req, res) => {
 app.post('/api/admin/delete-key', authMiddleware, async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
     await Key.deleteOne({ key: req.body.key });
-    res.json({ success: true, message: "Key Revoked Successfully!" });
+    res.json({ success: true, message: "Key Deleted!" });
 });
 
 app.post('/api/admin/upload-sheet', authMiddleware, upload.single('sheet'), async (req, res) => {
     if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
-    if (!req.file) return res.status(400).json({ message: "No file provided" });
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
 
     await PracticeSheet.deleteMany({});
     await PracticeSheet.create({
@@ -225,7 +309,7 @@ app.post('/api/admin/upload-sheet', authMiddleware, upload.single('sheet'), asyn
 
 app.get('/api/download-sheet', authMiddleware, async (req, res) => {
     const sheet = await PracticeSheet.findOne().sort({ uploadedAt: -1 });
-    if (!sheet) return res.status(404).send("No practice sheet uploaded yet.");
+    if (!sheet) return res.status(404).send("No sheet available.");
     res.setHeader('Content-Type', sheet.contentType);
     res.setHeader('Content-Disposition', 'attachment; filename="' + sheet.filename + '"');
     res.send(sheet.data);
@@ -236,27 +320,29 @@ app.get('/api/chat-history', authMiddleware, async (req, res) => {
     res.json({ success: true, history });
 });
 
-// ZERO API DEPENDENCY CHAT ROUTE (100% RELIABLE)
-app.post('/api/chat', authMiddleware, upload.single('file'), async (req, res) => {
+// CHAT ROUTE - 100% FREE LOCAL KNOWLEDGE ENGINE
+app.post('/api/chat', authMiddleware, async (req, res) => {
     try {
         const { message } = req.body;
         const deviceId = req.user.deviceId;
 
-        if (!message) return res.status(400).json({ success: false, reply: "Please enter a query." });
+        if (!message) {
+            return res.status(400).json({ success: false, reply: "Please enter a question." });
+        }
 
-        const reply = getExcelTrainerResponse(message);
+        // Generate response using local knowledge base
+        const reply = generateLocalAnswer(message);
 
-        await Chat.create({ deviceId, role: 'user', message: message });
+        await Chat.create({ deviceId, role: 'user', message });
         await Chat.create({ deviceId, role: 'model', message: reply });
 
         return res.json({ success: true, reply });
     } catch (err) {
-        console.error("Server Execution Error:", err);
-        res.status(500).json({ success: false, reply: "Internal server error during chat completion." });
+        res.status(500).json({ success: false, reply: "Engine processing error." });
     }
 });
 
-// FRONTEND UI
+// FRONTEND INTERFACE
 app.get('*', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -292,11 +378,10 @@ app.get('*', (req, res) => {
         .chat-bubble { max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
         .chat-bubble.user { background: var(--user-msg); align-self: flex-end; white-space: pre-wrap; }
         .chat-bubble.model { background: var(--card-dark); align-self: flex-start; border: 1px solid #334155; }
-        .chat-bubble.model h1, .chat-bubble.model h2, .chat-bubble.model h3 { color: var(--primary); margin-top: 10px; margin-bottom: 6px; }
+        .chat-bubble.model h3, .chat-bubble.model h4 { color: var(--primary); margin-top: 10px; margin-bottom: 6px; }
         .chat-bubble.model p { margin-bottom: 8px; }
-        .chat-bubble.model ul, .chat-bubble.model ol { margin-left: 20px; margin-bottom: 8px; }
+        .chat-bubble.model ul { margin-left: 20px; margin-bottom: 8px; }
         .chat-bubble.model code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #38bdf8; }
-        .chat-bubble.model pre { background: #0f172a; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 8px 0; border: 1px solid #334155; }
         .chat-bubble.model table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
         .chat-bubble.model th, .chat-bubble.model td { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
         .pinned-bar { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; background: var(--bg-dark); flex-shrink: 0; border-top: 1px solid #1e293b; }
@@ -341,16 +426,16 @@ app.get('*', (req, res) => {
             </div>
         </div>
         <div class="chat-body" id="chatBody">
-            <div class="chat-bubble model">Welcome! I am your CareerBoot MS Excel Trainer. Ask any Excel query or select a topic below to start learning!</div>
+            <div class="chat-bubble model">Welcome! Ask any MS Excel query. Type <b>"all shortcuts"</b> or <b>"all formulas"</b> for complete reference lists.</div>
         </div>
         <div class="pinned-bar">
-            <button class="chip-btn" onclick="sendQuickQuery('List top 20 essential shortcut keys in MS Excel with their usage')">Shortcut Keys</button>
-            <button class="chip-btn" onclick="sendQuickQuery('Explain top 10 important Excel formulas with simple examples')">All Formulas</button>
-            <button class="chip-btn" onclick="sendQuickQuery('How do I use VLOOKUP step-by-step with an example?')">VLOOKUP Guide</button>
-            <button class="chip-btn" onclick="sendQuickQuery('How to create an interactive Pivot Table in Excel?')">Pivot Table</button>
+            <button class="chip-btn" onclick="sendQuickQuery('all shortcuts')">All Shortcut Keys</button>
+            <button class="chip-btn" onclick="sendQuickQuery('all formulas')">All Formulas List</button>
+            <button class="chip-btn" onclick="sendQuickQuery('VLOOKUP')">VLOOKUP Guide</button>
+            <button class="chip-btn" onclick="sendQuickQuery('Pivot Table')">Pivot Table</button>
         </div>
         <div class="chat-input-container">
-            <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel question..." onkeypress="if(event.key==='Enter') processUserQuery()">
+            <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel formula or key..." onkeypress="if(event.key==='Enter') processUserQuery()">
             <button class="icon-btn" onclick="startVoiceRecognition()">🎤</button>
             <button class="btn-unlock" onclick="processUserQuery()" style="padding: 8px 14px;">Send</button>
         </div>
@@ -402,11 +487,8 @@ app.get('*', (req, res) => {
             return sig;
         }
 
-        function formatMessage(content, role) {
-            if (role === 'model') {
-                return typeof marked !== 'undefined' ? marked.parse(content) : content;
-            }
-            return content;
+        function formatMessage(content) {
+            return typeof marked !== 'undefined' ? marked.parse(content) : content;
         }
 
         window.addEventListener('load', function() {
@@ -476,15 +558,15 @@ app.get('*', (req, res) => {
                 }, 2000);
 
             } catch (err) {
-                showModal("Network Connection Error");
+                showModal("Connection Error");
             }
         }
 
         async function processUserQuery() {
             const input = document.getElementById('userInput');
             const chatBody = document.getElementById('chatBody');
-
             const query = input.value.trim();
+
             if(!query) return;
 
             const userDiv = document.createElement('div');
@@ -508,14 +590,14 @@ app.get('*', (req, res) => {
 
                 const modelDiv = document.createElement('div');
                 modelDiv.className = 'chat-bubble model';
-                modelDiv.innerHTML = formatMessage(data.reply, 'model');
+                modelDiv.innerHTML = formatMessage(data.reply);
                 chatBody.appendChild(modelDiv);
                 
                 chatBody.scrollTop = chatBody.scrollHeight;
             } catch (err) {
                 const errDiv = document.createElement('div');
                 errDiv.className = 'chat-bubble model';
-                errDiv.textContent = "Connection error. Please try again.";
+                errDiv.textContent = "Error fetching answer.";
                 chatBody.appendChild(errDiv);
             }
         }
@@ -523,7 +605,7 @@ app.get('*', (req, res) => {
         function sendQuickQuery(text) { document.getElementById('userInput').value = text; processUserQuery(); }
 
         function startVoiceRecognition() {
-            if(!('webkitSpeechRecognition' in window)) return showModal("Speech recognition not supported in this browser");
+            if(!('webkitSpeechRecognition' in window)) return showModal("Speech recognition not supported");
             const recognition = new webkitSpeechRecognition();
             recognition.onresult = function(e) { document.getElementById('userInput').value = e.results[0][0].transcript; };
             recognition.start();
@@ -549,7 +631,7 @@ app.get('*', (req, res) => {
                         const msgDiv = document.createElement('div');
                         msgDiv.className = 'chat-bubble ' + item.role;
                         if(item.role === 'model') {
-                            msgDiv.innerHTML = formatMessage(item.message, 'model');
+                            msgDiv.innerHTML = formatMessage(item.message);
                         } else {
                             msgDiv.textContent = item.message;
                         }
@@ -605,7 +687,7 @@ app.get('*', (req, res) => {
 </html>`);
 });
 
-// Server Initialization
+// Server Listen
 app.listen(PORT, () => {
     console.log("Server running on port " + PORT);
 });
