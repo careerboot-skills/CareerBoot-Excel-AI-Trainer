@@ -20,7 +20,6 @@
             color: #f8fafc;
         }
 
-        /* View Router */
         .page {
             display: none;
             width: 100vw;
@@ -158,11 +157,6 @@
             animation: cloudTravel 2s forwards ease-in-out;
         }
 
-        /* SVG Character Animations */
-        #screen-glow {
-            transition: fill 0.3s ease;
-        }
-
         .status-message {
             position: absolute;
             bottom: 20px;
@@ -189,7 +183,7 @@
         .nav-btn {
             padding: 8px 16px;
             background: #3b82f6;
-            color: white;
+            color: #ffffff;
             border: none;
             border-radius: 6px;
             cursor: pointer;
@@ -228,7 +222,7 @@
             border: 2px solid #334155;
             padding: 25px;
             border-radius: 12px;
-            color: white;
+            color: #ffffff;
             font-size: 1.1rem;
             font-weight: bold;
             cursor: pointer;
@@ -257,7 +251,6 @@
             box-shadow: 0 10px 20px rgba(245, 158, 11, 0.2);
         }
 
-        /* --- CONTENT DISPLAY AREA (PAGE 3 & BEYOND) --- */
         .content-box {
             background: #1e293b;
             border-radius: 12px;
@@ -269,12 +262,13 @@
 </head>
 <body>
 
+    <!-- PAGE 1: AUTHENTICATION & ANIMATION -->
     <div id="page1" class="page active">
         <div class="section-top">
             <div class="logo-container">
                 <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-                    <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+                    <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                    <path d="M6 12v5c3 3 9 3 12 0v-5"></path>
                 </svg>
                 <span>CareerBoot</span>
             </div>
@@ -282,18 +276,18 @@
             
             <div class="journey-container">
                 <svg class="journey-svg" viewBox="0 0 500 60">
-                    <line x1="50" y1="40" x2="450" y2="40" stroke="#334155" stroke-width="4" stroke-dasharray="6,6"/>
-                    <circle cx="50" cy="40" r="10" fill="#3b82f6"/>
+                    <line x1="50" y1="40" x2="450" y2="40" stroke="#334155" stroke-width="4" stroke-dasharray="6,6"></line>
+                    <circle cx="50" cy="40" r="10" fill="#3b82f6"></circle>
                     <text x="50" y="20" fill="#3b82f6" font-size="12" text-anchor="middle" font-weight="bold">Interest</text>
                     
-                    <circle cx="450" cy="40" r="10" fill="#10b981"/>
+                    <circle cx="450" cy="40" r="10" fill="#10b981"></circle>
                     <text x="450" y="20" fill="#10b981" font-size="12" text-anchor="middle" font-weight="bold">Success</text>
 
                     <g id="walker" transform="translate(50, 0)">
-                        <circle cx="0" cy="25" r="5" fill="#f59e0b"/>
-                        <line x1="0" y1="30" x2="0" y2="38" stroke="#f59e0b" stroke-width="2"/>
-                        <line x1="0" y1="38" x2="-3" y2="45" stroke="#f59e0b" stroke-width="2"/>
-                        <line x1="0" y1="38" x2="3" y2="45" stroke="#f59e0b" stroke-width="2"/>
+                        <circle cx="0" cy="25" r="5" fill="#f59e0b"></circle>
+                        <line x1="0" y1="30" x2="0" y2="38" stroke="#f59e0b" stroke-width="2"></line>
+                        <line x1="0" y1="38" x2="-3" y2="45" stroke="#f59e0b" stroke-width="2"></line>
+                        <line x1="0" y1="38" x2="3" y2="45" stroke="#f59e0b" stroke-width="2"></line>
                     </g>
                 </svg>
             </div>
@@ -301,26 +295,28 @@
 
         <div class="section-mid">
             <input type="password" id="secretKey" class="key-input" placeholder="Enter Secret Key" autocomplete="off">
-            <button class="submit-btn" onclick="validateKey()">Unlock Portal</button>
+            <button class="submit-btn" id="submitBtn">Unlock Portal</button>
         </div>
 
         <div class="section-bottom">
             <div id="cloudElement" class="cloud"></div>
             
             <svg width="220" height="180" viewBox="0 0 200 160">
-                <rect x="20" y="120" width="160" height="8" rx="2" fill="#64748b"/>
-                <rect x="70" y="50" width="60" height="45" rx="4" fill="#334155" stroke="#475569" stroke-width="2"/>
-                <rect id="screen-glow" x="73" y="53" width="54" height="39" rx="2" fill="#1e293b"/>
-                <rect x="95" y="95" width="10" height="25" fill="#475569"/>
-                <rect x="85" y="118" width="30" height="3" fill="#475569"/>
+                <rect x="20" y="120" width="160" height="8" rx="2" fill="#64748b"></rect>
+                <rect x="70" y="50" width="60" height="45" rx="4" fill="#334155" stroke="#475569" stroke-width="2"></rect>
+                <rect id="screenGlow" x="73" y="53" width="54" height="39" rx="2" fill="#1e293b"></rect>
+                <rect x="95" y="95" width="10" height="25" fill="#475569"></rect>
+                <rect x="85" y="118" width="30" height="3" fill="#475569"></rect>
                 
-                <circle cx="150" cy="70" r="12" fill="#cbd5e1"/> <path d="M 150 82 L 150 115 L 135 120" stroke="#cbd5e1" stroke-width="10" stroke-linecap="round" fill="none"/> <circle id="man-head-indicator" cx="150" cy="70" r="12" fill="#cbd5e1"/>
+                <circle cx="150" cy="70" r="12" fill="#cbd5e1"></circle>
+                <path d="M 150 82 L 150 115 L 135 120" stroke="#cbd5e1" stroke-width="10" stroke-linecap="round" fill="none"></path>
             </svg>
 
             <div id="statusMsg" class="status-message"></div>
         </div>
     </div>
 
+    <!-- PAGE 2: MAIN DASHBOARD -->
     <div id="page2" class="page">
         <header class="app-header">
             <h2>CareerBoot Dashboard</h2>
@@ -346,32 +342,33 @@
                 <button class="card-btn" onclick="openCategory('vba')">
                     <span>🤖</span> Power Query & VBA
                 </button>
-                </div>
+            </div>
         </div>
     </div>
 
+    <!-- PAGE 3: CATEGORY DRILL-DOWN -->
     <div id="page3" class="page">
         <header class="app-header">
-            <h2 id="category-title">Category Details</h2>
+            <h2 id="categoryTitle">Category Details</h2>
             <div class="nav-controls">
-                <button class="nav-btn" onclick="navigateTo('page2')">← Back</button>
+                <button class="nav-btn" onclick="navigateTo('page2')">Back</button>
                 <button class="nav-btn home-btn" onclick="navigateTo('page1')">Home</button>
             </div>
         </header>
         <div class="container">
-            <div id="category-content-grid" class="grid-layout">
-                </div>
-            <div class="content-box" id="learning-material-placeholder">
+            <div id="categoryContentGrid" class="grid-layout"></div>
+            <div class="content-box" id="learningMaterialPlaceholder">
                 <p style="color: #94a3b8; text-align: center;">Select a sub-topic above to view complete step-by-step guides and interactive examples.</p>
             </div>
         </div>
     </div>
 
-    <div id="page-admin" class="page">
+    <!-- PAGE 4: ADMIN PANEL -->
+    <div id="pageAdmin" class="page">
         <header class="app-header" style="border-bottom-color: #f59e0b;">
             <h2 style="color: #f59e0b;">Admin Control Center</h2>
             <div class="nav-controls">
-                <button class="nav-btn" onclick="navigateTo('page2')">← Dashboard</button>
+                <button class="nav-btn" onclick="navigateTo('page2')">Dashboard</button>
                 <button class="nav-btn home-btn" onclick="navigateTo('page1')">Home</button>
             </div>
         </header>
@@ -384,37 +381,41 @@
     </div>
 
     <script>
-        // Key Definitions
-        const USER_KEY = "EXCEL2026";
-        const ADMIN_KEY = "ADMIN2026";
-
-        let isAdmin = false;
+        // Constants
+        var USER_KEY = "EXCEL2026";
+        var ADMIN_KEY = "ADMIN2026";
 
         // Navigation Controller
         function navigateTo(pageId) {
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            document.getElementById(pageId).classList.add('active');
+            var pages = document.querySelectorAll('.page');
+            for (var i = 0; i < pages.length; i++) {
+                pages[i].classList.remove('active');
+            }
+            var targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
         }
 
-        // Walker Animation Control
-        let walkerPos = 50;
-        setInterval(() => {
-            const walker = document.getElementById('walker');
+        // Walker Animation
+        var walkerPos = 50;
+        setInterval(function() {
+            var walker = document.getElementById('walker');
             if (walker) {
                 walkerPos += 0.5;
-                if (walkerPos > 450) walkerPos = 50;
-                walker.setAttribute('transform', `translate(${walkerPos}, 0)`);
+                if (walkerPos > 450) {
+                    walkerPos = 50;
+                }
+                walker.setAttribute('transform', 'translate(' + walkerPos + ', 0)');
             }
         }, 30);
 
         // Key Validation Logic
         function validateKey() {
-            const keyInput = document.getElementById('secretKey').value.trim();
-            const cloud = document.getElementById('cloudElement');
-            const screen = document.getElementById('screen-glow');
-            const status = document.getElementById('statusMsg');
+            var keyInput = document.getElementById('secretKey').value.trim();
+            var cloud = document.getElementById('cloudElement');
+            var screen = document.getElementById('screenGlow');
+            var status = document.getElementById('statusMsg');
 
             if (!keyInput) {
                 status.style.color = '#ef4444';
@@ -422,26 +423,22 @@
                 return;
             }
 
-            // Trigger 2-second cloud animation
             status.innerText = "";
             cloud.classList.remove('cloud-active');
-            void cloud.offsetWidth; // Force CSS Reflow
+            void cloud.offsetWidth; 
             cloud.classList.add('cloud-active');
 
-            setTimeout(() => {
+            setTimeout(function() {
                 if (keyInput === USER_KEY || keyInput === ADMIN_KEY) {
-                    // Success State
                     screen.setAttribute('fill', '#10b981');
                     status.style.color = '#10b981';
                     status.innerText = "Access Granted! Welcome.";
 
                     if (keyInput === ADMIN_KEY) {
-                        isAdmin = true;
                         injectAdminTile();
                     }
 
-                    setTimeout(() => {
-                        // Reset & Navigate
+                    setTimeout(function() {
                         screen.setAttribute('fill', '#1e293b');
                         status.innerText = "";
                         document.getElementById('secretKey').value = "";
@@ -449,37 +446,38 @@
                     }, 1000);
 
                 } else {
-                    // Error State
                     screen.setAttribute('fill', '#ef4444');
                     status.style.color = '#ef4444';
                     status.innerText = "Invalid Key! Access Denied.";
 
-                    setTimeout(() => {
+                    setTimeout(function() {
                         screen.setAttribute('fill', '#1e293b');
                     }, 1200);
                 }
             }, 2000);
         }
 
-        // Dynamically append Admin Tile if unlocked via Admin Key
         function injectAdminTile() {
-            if (document.getElementById('admin-tile')) return;
-            const grid = document.getElementById('dashboard-grid');
-            const adminBtn = document.createElement('button');
-            adminBtn.id = 'admin-tile';
+            if (document.getElementById('adminTile')) return;
+            var grid = document.getElementById('dashboard-grid');
+            if (!grid) return;
+            
+            var adminBtn = document.createElement('button');
+            adminBtn.id = 'adminTile';
             adminBtn.className = 'card-btn admin-card';
-            adminBtn.onclick = () => navigateTo('page-admin');
+            adminBtn.onclick = function() { navigateTo('pageAdmin'); };
             adminBtn.innerHTML = '<span>⚙️</span> Admin Panel';
             grid.appendChild(adminBtn);
         }
 
-        // Page 3 Dynamic Category Loader
         function openCategory(categoryType) {
-            const titleElement = document.getElementById('category-title');
-            const gridElement = document.getElementById('category-content-grid');
+            var titleElement = document.getElementById('categoryTitle');
+            var gridElement = document.getElementById('categoryContentGrid');
+            if (!gridElement || !titleElement) return;
+
             gridElement.innerHTML = '';
 
-            const categoryData = {
+            var categoryData = {
                 formulas: {
                     title: "All Excel Formulas",
                     items: ["Math & Trig", "Logical (IF, AND, OR)", "Lookup & Ref (XLOOKUP)", "Text Manipulation", "Financial Functions", "Date & Time"]
@@ -502,23 +500,42 @@
                 }
             };
 
-            const data = categoryData[categoryType] || { title: "Category", items: [] };
+            var data = categoryData[categoryType] || { title: "Category", items: [] };
             titleElement.innerText = data.title;
 
-            data.items.forEach(item => {
-                const btn = document.createElement('button');
+            data.items.forEach(function(item) {
+                var btn = document.createElement('button');
                 btn.className = 'card-btn';
                 btn.innerText = item;
-                btn.onclick = () => {
-                    document.getElementById('learning-material-placeholder').innerHTML = 
-                        `<h4 style="color: #10b981; margin-bottom: 10px;">${item}</h4>
-                         <p style="color: #cbd5e1;">Detailed lessons, formula breakdowns, shortcuts, and copyable syntax examples for <strong>${item}</strong> will load here in the final phase.</p>`;
+                btn.onclick = function() {
+                    var placeholder = document.getElementById('learningMaterialPlaceholder');
+                    if (placeholder) {
+                        placeholder.innerHTML = '<h4 style="color: #10b981; margin-bottom: 10px;">' + item + '</h4>' +
+                            '<p style="color: #cbd5e1;">Detailed lessons, formula breakdowns, shortcuts, and copyable syntax examples for <strong>' + item + '</strong> will load here in the next step.</p>';
+                    }
                 };
                 gridElement.appendChild(btn);
             });
 
             navigateTo('page3');
         }
+
+        // Event Listener Initialization
+        document.addEventListener('DOMContentLoaded', function() {
+            var submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.addEventListener('click', validateKey);
+            }
+
+            var secretKeyInput = document.getElementById('secretKey');
+            if (secretKeyInput) {
+                secretKeyInput.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        validateKey();
+                    }
+                });
+            }
+        });
     </script>
 </body>
 </html>
