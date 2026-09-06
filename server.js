@@ -69,8 +69,7 @@ app.post('/api/admin/generate-key', async (req, res) => {
 // 4. COMPLETE FRONTEND UI & ANIMATION ENGINE
 // ==========================================
 app.get('/', (req, res) => {
-  res.send(`
-<!DOCTYPE html>
+  res.send(`<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
