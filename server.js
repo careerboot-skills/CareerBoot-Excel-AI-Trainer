@@ -1,701 +1,700 @@
-import express from 'express';
-import mongoose from 'mongoose';
-import multer from 'multer';
-import path from 'path';
-import jwt from 'jsonwebtoken';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const express = require('express');
+const mongoose = require('mongoose');
+require('dotenv').config();
 
 const app = express();
-const upload = multer({ storage: multer.memoryStorage() });
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Environment Variables
-const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI;
-const ADMIN_SECRET = process.env.ADMIN_SECRET || "ADMIN123KEY";
-const JWT_SECRET = process.env.JWT_SECRET || "CAREERBOOT_PROD_SECURE_KEY_2026";
+// --- MONGODB CONFIGURATION ---
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/excel_bootcamp';
+mongoose.connect(MONGODB_URI)
+  .then(() => console.log('Connected to MongoDB Atlas / Local Database'))
+  .catch(err => console.error('MongoDB connection error:', err));
 
-// Database Connection
-if (MONGO_URI) {
-    mongoose.connect(MONGO_URI)
-        .then(() => console.log("MongoDB Connected Successfully"))
-        .catch(err => console.error("MongoDB Connection Error:", err));
-}
-
-// Database Schemas
 const KeySchema = new mongoose.Schema({
-    key: { type: String, required: true, unique: true },
-    deviceId: { type: String, default: null },
-    boundAt: { type: Date },
-    role: { type: String, enum: ['user', 'admin'], default: 'user' },
-    createdAt: { type: Date, default: Date.now }
+  key: { type: String, required: true, unique: true },
+  label: { type: String, default: 'Student Key' },
+  isActive: { type: Boolean, default: true },
+  createdAt: { type: Date, default: Date.now }
 });
 
-const ChatSchema = new mongoose.Schema({
-    deviceId: { type: String, required: true },
-    role: { type: String, enum: ['user', 'model'], required: true },
-    message: { type: String, required: true },
-    createdAt: { type: Date, default: Date.now, expires: 432000 }
-});
+const SecretKey = mongoose.model('SecretKey', KeySchema);
 
-const PracticeSheetSchema = new mongoose.Schema({
-    filename: String,
-    data: Buffer,
-    contentType: String,
-    uploadedAt: { type: Date, default: Date.now }
-});
-
-const Key = mongoose.model('Key', KeySchema);
-const Chat = mongoose.model('Chat', ChatSchema);
-const PracticeSheet = mongoose.model('PracticeSheet', PracticeSheetSchema);
-
-app.use(express.json({ limit: '20mb' }));
-
-// Auth Middleware
-const authMiddleware = (req, res, next) => {
-    let token = req.headers.authorization?.split(' ')[1] || req.query.token;
-    if (!token) return res.status(401).json({ success: false, message: "Unauthorized access" });
-    
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (err) {
-        return res.status(401).json({ success: false, message: "Invalid or expired session" });
+async function seedDefaultKey() {
+  try {
+    const count = await SecretKey.countDocuments();
+    if (count === 0) {
+      await SecretKey.create({ key: 'EXCEL2026', label: 'Default Mastery Passcode' });
+      console.log('Default Secret Key Created: EXCEL2026');
     }
-};
-
-// ==========================================
-// COMPLETE LOCAL EXCEL KNOWLEDGE BASE ENGINE
-// ==========================================
-
-const EXCEL_SHORTCUTS = [
-    { key: "Ctrl + A", desc: "Selects the entire worksheet or active table region." },
-    { key: "Ctrl + B", desc: "Applies or removes bold formatting." },
-    { key: "Ctrl + C", desc: "Copies selected cells." },
-    { key: "Ctrl + D", desc: "Fill Down: Copies content and format of top cell into selected cells below." },
-    { key: "Ctrl + E", desc: "Flash Fill: Automatically recognizes patterns and fills data." },
-    { key: "Ctrl + F", desc: "Opens Find dialog box." },
-    { key: "Ctrl + G", desc: "Opens Go To dialog box." },
-    { key: "Ctrl + H", desc: "Opens Find and Replace dialog box." },
-    { key: "Ctrl + I", desc: "Applies or removes italic formatting." },
-    { key: "Ctrl + K", desc: "Inserts a hyperlink." },
-    { key: "Ctrl + N", desc: "Creates a new blank workbook." },
-    { key: "Ctrl + O", desc: "Opens an existing workbook." },
-    { key: "Ctrl + P", desc: "Opens Print preview/settings." },
-    { key: "Ctrl + R", desc: "Fill Right: Copies left cell content to selected right cells." },
-    { key: "Ctrl + S", desc: "Saves active workbook." },
-    { key: "Ctrl + T", desc: "Converts selected range into an official Excel Table." },
-    { key: "Ctrl + U", desc: "Applies or removes underline." },
-    { key: "Ctrl + V", desc: "Pastes copied content." },
-    { key: "Ctrl + W", desc: "Closes active workbook." },
-    { key: "Ctrl + X", desc: "Cuts selected cells." },
-    { key: "Ctrl + Y", desc: "Redoes last action." },
-    { key: "Ctrl + Z", desc: "Undoes last action." },
-    { key: "Ctrl + 1", desc: "Opens Format Cells dialog box." },
-    { key: "Ctrl + 5", desc: "Applies or removes strikethrough." },
-    { key: "Ctrl + 9", desc: "Hides selected rows." },
-    { key: "Ctrl + 0", desc: "Hides selected columns." },
-    { key: "Ctrl + Shift + (", desc: "Unhides selected rows." },
-    { key: "Ctrl + Shift + )", desc: "Unhides selected columns." },
-    { key: "Ctrl + Shift + L", desc: "Toggles AutoFilter on or off." },
-    { key: "Ctrl + Shift + $", desc: "Applies Currency format ($)." },
-    { key: "Ctrl + Shift + %", desc: "Applies Percentage format (%)." },
-    { key: "Ctrl + Shift + #", desc: "Applies Date format (DD-MMM-YY)." },
-    { key: "Ctrl + Shift + @", desc: "Applies Time format." },
-    { key: "Ctrl + Shift + !", desc: "Applies Number format with commas." },
-    { key: "Ctrl + Shift + &", desc: "Applies outline border to selected cells." },
-    { key: "Ctrl + Shift + _", desc: "Removes outline border." },
-    { key: "Ctrl + Shift + Plus (+)", desc: "Inserts new blank cells/rows/columns." },
-    { key: "Ctrl + Minus (-)", desc: "Deletes selected cells/rows/columns." },
-    { key: "Ctrl + Space", desc: "Selects entire column." },
-    { key: "Shift + Space", desc: "Selects entire row." },
-    { key: "Alt + =", desc: "AutoSum: Automatically inserts SUM formula for adjacent cells." },
-    { key: "Alt + Enter", desc: "Starts a new line inside the same cell." },
-    { key: "Alt + F1", desc: "Creates an embedded chart from selected data." },
-    { key: "Alt + F8", desc: "Opens Macro dialog box." },
-    { key: "Alt + F11", desc: "Opens Visual Basic Editor (VBA)." },
-    { key: "F2", desc: "Edits active cell and places cursor at the end." },
-    { key: "F4", desc: "Repeats last action OR toggles absolute cell reference ($A$1)." },
-    { key: "F7", desc: "Runs Spelling check." },
-    { key: "F9", desc: "Calculates all formulas in all open workbooks." },
-    { key: "F12", desc: "Opens Save As dialog box." }
-];
-
-const EXCEL_FORMULAS = [
-    { category: "Lookup & Reference", name: "VLOOKUP", syntax: "=VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])", desc: "Searches vertically down the first column of a table and returns a value in the same row from a specified column." },
-    { category: "Lookup & Reference", name: "HLOOKUP", syntax: "=HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])", desc: "Searches horizontally across the top row of a table and returns a value in the same column." },
-    { category: "Lookup & Reference", name: "XLOOKUP", syntax: "=XLOOKUP(lookup_value, lookup_array, return_array, [if_not_found], [match_mode])", desc: "Modern replacement for VLOOKUP/HLOOKUP. Can search in any direction and defaults to exact match." },
-    { category: "Lookup & Reference", name: "INDEX", syntax: "=INDEX(array, row_num, [column_num])", desc: "Returns a value or reference to a value from within a table or range." },
-    { category: "Lookup & Reference", name: "MATCH", syntax: "=MATCH(lookup_value, lookup_array, [match_type])", desc: "Searches for a specified item in a range and returns its relative position." },
-    { category: "Lookup & Reference", name: "INDIRECT", syntax: "=INDIRECT(ref_text, [a1])", desc: "Returns the reference specified by a text string." },
-    { category: "Lookup & Reference", name: "OFFSET", syntax: "=OFFSET(reference, rows, cols, [height], [width])", desc: "Returns a reference to a range that is a specified number of rows and columns from a cell or range." },
-
-    { category: "Math & Math Logic", name: "SUM", syntax: "=SUM(number1, [number2], ...)", desc: "Adds all the numbers in a range of cells." },
-    { category: "Math & Math Logic", name: "SUMIF", syntax: "=SUMIF(range, criteria, [sum_range])", desc: "Adds the cells specified by a given condition or criteria." },
-    { category: "Math & Math Logic", name: "SUMIFS", syntax: "=SUMIFS(sum_range, criteria_range1, criteria1, ...)", desc: "Adds cells specified by multiple conditions or criteria." },
-    { category: "Math & Math Logic", name: "PRODUCT", syntax: "=PRODUCT(number1, [number2], ...)", desc: "Multiplies all numbers given as arguments." },
-    { category: "Math & Math Logic", name: "SUBTOTAL", syntax: "=SUBTOTAL(function_num, ref1, ...)", desc: "Returns a subtotal in a list or database, ignoring hidden rows when needed." },
-    { category: "Math & Math Logic", name: "ROUND", syntax: "=ROUND(number, num_digits)", desc: "Rounds a number to a specified number of digits." },
-    { category: "Math & Math Logic", name: "ROUNDUP", syntax: "=ROUNDUP(number, num_digits)", desc: "Rounds a number up, away from zero." },
-    { category: "Math & Math Logic", name: "ROUNDDOWN", syntax: "=ROUNDDOWN(number, num_digits)", desc: "Rounds a number down, toward zero." },
-    { category: "Math & Math Logic", name: "ABS", syntax: "=ABS(number)", desc: "Returns the absolute value of a number (converts negative to positive)." },
-    { category: "Math & Math Logic", name: "MOD", syntax: "=MOD(number, divisor)", desc: "Returns the remainder after a number is divided by a divisor." },
-
-    { category: "Statistical", name: "AVERAGE", syntax: "=AVERAGE(number1, [number2], ...)", desc: "Calculates arithmetic mean of selected numbers." },
-    { category: "Statistical", name: "AVERAGEIF", syntax: "=AVERAGEIF(range, criteria, [average_range])", desc: "Calculates average for cells that meet a given criteria." },
-    { category: "Statistical", name: "COUNT", syntax: "=COUNT(value1, [value2], ...)", desc: "Counts how many cells contain numbers." },
-    { category: "Statistical", name: "COUNTA", syntax: "=COUNTA(value1, [value2], ...)", desc: "Counts how many cells are not empty (numbers + text)." },
-    { category: "Statistical", name: "COUNTBLANK", syntax: "=COUNTBLANK(range)", desc: "Counts empty cells in a specified range." },
-    { category: "Statistical", name: "COUNTIF", syntax: "=COUNTIF(range, criteria)", desc: "Counts the number of cells that meet a condition." },
-    { category: "Statistical", name: "COUNTIFS", syntax: "=COUNTIFS(criteria_range1, criteria1, ...)", desc: "Counts cells that meet multiple criteria." },
-    { category: "Statistical", name: "MAX", syntax: "=MAX(number1, [number2], ...)", desc: "Returns largest value in a set of values." },
-    { category: "Statistical", name: "MIN", syntax: "=MIN(number1, [number2], ...)", desc: "Returns smallest value in a set of values." },
-    { category: "Statistical", name: "LARGE", syntax: "=LARGE(array, k)", desc: "Returns the k-th largest value in a dataset." },
-    { category: "Statistical", name: "SMALL", syntax: "=SMALL(array, k)", desc: "Returns the k-th smallest value in a dataset." },
-
-    { category: "Logical", name: "IF", syntax: "=IF(logical_test, value_if_true, [value_if_false])", desc: "Checks whether a condition is met, returning one value if True, another if False." },
-    { category: "Logical", name: "AND", syntax: "=AND(logical1, [logical2], ...)", desc: "Returns TRUE if all arguments evaluate to TRUE." },
-    { category: "Logical", name: "OR", syntax: "=OR(logical1, [logical2], ...)", desc: "Returns TRUE if any argument evaluates to TRUE." },
-    { category: "Logical", name: "NOT", syntax: "=NOT(logical)", desc: "Reverses the logical value of its argument." },
-    { category: "Logical", name: "IFERROR", syntax: "=IFERROR(value, value_if_error)", desc: "Returns specified value if formula evaluates to error (#N/A, #VALUE!), otherwise returns result." },
-    { category: "Logical", name: "IFS", syntax: "=IFS(logical_test1, value_if_true1, ...)", desc: "Checks multiple conditions and returns a value corresponding to the first TRUE condition." },
-
-    { category: "Text Functions", name: "CONCATENATE / CONCAT", syntax: "=CONCAT(text1, [text2], ...)", desc: "Joins two or more text strings into one string." },
-    { category: "Text Functions", name: "TEXTJOIN", syntax: "=TEXTJOIN(delimiter, ignore_empty, text1, ...)", desc: "Combines text from multiple ranges with a specified delimiter." },
-    { category: "Text Functions", name: "LEFT", syntax: "=LEFT(text, [num_chars])", desc: "Extracts specified number of characters from the left side of text." },
-    { category: "Text Functions", name: "RIGHT", syntax: "=RIGHT(text, [num_chars])", desc: "Extracts specified number of characters from the right side of text." },
-    { category: "Text Functions", name: "MID", syntax: "=MID(text, start_num, num_chars)", desc: "Extracts characters from middle of text string given starting position." },
-    { category: "Text Functions", name: "LEN", syntax: "=LEN(text)", desc: "Returns total character count of a text string." },
-    { category: "Text Functions", name: "TRIM", syntax: "=TRIM(text)", desc: "Removes all leading, trailing, and extra space from text except single spaces." },
-    { category: "Text Functions", name: "PROPER", syntax: "=PROPER(text)", desc: "Capitalizes the first letter of each word in a text string." },
-    { category: "Text Functions", name: "UPPER", syntax: "=UPPER(text)", desc: "Converts text to all uppercase letters." },
-    { category: "Text Functions", name: "LOWER", syntax: "=LOWER(text)", desc: "Converts text to all lowercase letters." },
-    { category: "Text Functions", name: "TEXT", syntax: "=TEXT(value, format_text)", desc: "Converts a number to text in a specified number format." },
-    { category: "Text Functions", name: "SUBSTITUTE", syntax: "=SUBSTITUTE(text, old_text, new_text, [instance_num])", desc: "Replaces existing text with new text in a text string." },
-
-    { category: "Date & Time", name: "TODAY", syntax: "=TODAY()", desc: "Returns current date." },
-    { category: "Date & Time", name: "NOW", syntax: "=NOW()", desc: "Returns current date and exact system time." },
-    { category: "Date & Time", name: "DATEDIF", syntax: "=DATEDIF(start_date, end_date, unit)", desc: "Calculates difference between two dates in Years ('Y'), Months ('M'), or Days ('D')." },
-    { category: "Date & Time", name: "EDATE", syntax: "=EDATE(start_date, months)", desc: "Returns date that is specified number of months before or after start date." },
-    { category: "Date & Time", name: "EOMONTH", syntax: "=EOMONTH(start_date, months)", desc: "Returns date of last day of the month before or after specified months." },
-    { category: "Date & Time", name: "NETWORKDAYS", syntax: "=NETWORKDAYS(start_date, end_date, [holidays])", desc: "Returns total working days between two dates excluding weekends and holidays." }
-];
-
-function generateLocalAnswer(userText) {
-    const query = userText.toLowerCase().trim();
-
-    // 1. ALL SHORTCUT KEYS MATCHING ENGINE
-    if (query.includes("shortcut") || query === "all shortcut keys" || query === "all shortcuts") {
-        let res = `### ⌨️ Comprehensive MS Excel Keyboard Shortcuts\n\n`;
-        res += `| Shortcut Key | Function & Usage |\n| :--- | :--- |\n`;
-        EXCEL_SHORTCUTS.forEach(s => {
-            res += `| **${s.key}** | ${s.desc} |\n`;
-        });
-        return res;
-    }
-
-    // 2. ALL FORMULAS MATCHING ENGINE
-    if (query.includes("formula") || query === "all formulas list" || query === "all formulas") {
-        let res = `### 📐 Complete MS Excel Formulas Master Guide\n\n`;
-        let currentCat = "";
-        EXCEL_FORMULAS.forEach(f => {
-            if (f.category !== currentCat) {
-                currentCat = f.category;
-                res += `\n#### 📌 ${currentCat}\n`;
-            }
-            res += `* **\`${f.name}\`**: ${f.desc}\n  * *Syntax*: \`${f.syntax}\`\n`;
-        });
-        return res;
-    }
-
-    // 3. SPECIFIC FORMULA SEARCH
-    const matchedFormula = EXCEL_FORMULAS.find(f => query.includes(f.name.toLowerCase()));
-    if (matchedFormula) {
-        return `### 🔍 Formula Details: \`${matchedFormula.name}\`\n\n` +
-               `* **Category:** ${matchedFormula.category}\n` +
-               `* **Syntax:** \`${matchedFormula.syntax}\`\n` +
-               `* **Description:** ${matchedFormula.desc}\n\n` +
-               `**Usage Example:**\nTo use \`${matchedFormula.name}\`, type \`${matchedFormula.syntax}\` into your formula bar and replace arguments with your actual cell references (e.g., A1:A10).`;
-    }
-
-    // 4. SPECIFIC SHORTCUT SEARCH
-    const matchedShortcut = EXCEL_SHORTCUTS.find(s => query.includes(s.key.toLowerCase().replace("ctrl + ", "").replace("alt + ", "")));
-    if (matchedShortcut) {
-        return `### ⌨️ Shortcut Key Found\n\n` +
-               `* **Shortcut:** **${matchedShortcut.key}**\n` +
-               `* **Action:** ${matchedShortcut.desc}`;
-    }
-
-    // 5. PIVOT TABLE HELP
-    if (query.includes("pivot")) {
-        return `### 📊 How to Create a Pivot Table in MS Excel\n\n` +
-               `1. **Select Data:** Click on any cell within your data range.\n` +
-               `2. **Insert:** Go to **Insert** tab > Click **PivotTable**.\n` +
-               `3. **Location:** Choose *New Worksheet* or *Existing Worksheet* and click **OK**.\n` +
-               `4. **Arrange Fields:** Drag columns to **Rows**, **Columns**, **Values**, or **Filters** in the right pane.\n` +
-               `5. **Shortcut:** Press **Alt + N + V + T** to open Pivot Table wizard instantly.`;
-    }
-
-    // DEFAULT GUIDANCE RESPONSE
-    return `### 💡 CareerBoot Excel Assistant\n\n` +
-           `I can answer all your Excel queries instantly for free! Here are things you can ask:\n\n` +
-           `* Type **"all shortcuts"** or click button below to view the FULL list of Excel shortcuts.\n` +
-           `* Type **"all formulas"** or click button below to see ALL formulas organized by category.\n` +
-           `* Type any specific formula name like **"VLOOKUP"**, **"XLOOKUP"**, **"INDEX MATCH"**, or **"SUMIFS"**.\n` +
-           `* Ask about **"Pivot Table"**, **"Flash Fill"**, or **"Data Validation"**.`;
+  } catch (e) {
+    console.error('Error seeding initial key:', e);
+  }
 }
+seedDefaultKey();
 
-// --- ROUTES ---
-
-app.post('/api/login', async (req, res) => {
-    try {
-        const { key, deviceSignature } = req.body;
-        if (!key || !deviceSignature) return res.status(400).json({ success: false, message: "Key required" });
-
-        if (key === ADMIN_SECRET) {
-            const token = jwt.sign({ role: 'admin' }, JWT_SECRET, { expiresIn: '30d' });
-            return res.json({ success: true, role: 'admin', token });
-        }
-
-        const keyDoc = await Key.findOne({ key });
-        if (!keyDoc) return res.status(401).json({ success: false, message: "Invalid Access Key" });
-
-        if (!keyDoc.deviceId) {
-            keyDoc.deviceId = deviceSignature;
-            keyDoc.boundAt = new Date();
-            await keyDoc.save();
-        } else if (keyDoc.deviceId !== deviceSignature) {
-            return res.status(403).json({ success: false, message: "Key registered to another device!" });
-        }
-
-        const token = jwt.sign({ key: keyDoc.key, deviceId: deviceSignature, role: 'user' }, JWT_SECRET, { expiresIn: '60d' });
-        return res.json({ success: true, role: 'user', token });
-    } catch (err) {
-        res.status(500).json({ success: false, message: "Auth error" });
+// --- API ENDPOINTS ---
+app.post('/api/verify-key', async (req, res) => {
+  const { key } = req.body;
+  try {
+    const foundKey = await SecretKey.findOne({ key, isActive: true });
+    if (foundKey) {
+      return res.json({ success: true, message: 'Access Granted' });
     }
+    return res.status(401).json({ success: false, message: 'Invalid or Inactive Key' });
+  } catch (err) {
+    return res.status(500).json({ success: false, message: 'Internal Server Error' });
+  }
 });
 
-app.post('/api/admin/create-key', authMiddleware, async (req, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
-    try {
-        await Key.create({ key: req.body.newKey.trim() });
-        res.json({ success: true, message: "Key Created!" });
-    } catch (err) {
-        res.status(400).json({ success: false, message: "Key already exists" });
-    }
+// Admin APIs
+app.post('/api/admin/keys', async (req, res) => {
+  const { adminSecret, key, label } = req.body;
+  if (adminSecret !== (process.env.ADMIN_SECRET || 'admin123')) {
+    return res.status(403).json({ success: false, message: 'Unauthorized Admin Passcode' });
+  }
+  try {
+    const newKey = await SecretKey.create({ key, label });
+    res.json({ success: true, data: newKey });
+  } catch (err) {
+    res.status(400).json({ success: false, message: 'Key already exists or invalid format' });
+  }
 });
 
-app.post('/api/admin/delete-key', authMiddleware, async (req, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
-    await Key.deleteOne({ key: req.body.key });
-    res.json({ success: true, message: "Key Deleted!" });
+app.get('/api/admin/keys', async (req, res) => {
+  const { adminSecret } = req.query;
+  if (adminSecret !== (process.env.ADMIN_SECRET || 'admin123')) {
+    return res.status(403).json({ success: false, message: 'Unauthorized Admin Passcode' });
+  }
+  const keys = await SecretKey.find().sort({ createdAt: -1 });
+  res.json({ success: true, data: keys });
 });
 
-app.post('/api/admin/upload-sheet', authMiddleware, upload.single('sheet'), async (req, res) => {
-    if (req.user.role !== 'admin') return res.status(403).json({ message: "Forbidden" });
-    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
-
-    await PracticeSheet.deleteMany({});
-    await PracticeSheet.create({
-        filename: req.file.originalname,
-        data: req.file.buffer,
-        contentType: req.file.mimetype
-    });
-    res.json({ success: true, message: "Practice Sheet Published!" });
+app.post('/api/admin/keys/toggle', async (req, res) => {
+  const { adminSecret, id } = req.body;
+  if (adminSecret !== (process.env.ADMIN_SECRET || 'admin123')) {
+    return res.status(403).json({ success: false, message: 'Unauthorized Admin Passcode' });
+  }
+  const keyObj = await SecretKey.findById(id);
+  if (keyObj) {
+    keyObj.isActive = !keyObj.isActive;
+    await keyObj.save();
+    return res.json({ success: true, data: keyObj });
+  }
+  res.status(404).json({ success: false, message: 'Key not found' });
 });
 
-app.get('/api/download-sheet', authMiddleware, async (req, res) => {
-    const sheet = await PracticeSheet.findOne().sort({ uploadedAt: -1 });
-    if (!sheet) return res.status(404).send("No sheet available.");
-    res.setHeader('Content-Type', sheet.contentType);
-    res.setHeader('Content-Disposition', 'attachment; filename="' + sheet.filename + '"');
-    res.send(sheet.data);
-});
-
-app.get('/api/chat-history', authMiddleware, async (req, res) => {
-    const history = await Chat.find({ deviceId: req.user.deviceId }).sort({ createdAt: 1 });
-    res.json({ success: true, history });
-});
-
-// CHAT ROUTE - 100% FREE LOCAL KNOWLEDGE ENGINE
-app.post('/api/chat', authMiddleware, async (req, res) => {
-    try {
-        const { message } = req.body;
-        const deviceId = req.user.deviceId;
-
-        if (!message) {
-            return res.status(400).json({ success: false, reply: "Please enter a question." });
-        }
-
-        // Generate response using local knowledge base
-        const reply = generateLocalAnswer(message);
-
-        await Chat.create({ deviceId, role: 'user', message });
-        await Chat.create({ deviceId, role: 'model', message: reply });
-
-        return res.json({ success: true, reply });
-    } catch (err) {
-        res.status(500).json({ success: false, reply: "Engine processing error." });
-    }
-});
-
-// FRONTEND INTERFACE
+// --- SINGLE PAGE APPLICATION FRONTEND ---
 app.get('*', (req, res) => {
-    res.send(`<!DOCTYPE html>
+  res.send(`
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>CareerBoot Excel AI Trainer</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <style>
-        :root { --primary: #10b981; --bg-dark: #0f172a; --card-dark: #1e293b; --text-main: #f8fafc; --text-muted: #94a3b8; --user-msg: #2563eb; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
-        html, body { height: 100%; width: 100%; background-color: var(--bg-dark); color: var(--text-main); overflow: hidden; }
-        .page { display: none; height: 100dvh; width: 100vw; flex-direction: column; position: relative; }
-        .page.active { display: flex; }
-        .login-top { height: 35vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 10px; text-align: center; }
-        .brand-logo { font-size: 26px; font-weight: 800; color: var(--primary); letter-spacing: -0.5px; }
-        .welcome-text { font-size: 13px; color: var(--text-muted); margin-top: 4px; }
-        .tracker-wrapper { width: 85%; max-width: 350px; margin-top: 25px; position: relative; }
-        .tracker-line { height: 4px; background: #334155; border-radius: 2px; position: relative; width: 100%; }
-        .tracker-progress { position: absolute; height: 100%; background: var(--primary); width: 0%; transition: width 2.5s ease; }
-        .tracker-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
-        .walker-avatar { position: absolute; top: -25px; left: 0%; transform: translateX(-50%); transition: left 2.5s ease; font-size: 18px; }
-        .login-middle { height: 15vh; display: flex; align-items: center; justify-content: center; padding: 0 20px; }
-        .input-key { width: 220px; padding: 12px; background: var(--card-dark); border: 1.5px solid #334155; border-radius: 8px; color: white; text-align: center; font-size: 15px; outline: none; }
-        .btn-unlock { padding: 12px 18px; background: var(--primary); border: none; border-radius: 8px; color: white; font-weight: 700; cursor: pointer; margin-left: 8px; }
-        .login-bottom { height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-        .typing-anim-container { width: 200px; height: 200px; }
-        .status-badge { display: none; font-size: 50px; }
-        .chat-header { height: 55px; background: var(--card-dark); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #334155; flex-shrink: 0; }
-        .chat-title { font-weight: 700; font-size: 15px; color: var(--primary); }
-        .chat-body { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
-        .chat-bubble { max-width: 90%; padding: 12px 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; word-wrap: break-word; }
-        .chat-bubble.user { background: var(--user-msg); align-self: flex-end; white-space: pre-wrap; }
-        .chat-bubble.model { background: var(--card-dark); align-self: flex-start; border: 1px solid #334155; }
-        .chat-bubble.model h3, .chat-bubble.model h4 { color: var(--primary); margin-top: 10px; margin-bottom: 6px; }
-        .chat-bubble.model p { margin-bottom: 8px; }
-        .chat-bubble.model ul { margin-left: 20px; margin-bottom: 8px; }
-        .chat-bubble.model code { background: #0f172a; padding: 2px 6px; border-radius: 4px; font-family: monospace; font-size: 13px; color: #38bdf8; }
-        .chat-bubble.model table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 13px; }
-        .chat-bubble.model th, .chat-bubble.model td { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
-        .pinned-bar { display: flex; gap: 8px; padding: 8px 12px; overflow-x: auto; background: var(--bg-dark); flex-shrink: 0; border-top: 1px solid #1e293b; }
-        .chip-btn { background: var(--card-dark); border: 1px solid #334155; padding: 6px 12px; border-radius: 16px; font-size: 12px; color: var(--text-muted); cursor: pointer; white-space: nowrap; }
-        .chat-input-container { min-height: 60px; padding: 8px 12px; background: var(--card-dark); border-top: 1px solid #334155; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-        .chat-input { flex: 1; background: var(--bg-dark); border: 1px solid #334155; padding: 10px 12px; border-radius: 8px; color: white; font-size: 14px; outline: none; }
-        .icon-btn { background: none; border: none; color: var(--text-main); font-size: 18px; cursor: pointer; padding: 4px; }
-        .drawer-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 99; }
-        .drawer-menu { position: fixed; right: -280px; top: 0; width: 260px; height: 100%; background: var(--card-dark); transition: right 0.3s ease; z-index: 100; padding: 20px; display: flex; flex-direction: column; gap: 15px; }
-        .drawer-menu.open { right: 0; }
-        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; justify-content: center; align-items: center; }
-        .modal-box { background: var(--card-dark); padding: 20px; border-radius: 12px; width: 80%; max-width: 300px; text-align: center; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareerBoot - Complete Excel Knowledgebase</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    @keyframes cloudTravel {
+      0% { transform: translateY(0) scale(0.4); opacity: 0.1; }
+      50% { transform: translateY(-130px) scale(1.2); opacity: 1; }
+      100% { transform: translateY(-260px) scale(0.7); opacity: 0; }
+    }
+    @keyframes manWalk {
+      0% { transform: translateX(0); }
+      50% { transform: translateX(140px); }
+      100% { transform: translateX(280px); }
+    }
+    .cloud-particle { animation: cloudTravel 2s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
+    .walking-man { animation: manWalk 8s ease-in-out infinite alternate; }
+  </style>
 </head>
-<body>
-    <div id="page1" class="page active">
-        <div class="login-top">
-            <div class="brand-logo">CareerBoot</div>
-            <div class="welcome-text">Excel AI Trainer Portal</div>
-            <div class="tracker-wrapper">
-                <div class="walker-avatar" id="walker">🚶</div>
-                <div class="tracker-line"><div class="tracker-progress" id="progressBar"></div></div>
-                <div class="tracker-labels"><span>Interest</span><span>Success</span></div>
-            </div>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-950">
+
+  <nav id="topNav" class="hidden bg-slate-900/90 backdrop-blur border-b border-slate-800 p-4 sticky top-0 z-50 justify-between items-center px-8">
+    <div class="flex items-center space-x-3 cursor-pointer" onclick="navigateTo('dashboard')">
+      <svg class="w-8 h-8 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      <span class="text-xl font-black tracking-wider text-white">Career<span class="text-emerald-400">Boot</span></span>
+    </div>
+    <div class="flex space-x-3">
+      <button onclick="navigateBack()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Back</button>
+      <button onclick="navigateTo('dashboard')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-house"></i> Home</button>
+      <button onclick="toggleAdminPanel()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-user-shield"></i> Admin Keys</button>
+      <button onclick="logout()" class="px-4 py-2 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-2"><i class="fa-solid fa-power-off"></i> Exit</button>
+    </div>
+  </nav>
+
+  <div id="pageLogin" class="min-h-screen flex flex-col justify-between p-6 max-w-6xl mx-auto w-full">
+    <div class="h-[35vh] flex flex-col justify-between bg-slate-900/80 rounded-3xl border border-slate-800 p-6 relative overflow-hidden shadow-2xl">
+      <div class="flex justify-between items-start">
+        <div class="flex items-center space-x-4">
+          <svg class="w-14 h-14 text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect width="100" height="100" rx="20" fill="#0F172A"/>
+            <path d="M25 75L45 25H55L75 75H62L57 60H43L38 75H25ZM46 50H54L50 36L46 50Z" fill="#10B981"/>
+            <circle cx="75" cy="25" r="8" fill="#38BDF8"/>
+          </svg>
+          <div>
+            <h1 class="text-3xl font-black text-white tracking-tight">Career<span class="text-emerald-400">Boot</span></h1>
+            <p class="text-[10px] text-slate-400 uppercase tracking-widest font-bold">Enterprise Excel Learning Engine</p>
+          </div>
         </div>
-        <div class="login-middle">
-            <input type="password" id="secretKey" class="input-key" placeholder="Enter Secret Key">
-            <button class="btn-unlock" onclick="executeUnlockProcess()">Unlock</button>
+        <div class="text-right">
+          <h2 class="text-lg font-bold text-slate-100">Full Master Directory</h2>
+          <p class="text-xs text-slate-400">Enter your passcode key to unfold all operational layers.</p>
         </div>
-        <div class="login-bottom">
-            <div id="lottieContainer" class="typing-anim-container"></div>
-            <div id="statusBadge" class="status-badge"></div>
+      </div>
+
+      <div class="relative w-full bg-slate-950/80 rounded-2xl p-4 border border-slate-800/80 mt-2">
+        <div class="flex justify-between text-xs font-bold uppercase tracking-wider mb-2">
+          <span class="text-amber-400 flex items-center gap-1.5"><i class="fa-solid fa-lightbulb"></i> Interest</span>
+          <span class="text-blue-400 flex items-center gap-1.5"><i class="fa-solid fa-gears"></i> Skill Building</span>
+          <span class="text-emerald-400 flex items-center gap-1.5"><i class="fa-solid fa-trophy"></i> Career Success</span>
         </div>
+        <div class="w-full h-2 bg-slate-800 rounded-full relative">
+          <div class="absolute top-0 left-0 h-2 bg-gradient-to-r from-amber-500 via-blue-500 to-emerald-500 rounded-full w-full"></div>
+          <div class="walking-man absolute -top-7 left-0">
+            <svg class="w-8 h-8 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="4" r="2"/>
+              <path d="M15.8 8.3L12 6 8.2 8.3c-.5.3-.7 1-.4 1.5.3.5 1 .7 1.5.4L11 9.1V14l-2.2 4.4c-.3.5-.1 1.1.4 1.4.5.3 1.1.1 1.4-.4L12 16.5l1.4 2.9c.2.4.7.7 1.2.7.2 0 .4-.1.6-.2.5-.3.7-.9.4-1.4L13 14V9.1l1.7 1.1c.2.1.4.2.6.2.3 0 .7-.1.9-.4.3-.5.1-1.2-.4-1.5z"/>
+            </svg>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div id="page2" class="page">
-        <div class="chat-header">
-            <div class="chat-title">CareerBoot Excel AI Trainer</div>
-            <div>
-                <button class="icon-btn" onclick="fetchHistory()">📜</button>
-                <button class="icon-btn" onclick="openDrawer()">|||</button>
-            </div>
-        </div>
-        <div class="chat-body" id="chatBody">
-            <div class="chat-bubble model">Welcome! Ask any MS Excel query. Click <b>"All Shortcut Keys"</b> or <b>"All Formulas List"</b> below for full guides.</div>
-        </div>
-        <div class="pinned-bar">
-            <button class="chip-btn" onclick="sendQuickQuery('all shortcuts')">All Shortcut Keys</button>
-            <button class="chip-btn" onclick="sendQuickQuery('all formulas')">All Formulas List</button>
-            <button class="chip-btn" onclick="sendQuickQuery('VLOOKUP')">VLOOKUP Guide</button>
-            <button class="chip-btn" onclick="sendQuickQuery('Pivot Table')">Pivot Table</button>
-        </div>
-        <div class="chat-input-container">
-            <input type="text" id="userInput" class="chat-input" placeholder="Ask Excel formula or key..." onkeypress="if(event.key==='Enter') processUserQuery()">
-            <button class="icon-btn" onclick="startVoiceRecognition()">🎤</button>
-            <button class="btn-unlock" onclick="processUserQuery()" style="padding: 8px 14px;">Send</button>
-        </div>
+    <div class="h-[15vh] my-4 bg-slate-900/80 rounded-3xl border border-slate-800 flex items-center justify-center p-6 relative shadow-2xl">
+      <div class="w-full max-w-xl flex gap-3 relative z-10">
+        <input type="password" id="secretKeyInput" placeholder="Enter Secret Key (e.g., EXCEL2026)" class="w-full px-5 py-3.5 bg-slate-950 border border-slate-700 rounded-2xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono tracking-widest text-center text-lg">
+        <button onclick="submitSecretKey()" class="px-8 py-3.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black rounded-2xl shadow-lg transition flex items-center gap-2 text-sm uppercase tracking-wider">
+          <span>Authenticate</span>
+          <i class="fa-solid fa-lock-open"></i>
+        </button>
+      </div>
+      <div id="cloudContainer" class="absolute inset-0 pointer-events-none overflow-hidden flex justify-center items-center"></div>
     </div>
 
-    <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
-    <div class="drawer-menu" id="drawerMenu">
-        <h3 style="color: var(--primary);">Menu</h3>
-        <button class="btn-unlock" onclick="downloadPracticeSheet()" style="width: 100%;">Download Practice Sheet</button>
-        <button class="btn-unlock" onclick="logout()" style="background: #ef4444; margin-top: auto;">Logout</button>
+    <div class="flex-1 bg-slate-900/80 rounded-3xl border border-slate-800 p-6 flex flex-col items-center justify-center relative min-h-[30vh] shadow-2xl">
+      <div id="statusIndicator" class="mb-4 text-center font-bold text-lg hidden"></div>
+      <div class="relative flex items-center justify-center">
+        <svg id="manSvg" class="w-72 h-52 transition-all duration-300" viewBox="0 0 300 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="20" y="150" width="260" height="10" fill="#334155" rx="3"/>
+          <rect x="140" y="130" width="20" height="20" fill="#475569"/>
+          <rect x="120" y="148" width="60" height="4" fill="#475569"/>
+          <rect x="80" y="45" width="140" height="88" rx="8" fill="#0F172A" stroke="#475569" stroke-width="4"/>
+          <rect id="computerScreen" x="86" y="51" width="128" height="76" rx="4" fill="#1E293B"/>
+          <line x1="96" y1="65" x2="160" y2="65" stroke="#38BDF8" stroke-width="3" stroke-linecap="round"/>
+          <line x1="96" y1="80" x2="195" y2="80" stroke="#34D399" stroke-width="3" stroke-linecap="round"/>
+          <line x1="96" y1="95" x2="145" y2="95" stroke="#F43F5E" stroke-width="3" stroke-linecap="round"/>
+          <circle cx="45" cy="98" r="16" fill="#CBD5E1"/>
+          <path d="M25 145 C25 120, 35 115, 55 115 C65 115, 75 120, 75 145 Z" fill="#3B82F6"/>
+          <circle cx="51" cy="96" r="2" fill="#0F172A"/>
+          <path d="M50 125 L80 135 L100 142" stroke="#CBD5E1" stroke-width="5" stroke-linecap="round"/>
+        </svg>
+      </div>
     </div>
+  </div>
 
-    <div id="adminPage" class="page" style="padding: 20px; overflow-y: auto;">
-        <h2 style="color: var(--primary); margin-bottom: 20px;">Admin Panel</h2>
-        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 12px;">
-            <h4>Create Access Key</h4>
-            <input type="text" id="newKeyInput" class="chat-input" placeholder="New Key" style="margin-top: 8px; width: 100%;">
-            <button class="btn-unlock" onclick="adminCreateKey()" style="margin-top: 8px; width: 100%;">Create</button>
-        </div>
-        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px; margin-bottom: 12px;">
-            <h4>Revoke Key</h4>
-            <input type="text" id="revokeKeyInput" class="chat-input" placeholder="Key Name" style="margin-top: 8px; width: 100%;">
-            <button class="btn-unlock" onclick="adminDeleteKey()" style="background: #ef4444; margin-top: 8px; width: 100%;">Delete</button>
-        </div>
-        <div style="background: var(--card-dark); padding: 15px; border-radius: 10px;">
-            <h4>Upload Practice Sheet</h4>
-            <input type="file" id="adminSheetFile" style="margin-top: 8px;">
-            <button class="btn-unlock" onclick="adminUploadSheet()" style="margin-top: 8px; width: 100%;">Upload Sheet</button>
-        </div>
+  <div id="pageDashboard" class="hidden p-8 flex-1 max-w-7xl mx-auto w-full">
+    <div class="mb-8 border-b border-slate-800 pb-5 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+      <div>
+        <h2 id="portalTitle" class="text-3xl font-black text-white tracking-wide">Excel Master Directory</h2>
+        <p id="portalSubtitle" class="text-slate-400 text-sm mt-1">Select a core domain to access detailed sub-categories and syntax cards.</p>
+      </div>
+      <div id="breadcrumb" class="text-xs font-mono text-emerald-400 bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl">
+        Root / Dashboard
+      </div>
     </div>
+    <div id="dynamicContentGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+  </div>
 
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal-box">
-            <p id="modalMessage" style="font-size: 14px; margin-bottom: 15px;"></p>
-            <button class="btn-unlock" onclick="closeModal()" style="width: 100%;">OK</button>
+  <div id="adminModal" class="fixed inset-0 bg-black/80 backdrop-blur-md hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl p-6 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-4 mb-4">
+        <h3 class="text-xl font-bold text-white flex items-center gap-2"><i class="fa-solid fa-sliders text-indigo-400"></i> Key Manager</h3>
+        <button onclick="toggleAdminPanel()" class="text-slate-400 hover:text-white text-xl"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3 mb-6">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <input type="password" id="adminMasterSecret" placeholder="Admin Passcode" class="bg-slate-950 border border-slate-700 px-4 py-2.5 rounded-xl text-xs text-white">
+          <input type="text" id="newKeyVal" placeholder="New Secret Key" class="bg-slate-950 border border-slate-700 px-4 py-2.5 rounded-xl text-xs text-white">
+          <input type="text" id="newKeyLabel" placeholder="User Label" class="bg-slate-950 border border-slate-700 px-4 py-2.5 rounded-xl text-xs text-white">
         </div>
+        <button onclick="createNewKey()" class="w-full bg-indigo-600 hover:bg-indigo-500 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition">Generate & Activate Secret Key</button>
+      </div>
+
+      <div class="max-h-64 overflow-y-auto border border-slate-800 rounded-2xl">
+        <table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950 text-[10px] uppercase text-slate-400 border-b border-slate-800 sticky top-0">
+            <tr>
+              <th class="p-3">Key Token</th>
+              <th class="p-3">Label</th>
+              <th class="p-3">Status</th>
+              <th class="p-3">Action</th>
+            </tr>
+          </thead>
+          <tbody id="adminKeyTable">
+            <tr><td colspan="4" class="p-4 text-center text-slate-500">Enter Admin Passcode & Click Refresh</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="mt-4 flex justify-between items-center">
+        <span class="text-[10px] text-slate-500">Default Admin Secret: admin123</span>
+        <button onclick="fetchAdminKeys()" class="px-4 py-2 bg-slate-800 text-xs font-bold rounded-xl hover:bg-slate-700">Refresh List</button>
+      </div>
     </div>
+  </div>
 
-    <script>
-        let jwtToken = localStorage.getItem('jwt_token') || null;
-        let userRole = localStorage.getItem('user_role') || null;
+  <footer class="p-4 bg-slate-950 border-t border-slate-900 text-center text-xs text-slate-600">
+    CareerBoot &copy; 2026 — Comprehensive Excel Platform | Production Single-File Node.js Engine
+  </footer>
 
-        function getDeviceSignature() {
-            let sig = localStorage.getItem('cb_device_sig');
-            if(!sig) {
-                sig = 'CB-' + Math.random().toString(36).substring(2) + '-' + Date.now();
-                localStorage.setItem('cb_device_sig', sig);
+  <script>
+    const excelDatabase = {
+      title: "Excel Master Directory",
+      categories: [
+        {
+          id: "formulas",
+          name: "All Formulas",
+          icon: "fa-calculator",
+          color: "border-emerald-500/30 hover:border-emerald-500",
+          desc: "Complete reference for basic math, lookup, dynamic arrays, logical tests, and string operations.",
+          subCategories: [
+            {
+              id: "math_basic",
+              name: "Math & Aggregation",
+              icon: "fa-plus-minus",
+              items: [
+                { name: "SUM", formula: "=SUM(number1, [number2], ...)", desc: "Calculates the total of all numeric values within a given range." },
+                { name: "AVERAGE", formula: "=AVERAGE(number1, [number2], ...)", desc: "Returns the arithmetic mean of a series of numbers." },
+                { name: "COUNT", formula: "=COUNT(value1, [value2], ...)", desc: "Counts cells that contain numbers." },
+                { name: "COUNTA", formula: "=COUNTA(value1, [value2], ...)", desc: "Counts non-empty cells including text, numbers, and errors." },
+                { name: "COUNTBLANK", formula: "=COUNTBLANK(range)", desc: "Counts empty cells within a specified range." },
+                { name: "ROUND / ROUNDUP / ROUNDDOWN", formula: "=ROUND(number, num_digits)", desc: "Rounds a number to a specified number of digits." },
+                { name: "SUMPRODUCT", formula: "=SUMPRODUCT(array1, [array2], ...)", desc: "Multiplies corresponding components in given arrays and returns the sum." },
+                { name: "MOD", formula: "=MOD(number, divisor)", desc: "Returns the remainder after a number is divided by a divisor." },
+                { name: "ABS", formula: "=ABS(number)", desc: "Returns the absolute value of a number, stripping its negative sign." },
+                { name: "INT / TRUNC", formula: "=INT(number)", desc: "Rounds a number down to the nearest integer." }
+              ]
+            },
+            {
+              id: "lookup_ref",
+              name: "Lookup & Reference",
+              icon: "fa-magnifying-glass",
+              items: [
+                { name: "XLOOKUP", formula: "=XLOOKUP(lookup_val, lookup_arr, return_arr, [if_not_found], [match_mode], [search_mode])", desc: "Modern, versatile replacement for VLOOKUP/HLOOKUP. Supports exact/wildcard matches and bi-directional lookups." },
+                { name: "INDEX & MATCH", formula: "=INDEX(return_range, MATCH(lookup_val, lookup_range, 0))", desc: "Dynamic matrix search combination. Unaffected by column additions or removals." },
+                { name: "VLOOKUP", formula: "=VLOOKUP(lookup_value, table_array, col_index_num, [range_lookup])", desc: "Searches for a value in the first column of a table array and returns a value in the same row from a specified column." },
+                { name: "HLOOKUP", formula: "=HLOOKUP(lookup_value, table_array, row_index_num, [range_lookup])", desc: "Searches horizontally along the top row of a table array and returns a value from the specified row." },
+                { name: "INDIRECT", formula: "=INDIRECT(ref_text, [a1])", desc: "Converts a valid text string into an active cell or range reference." },
+                { name: "OFFSET", formula: "=OFFSET(reference, rows, cols, [height], [width])", desc: "Returns a reference offset from a starting cell by a specified number of rows and columns." },
+                { name: "CHOOSE", formula: "=CHOOSE(index_num, value1, [value2], ...)", desc: "Selects a value or action from a list based on an index number." },
+                { name: "ADDRESS", formula: "=ADDRESS(row_num, column_num, [abs_num], [a1], [sheet_text])", desc: "Creates a cell reference text string based on row and column numbers." }
+              ]
+            },
+            {
+              id: "dynamic_arrays",
+              name: "Dynamic Arrays",
+              icon: "fa-layer-group",
+              items: [
+                { name: "FILTER", formula: "=FILTER(array, include, [if_empty])", desc: "Filters a dataset based on boolean logical rules and spills matching rows automatically." },
+                { name: "UNIQUE", formula: "=UNIQUE(array, [by_col], [exactly_once])", desc: "Returns a list of distinct or unique values from an input range." },
+                { name: "SORT & SORTBY", formula: "=SORTBY(array, by_array1, [sort_order1], ...)", desc: "Sorts a range or array based on corresponding values in another range or array." },
+                { name: "SEQUENCE", formula: "=SEQUENCE(rows, [columns], [start], [step])", desc: "Generates an array of sequential numbers over designated rows and columns." },
+                { name: "RANDARRAY", formula: "=RANDARRAY([rows], [columns], [min], [max], [whole_number])", desc: "Generates an array of random integers or decimals across grid dimensions." },
+                { name: "TAKE & DROP", formula: "=TAKE(array, rows, [columns])", desc: "Extracts or removes specified rows or columns from the start or end of an array." },
+                { name: "EXPAND", formula: "=EXPAND(array, rows, [columns], [pad_with])", desc: "Expands an array to specified dimensions using a custom padding value." },
+                { name: "TOCOL / TOROW", formula: "=TOCOL(array, [ignore], [scan_by_column])", desc: "Transforms a multi-dimensional matrix into a single column or row vector." }
+              ]
+            },
+            {
+              id: "logical_cond",
+              name: "Logical & Conditional",
+              icon: "fa-code-branch",
+              items: [
+                { name: "IF", formula: "=IF(logical_test, value_if_true, value_if_false)", desc: "Evaluates a condition and returns one value if TRUE, and another if FALSE." },
+                { name: "IFS", formula: "=IFS(logical_test1, value_if_true1, ...)", desc: "Evaluates multiple conditions sequentially without requiring nested IF statements." },
+                { name: "SWITCH", formula: "=SWITCH(expression, value1, result1, [default])", desc: "Matches an expression against a list of values and returns the matching result." },
+                { name: "AND / OR / NOT", formula: "=AND(logical1, [logical2], ...)", desc: "Combines conditions; AND requires all conditions to be TRUE, OR requires at least one." },
+                { name: "IFERROR / IFNA", formula: "=IFERROR(value, value_if_error)", desc: "Catches formula errors and displays a user-defined fallback value." },
+                { name: "XOR", formula: "=XOR(logical1, [logical2], ...)", desc: "Returns a logical Exclusive OR across all provided arguments." }
+              ]
+            },
+            {
+              id: "text_formulas",
+              name: "Text Operations",
+              icon: "fa-font",
+              items: [
+                { name: "TEXTSPLIT", formula: "=TEXTSPLIT(text, col_delimiter, [row_delimiter])", desc: "Splits text strings into separate cells using column/row delimiters." },
+                { name: "TEXTJOIN", formula: "=TEXTJOIN(delimiter, ignore_empty, text1, ...)", desc: "Concatenates text strings or ranges using a specified delimiter." },
+                { name: "LEFT / RIGHT / MID", formula: "=MID(text, start_num, num_chars)", desc: "Extracts a specific number of characters starting from a designated location in text." },
+                { name: "LEN", formula: "=LEN(text)", desc: "Returns the total character count of a text string." },
+                { name: "TRIM / CLEAN", formula: "=TRIM(text)", desc: "Removes leading, trailing, and extra spaces from text strings." },
+                { name: "SUBSTITUTE", formula: "=SUBSTITUTE(text, old_text, new_text, [instance_num])", desc: "Replaces existing text with new text within a string." },
+                { name: "SEARCH / FIND", formula: "=SEARCH(find_text, within_text, [start_num])", desc: "Locates the position of a substring within text (SEARCH is case-insensitive)." },
+                { name: "UPPER / LOWER / PROPER", formula: "=PROPER(text)", desc: "Converts text strings to uppercase, lowercase, or proper title case." }
+              ]
+            },
+            {
+              id: "date_time",
+              name: "Date & Time Calculations",
+              icon: "fa-calendar-days",
+              items: [
+                { name: "TODAY & NOW", formula: "=TODAY()", desc: "Returns the current system date or full date-time timestamp." },
+                { name: "DATEDIF", formula: "=DATEDIF(start_date, end_date, unit)", desc: "Calculates elapsed time between dates in years ('Y'), months ('M'), or days ('D')." },
+                { name: "EDATE / EOMONTH", formula: "=EOMONTH(start_date, months)", desc: "Returns the date for the last day of the month a specified number of months away." },
+                { name: "NETWORKDAYS / WORKDAY", formula: "=NETWORKDAYS(start_date, end_date, [holidays])", desc: "Calculates net working days between two dates, excluding weekends and designated holidays." },
+                { name: "YEAR / MONTH / DAY", formula: "=YEAR(serial_number)", desc: "Extracts the year component from an Excel date integer." },
+                { name: "WEEKDAY", formula: "=WEEKDAY(serial_number, [return_type])", desc: "Returns an integer representing the day of the week for a given date." }
+              ]
             }
-            return sig;
+          ]
+        },
+        {
+          id: "shortcuts",
+          name: "All Shortcuts",
+          icon: "fa-keyboard",
+          color: "border-blue-500/30 hover:border-blue-500",
+          desc: "Complete directory of standard navigation, selection, and ALT ribbon accelerators.",
+          subCategories: [
+            {
+              id: "basic_shortcuts",
+              name: "Basic & Daily Operations",
+              icon: "fa-bolt",
+              items: [
+                { name: "Copy / Paste", key: "Ctrl + C / Ctrl + V", desc: "Copies selection to clipboard and pastes content." },
+                { name: "Undo / Redo", key: "Ctrl + Z / Ctrl + Y", desc: "Reverts or reapplies the previous workbook edit." },
+                { name: "Select All", key: "Ctrl + A", desc: "Selects all populated cells in the active region." },
+                { name: "Save Workbook", key: "Ctrl + S", desc: "Saves current changes in the active workbook." },
+                { name: "Find & Replace", key: "Ctrl + F / Ctrl + H", desc: "Opens the Find or Replace dialog tabs." },
+                { name: "Fill Down", key: "Ctrl + D", desc: "Copies the content and format of the top cell in a range down." },
+                { name: "Fill Right", key: "Ctrl + R", desc: "Copies content and format from the leftmost cell to adjacent cells." }
+              ]
+            },
+            {
+              id: "pro_ribbon",
+              name: "Pro Level Ribbon Hacks (ALT Speed)",
+              icon: "fa-rocket",
+              items: [
+                { name: "Conditional Formatting Rules", key: "Alt + H + L", desc: "Opens the Conditional Formatting drop-down menu." },
+                { name: "AutoFit Column Width", key: "Alt + H + O + I", desc: "Auto-resizes column width to fit long text contents." },
+                { name: "Toggle Gridlines View", key: "Alt + W + V + G", desc: "Toggles worksheet background gridlines visibility." },
+                { name: "Paste Values Only", key: "Alt + H + V + V", desc: "Pastes copied content as plain text values." },
+                { name: "Paste Column Widths", key: "Alt + H + V + W", desc: "Applies column width dimensions from copied cells." },
+                { name: "Remove Duplicates Engine", key: "Alt + A + M", desc: "Opens the Remove Duplicates cleanup tool." },
+                { name: "Apply Data Validation", key: "Alt + A + V + V", desc: "Launches the Data Validation setup menu." },
+                { name: "Insert PivotTable", key: "Alt + N + V + T", desc: "Opens the Create PivotTable menu." },
+                { name: "Trace Precedents", key: "Alt + M + P", desc: "Draws arrows pointing to cells that feed values into the active formula." },
+                { name: "Clear Precedent Arrows", key: "Alt + M + A", desc: "Removes all formula audit arrows from the active worksheet." }
+              ]
+            },
+            {
+              id: "data_navigation",
+              name: "Data Wrangling & Formatting",
+              icon: "fa-arrows-to-dot",
+              items: [
+                { name: "Flash Fill", key: "Ctrl + E", desc: "Automatically detects text patterns and fills adjacent columns." },
+                { name: "Create Table", key: "Ctrl + T", desc: "Converts selected range into a formatted Excel Table." },
+                { name: "Toggle Formulas View", key: "Ctrl + `", desc: "Switches cell display between computed results and formulas." },
+                { name: "Format Cells Menu", key: "Ctrl + 1", desc: "Launches the full Format Cells dialog box." },
+                { name: "Currency Format", key: "Ctrl + Shift + $", desc: "Applies Currency format with two decimal places." },
+                { name: "Percentage Format", key: "Ctrl + Shift + %", desc: "Applies Percentage format with no decimal places." },
+                { name: "General Format", key: "Ctrl + Shift + ~", desc: "Reverts numeric selection back to General format." }
+              ]
+            }
+          ]
+        },
+        {
+          id: "functions",
+          name: "All Functions",
+          icon: "fa-chart-line",
+          color: "border-purple-500/30 hover:border-purple-500",
+          desc: "Dedicated suite covering financial modeling, statistical analysis, database logic, and engineering.",
+          subCategories: [
+            {
+              id: "financial_fn",
+              name: "Financial & Valuation",
+              icon: "fa-coins",
+              items: [
+                { name: "XNPV", formula: "=XNPV(rate, values, dates)", desc: "Calculates net present value for non-periodic cash flows occurring at specific dates." },
+                { name: "XIRR", formula: "=XIRR(values, dates, [guess])", desc: "Computes internal rate of return for non-periodic cash flows." },
+                { name: "PMT", formula: "=PMT(rate, nper, pv, [fv], [type])", desc: "Calculates payment amounts for a loan based on constant interest rates." },
+                { name: "FV", formula: "=FV(rate, nper, pmt, [pv], [type])", desc: "Returns the future value of an investment based on periodic constant payments." },
+                { name: "PV", formula: "=PV(rate, nper, pmt, [fv], [type])", desc: "Calculates present value of an investment based on a series of future payouts." },
+                { name: "CUMIPMT", formula: "=CUMIPMT(rate, nper, pv, start_period, end_period, type)", desc: "Calculates cumulative interest paid over a range of loan payment periods." },
+                { name: "SLN / DB", formula: "=SLN(cost, salvage, life)", desc: "Returns straight-line or declining balance asset depreciation for a period." }
+              ]
+            },
+            {
+              id: "conditional_aggregations",
+              name: "Multi-Criteria Aggregation",
+              icon: "fa-chart-pie",
+              items: [
+                { name: "SUMIFS", formula: "=SUMIFS(sum_range, criteria_range1, criteria1, ...)", desc: "Sums values in cells that meet multiple conditional rules." },
+                { name: "COUNTIFS", formula: "=COUNTIFS(criteria_range1, criteria1, ...)", desc: "Counts cells that fulfill multiple logical rules across ranges." },
+                { name: "AVERAGEIFS", formula: "=AVERAGEIFS(avg_range, criteria_range1, criteria1, ...)", desc: "Calculates the average of cells that meet multiple conditions." },
+                { name: "MAXIFS / MINIFS", formula: "=MAXIFS(max_range, criteria_range1, criteria1, ...)", desc: "Returns maximum or minimum value among cells specified by conditions." }
+              ]
+            },
+            {
+              id: "engineering_fn",
+              name: "Engineering & Conversion",
+              icon: "fa-microchip",
+              items: [
+                { name: "CONVERT", formula: "=CONVERT(number, from_unit, to_unit)", desc: "Converts a number from one measurement system to another." },
+                { name: "DEC2BIN / BIN2DEC", formula: "=DEC2BIN(number, [places])", desc: "Converts decimal numbers to binary format and vice-versa." },
+                { name: "DELTA", formula: "=DELTA(number1, [number2])", desc: "Tests whether two values are equal; returns 1 if equal, 0 otherwise." }
+              ]
+            }
+          ]
+        },
+        {
+          id: "automation",
+          name: "VBA & Power Query",
+          icon: "fa-terminal",
+          color: "border-amber-500/30 hover:border-amber-500",
+          desc: "Automation scripts, macro optimization patterns, and ETL pipeline designs.",
+          subCategories: [
+            {
+              id: "vba_macros",
+              name: "Production VBA Scripts",
+              icon: "fa-code",
+              items: [
+                { name: "Execution Optimization Block", formula: "Application.ScreenUpdating = False\nApplication.Calculation = xlCalculationManual\n'Code Execution\nApplication.Calculation = xlCalculationAutomatic\nApplication.ScreenUpdating = True", desc: "Accelerates macro execution speed up to 10x by suppressing screen repaints and automatic recalculations." },
+                { name: "Dynamic Last Row Detection", formula: "Dim lastRow As Long\nlastRow = Cells(Rows.Count, \"A\").End(xlUp).Row", desc: "Identifies the final populated row in a target column dynamically." },
+                { name: "Loop Cells Range", formula: "Dim cell As Range\nFor Each cell In Range(\"A1:A100\")\n  If cell.Value < 0 Then cell.Interior.Color = RGB(255, 0, 0)\nNext cell", desc: "Iterates through each cell in a target range to apply conditional logic." },
+                { name: "Auto Export Sheet to PDF", formula: "ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, Filename:=\"C:\\Report.pdf\"", desc: "Exports active sheet to a PDF document programmatically." }
+              ]
+            },
+            {
+              id: "power_query_etl",
+              name: "Power Query M-Code & ETL",
+              icon: "fa-filter-circle-dollar",
+              items: [
+                { name: "Unpivot Columns", formula: "Table.UnpivotOtherColumns(Source, {\"ID\"}, \"Attribute\", \"Value\")", desc: "Transforms wide pivot tables into normalized columnar data structures." },
+                { name: "Group By Aggregation", formula: "Table.Group(Source, {\"Region\"}, {{\"Total Sales\", each List.Sum([Amount]), type number}})", desc: "Groups datasets and calculates aggregated metrics across unique fields." },
+                { name: "Merge Queries (Join)", formula: "Table.NestedJoin(Table1, {\"ID\"}, Table2, {\"ID\"}, \"JoinedTable\", JoinKind.LeftOuter)", desc: "Combines two separate queries based on matching column keys." }
+              ]
+            }
+          ]
         }
+      ]
+    };
 
-        function formatMessage(content) {
-            return typeof marked !== 'undefined' ? marked.parse(content) : content;
-        }
+    let navigationHistory = [];
 
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                document.getElementById('walker').style.left = '35%';
-                document.getElementById('progressBar').style.width = '35%';
-            }, 300);
+    async function submitSecretKey() {
+      const keyInput = document.getElementById('secretKeyInput');
+      const val = keyInput.value.trim();
+      if (!val) return;
+
+      const cloudContainer = document.getElementById('cloudContainer');
+      const screen = document.getElementById('computerScreen');
+      const status = document.getElementById('statusIndicator');
+
+      cloudContainer.innerHTML = \`
+        <div class="cloud-particle flex items-center gap-2 bg-emerald-500/20 text-emerald-300 px-5 py-2.5 rounded-full border border-emerald-500/40 shadow-xl">
+          <i class="fa-solid fa-cloud"></i>
+          <span class="font-mono text-sm font-bold">\${val}</span>
+        </div>
+      \`;
+
+      status.classList.remove('hidden');
+      status.className = "mb-4 text-center font-bold text-sm text-amber-400 animate-pulse flex items-center justify-center gap-2";
+      status.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Authenticating Key via Cloud Layer...';
+
+      setTimeout(async () => {
+        try {
+          const res = await fetch('/api/verify-key', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: val })
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            screen.setAttribute('fill', '#10B981');
+            status.className = "mb-4 text-center font-bold text-sm text-emerald-400 flex items-center justify-center gap-2";
+            status.innerHTML = '<i class="fa-solid fa-circle-check"></i> Access Granted! Launching Directory...';
             
-            bodymovin.loadAnimation({
-                container: document.getElementById('lottieContainer'),
-                renderer: 'svg',
-                loop: true,
-                autoplay: true,
-                path: 'https://assets5.lottiefiles.com/packages/lf20_fcfjwiyb.json'
-            });
-        });
-
-        function showModal(msg) {
-            document.getElementById('modalMessage').innerText = msg;
-            document.getElementById('modalOverlay').style.display = 'flex';
+            setTimeout(() => {
+              document.getElementById('pageLogin').classList.add('hidden');
+              document.getElementById('topNav').classList.remove('hidden');
+              document.getElementById('topNav').classList.add('flex');
+              document.getElementById('pageDashboard').classList.remove('hidden');
+              navigateTo('dashboard');
+            }, 1000);
+          } else {
+            screen.setAttribute('fill', '#EF4444');
+            status.className = "mb-4 text-center font-bold text-sm text-rose-500 flex items-center justify-center gap-2";
+            status.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> Access Denied! Invalid Key.';
+          }
+        } catch(err) {
+          status.className = "mb-4 text-center font-bold text-sm text-rose-500";
+          status.innerText = "Server error verifying key.";
         }
-        function closeModal() { document.getElementById('modalOverlay').style.display = 'none'; }
+      }, 2000);
+    }
 
-        async function executeUnlockProcess() {
-            const key = document.getElementById('secretKey').value.trim();
-            if(!key) return showModal("Enter Secret Key");
+    function navigateTo(target, data = null) {
+      const grid = document.getElementById('dynamicContentGrid');
+      const title = document.getElementById('portalTitle');
+      const subtitle = document.getElementById('portalSubtitle');
+      const breadcrumb = document.getElementById('breadcrumb');
 
-            const statusBadge = document.getElementById('statusBadge');
-            const lottieContainer = document.getElementById('lottieContainer');
+      navigationHistory.push({ target, data });
 
-            statusBadge.style.display = 'none';
-            lottieContainer.style.display = 'block';
+      if (target === 'dashboard') {
+        title.innerText = "Excel Master Directory";
+        subtitle.innerText = "Select a core domain to access detailed sub-categories and syntax cards.";
+        breadcrumb.innerText = "Root / Dashboard";
 
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ key: key, deviceSignature: getDeviceSignature() })
-                });
+        grid.innerHTML = excelDatabase.categories.map(cat => `
+          <div onclick="navigateTo('category', '${cat.id}')" class="bg-slate-900/80 border ${cat.color} p-6 rounded-3xl cursor-pointer hover:scale-[1.02] transition shadow-2xl group relative overflow-hidden">
+            <div class="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-emerald-400 text-xl mb-4 group-hover:bg-emerald-500 group-hover:text-slate-950 transition">
+              <i class="fa-solid ${cat.icon}"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">${cat.name}</h3>
+            <p class="text-slate-400 text-xs mb-6 leading-relaxed">${cat.desc}</p>
+            <div class="text-xs text-emerald-400 font-bold flex items-center gap-2">
+              <span>Explore Domain</span>
+              <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition"></i>
+            </div>
+          </div>
+        `).join('');
+      } 
+      else if (target === 'category') {
+        const category = excelDatabase.categories.find(c => c.id === data);
+        title.innerText = category.name;
+        subtitle.innerText = "Select a specialized module within this category.";
+        breadcrumb.innerText = \`Root / \${category.name}\`;
 
-                const data = await res.json();
+        grid.innerHTML = category.subCategories.map(sub => `
+          <div onclick="navigateTo('items', { catId: '${category.id}', subId: '${sub.id}' })" class="bg-slate-900/80 border border-slate-800 hover:border-indigo-500 p-6 rounded-3xl cursor-pointer hover:scale-[1.02] transition shadow-2xl group">
+            <div class="w-12 h-12 bg-slate-800 rounded-2xl flex items-center justify-center text-indigo-400 text-xl mb-4 group-hover:bg-indigo-500 group-hover:text-white transition">
+              <i class="fa-solid ${sub.icon}"></i>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">${sub.name}</h3>
+            <p class="text-xs text-slate-400 font-mono mb-6">${sub.items.length} Reference Cards</p>
+            <div class="text-xs text-indigo-400 font-bold flex items-center gap-2">
+              <span>Open Reference Cards</span>
+              <i class="fa-solid fa-arrow-right text-[10px] group-hover:translate-x-1 transition"></i>
+            </div>
+          </div>
+        `).join('');
+      } 
+      else if (target === 'items') {
+        const category = excelDatabase.categories.find(c => c.id === data.catId);
+        const sub = category.subCategories.find(s => s.id === data.subId);
 
-                setTimeout(function() {
-                    lottieContainer.style.display = 'none';
-                    statusBadge.style.display = 'block';
+        title.innerText = sub.name;
+        subtitle.innerText = "Detailed reference cards with syntax and application descriptions.";
+        breadcrumb.innerText = \`Root / \${category.name} / \${sub.name}\`;
 
-                    if(data.success) {
-                        statusBadge.innerText = '👍🏻';
-                        jwtToken = data.token;
-                        userRole = data.role;
-                        localStorage.setItem('jwt_token', jwtToken);
-                        localStorage.setItem('user_role', userRole);
+        grid.innerHTML = sub.items.map(item => `
+          <div class="bg-slate-900/90 border border-slate-800 p-6 rounded-3xl shadow-2xl flex flex-col justify-between">
+            <div>
+              <div class="flex items-start justify-between gap-2 mb-3">
+                <h4 class="text-base font-bold text-white">${item.name}</h4>
+                ${item.key ? `<span class="bg-indigo-950 text-indigo-300 text-[10px] font-mono px-2.5 py-1 rounded-lg border border-indigo-800/60 whitespace-nowrap">${item.key}</span>` : ''}
+              </div>
+              ${item.formula ? `<div class="bg-slate-950 border border-slate-800/80 p-3 rounded-xl text-emerald-400 font-mono text-xs mb-3 whitespace-pre-wrap break-all">${item.formula}</div>` : ''}
+              <p class="text-slate-400 text-xs leading-relaxed">${item.desc}</p>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
 
-                        setTimeout(function() {
-                            document.getElementById('page1').classList.remove('active');
-                            if(data.role === 'admin') {
-                                document.getElementById('adminPage').classList.add('active');
-                            } else {
-                                document.getElementById('page2').classList.add('active');
-                                fetchHistory();
-                            }
-                        }, 1000);
-                    } else {
-                        statusBadge.innerText = '🙅‍♂️';
-                        setTimeout(function() { showModal(data.message); }, 500);
-                    }
-                }, 2000);
+    function navigateBack() {
+      if (navigationHistory.length > 1) {
+        navigationHistory.pop();
+        const previous = navigationHistory.pop();
+        navigateTo(previous.target, previous.data);
+      }
+    }
 
-            } catch (err) {
-                showModal("Connection Error");
-            }
-        }
+    function logout() {
+      navigationHistory = [];
+      document.getElementById('pageDashboard').classList.add('hidden');
+      document.getElementById('topNav').classList.add('hidden');
+      document.getElementById('pageLogin').classList.remove('hidden');
+      document.getElementById('computerScreen').setAttribute('fill', '#1E293B');
+      document.getElementById('statusIndicator').classList.add('hidden');
+    }
 
-        async function processUserQuery() {
-            const input = document.getElementById('userInput');
-            const chatBody = document.getElementById('chatBody');
-            const query = input.value.trim();
+    function toggleAdminPanel() {
+      document.getElementById('adminModal').classList.toggle('hidden');
+    }
 
-            if(!query) return;
+    async function fetchAdminKeys() {
+      const secret = document.getElementById('adminMasterSecret').value;
+      if (!secret) return alert('Enter Admin Passcode');
 
-            const userDiv = document.createElement('div');
-            userDiv.className = 'chat-bubble user';
-            userDiv.textContent = query;
-            chatBody.appendChild(userDiv);
+      const res = await fetch(\`/api/admin/keys?adminSecret=\${encodeURIComponent(secret)}\`);
+      const data = await res.json();
 
-            input.value = '';
-            chatBody.scrollTop = chatBody.scrollHeight;
+      if (data.success) {
+        const tbody = document.getElementById('adminKeyTable');
+        tbody.innerHTML = data.data.map(k => `
+          <tr class="border-b border-slate-800/60">
+            <td class="p-3 font-mono font-bold text-emerald-400">${k.key}</td>
+            <td class="p-3 text-slate-300">${k.label}</td>
+            <td class="p-3">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${k.isActive ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-rose-950 text-rose-400 border border-rose-800'}">
+                ${k.isActive ? 'Active' : 'Disabled'}
+              </span>
+            </td>
+            <td class="p-3">
+              <button onclick="toggleKeyStatus('${k._id}')" class="text-[10px] bg-slate-800 hover:bg-slate-700 px-2.5 py-1 rounded-lg transition font-bold">Toggle</button>
+            </td>
+          </tr>
+        `).join('');
+      } else {
+        alert(data.message);
+      }
+    }
 
-            try {
-                const res = await fetch('/api/chat', {
-                    method: 'POST',
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Authorization': 'Bearer ' + jwtToken 
-                    },
-                    body: JSON.stringify({ message: query })
-                });
-                const data = await res.json();
+    async function createNewKey() {
+      const adminSecret = document.getElementById('adminMasterSecret').value;
+      const key = document.getElementById('newKeyVal').value.trim();
+      const label = document.getElementById('newKeyLabel').value.trim();
 
-                const modelDiv = document.createElement('div');
-                modelDiv.className = 'chat-bubble model';
-                modelDiv.innerHTML = formatMessage(data.reply);
-                chatBody.appendChild(modelDiv);
-                
-                chatBody.scrollTop = chatBody.scrollHeight;
-            } catch (err) {
-                const errDiv = document.createElement('div');
-                errDiv.className = 'chat-bubble model';
-                errDiv.textContent = "Error fetching answer.";
-                chatBody.appendChild(errDiv);
-            }
-        }
+      if (!adminSecret || !key) return alert('Fill in Admin Passcode and New Key');
 
-        function sendQuickQuery(text) { 
-            document.getElementById('userInput').value = text; 
-            processUserQuery(); 
-        }
+      const res = await fetch('/api/admin/keys', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminSecret, key, label })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('newKeyVal').value = '';
+        document.getElementById('newKeyLabel').value = '';
+        fetchAdminKeys();
+      } else {
+        alert(data.message);
+      }
+    }
 
-        function startVoiceRecognition() {
-            if(!('webkitSpeechRecognition' in window)) return showModal("Speech recognition not supported");
-            const recognition = new webkitSpeechRecognition();
-            recognition.onresult = function(e) { 
-                document.getElementById('userInput').value = e.results[0][0].transcript; 
-                processUserQuery();
-            };
-            recognition.start();
-        }
-
-        function openDrawer() { document.getElementById('drawerOverlay').style.display = 'block'; document.getElementById('drawerMenu').classList.add('open'); }
-        function closeDrawer() { document.getElementById('drawerOverlay').style.display = 'none'; document.getElementById('drawerMenu').classList.remove('open'); }
-
-        function downloadPracticeSheet() { window.open('/api/download-sheet?token=' + jwtToken, '_blank'); }
-
-        function logout() { localStorage.clear(); location.reload(); }
-
-        async function fetchHistory() {
-            try {
-                const res = await fetch('/api/chat-history', {
-                    headers: { 'Authorization': 'Bearer ' + jwtToken }
-                });
-                const data = await res.json();
-                if(data.success && data.history.length > 0) {
-                    const chatBody = document.getElementById('chatBody');
-                    chatBody.innerHTML = '';
-                    data.history.forEach(function(item) {
-                        const msgDiv = document.createElement('div');
-                        msgDiv.className = 'chat-bubble ' + item.role;
-                        if(item.role === 'model') {
-                            msgDiv.innerHTML = formatMessage(item.message);
-                        } else {
-                            msgDiv.textContent = item.message;
-                        }
-                        chatBody.appendChild(msgDiv);
-                    });
-                    chatBody.scrollTop = chatBody.scrollHeight;
-                }
-            } catch (e) {
-                console.log("History sync error");
-            }
-        }
-
-        async function adminCreateKey() {
-            const newKey = document.getElementById('newKeyInput').value.trim();
-            if(!newKey) return showModal("Enter Key Name");
-            const res = await fetch('/api/admin/create-key', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
-                body: JSON.stringify({ newKey: newKey })
-            });
-            const data = await res.json();
-            showModal(data.message);
-        }
-
-        async function adminDeleteKey() {
-            const key = document.getElementById('revokeKeyInput').value.trim();
-            if(!key) return showModal("Enter Key Name");
-            const res = await fetch('/api/admin/delete-key', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwtToken },
-                body: JSON.stringify({ key: key })
-            });
-            const data = await res.json();
-            showModal(data.message);
-        }
-
-        async function adminUploadSheet() {
-            const file = document.getElementById('adminSheetFile').files[0];
-            if(!file) return showModal("Select file first");
-            const formData = new FormData();
-            formData.append('sheet', file);
-
-            const res = await fetch('/api/admin/upload-sheet', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + jwtToken },
-                body: formData
-            });
-            const data = await res.json();
-            showModal(data.message);
-        }
-    </script>
+    async function toggleKeyStatus(id) {
+      const adminSecret = document.getElementById('adminMasterSecret').value;
+      await fetch('/api/admin/keys/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adminSecret, id })
+      });
+      fetchAdminKeys();
+    }
+  </script>
 </body>
-</html>`);
+</html>
+  `);
 });
 
-// Server Listen
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log("Server running on port " + PORT);
+  console.log(`Server running on port ${PORT}`);
 });
-
-export default app;
