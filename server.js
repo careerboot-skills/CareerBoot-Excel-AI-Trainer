@@ -106,7 +106,6 @@ app.get('/', (req, res) => {
             position: relative;
         }
 
-        /* Ambient Glow Backdrop */
         body::before {
             content: '';
             position: fixed;
@@ -144,7 +143,6 @@ app.get('/', (req, res) => {
             flex-direction: column;
         }
 
-        /* --- PAGE 1: AUTHENTICATION PORTAL --- */
         #page1 {
             height: 100vh;
             max-height: 100vh;
@@ -309,7 +307,6 @@ app.get('/', (req, res) => {
             gap: 8px;
         }
 
-        /* --- GLOBAL APP HEADER --- */
         .app-header {
             display: flex;
             justify-content: space-between;
