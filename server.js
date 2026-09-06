@@ -12,8 +12,8 @@ app.use(cors());
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/careerboot_excel_db';
 
 mongoose.connect(MONGO_URI)
-  .then(() => console.log('✅ MongoDB Connected Successfully'))
-  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
+  .then(() => console.log('âœ… MongoDB Connected Successfully'))
+  .catch((err) => console.error('âŒ MongoDB Connection Error:', err));
 
 // ==========================================
 // 2. MONGOOSE SCHEMA & MODELS
@@ -69,7 +69,456 @@ app.post('/api/admin/generate-key', async (req, res) => {
 // 4. COMPLETE FRONTEND UI & ANIMATION ENGINE
 // ==========================================
 app.get('/', (req, res) => {
-  res.send(`<!DOCTYPE html>
+  res.send(`
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerBoot - Ultimate Excel Master Academy</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+        :root {
+            --bg-main: #020617;
+            --card-bg: rgba(15, 23, 42, 0.95);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-gold: #f59e0b;
+            --accent-red: #ef4444;
+            --text-muted: #94a3b8;
+        }
+        html, body { width: 100%; height: 100%; background-color: var(--bg-main); color: #f8fafc; overflow-x: hidden; }
+
+        .page { display: none !important; width: 100%; min-height: 100vh; position: relative; }
+        .page.active { display: flex !important; flex-direction: column; }
+
+        /* ================= PAGE 1: FULL ANIMATED PORTAL ================= */
+        #page1 { height: 100vh; max-height: 100vh; overflow: hidden; background: #020617; display: flex; flex-direction: column; }
+
+        /* 35% TOP AREA */
+        .sec-35 { height: 35vh; display: flex; flex-direction: column; align-items: center; justify-content: space-around; padding: 10px 16px; border-bottom: 1px solid var(--card-border); background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(2, 6, 23, 0.95) 100%); position: relative; }
+        .logo-brand { display: flex; align-items: center; gap: 10px; font-size: 1.8rem; font-weight: 800; background: linear-gradient(135deg, #34d399 0%, #10b981 50%, #60a5fa 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .welcome-note { color: var(--text-muted); font-size: 0.85rem; font-weight: 600; text-align: center; }
+
+        .walk-track-container { width: 100%; max-width: 500px; position: relative; padding: 10px 0; }
+        .walk-labels { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .walk-labels .interest { color: #f59e0b; }
+        .walk-labels .success { color: #10b981; }
+        .walk-line { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; position: relative; overflow: hidden; }
+        .walk-progress { height: 100%; width: 100%; background: linear-gradient(90deg, #f59e0b, #10b981); }
+
+        /* Walking SVG Man Animation */
+        .walking-man-wrapper { position: absolute; top: -20px; left: 0%; transform: translateX(-50%); animation: walkTrajectory 8s infinite ease-in-out; }
+        .walking-man-svg { width: 32px; height: 32px; }
+
+        @keyframes walkTrajectory {
+            0% { left: 5%; transform: translateX(-50%) scaleX(1); }
+            48% { left: 95%; transform: translateX(-50%) scaleX(1); }
+            50% { left: 95%; transform: translateX(-50%) scaleX(-1); }
+            98% { left: 5%; transform: translateX(-50%) scaleX(-1); }
+            100% { left: 5%; transform: translateX(-50%) scaleX(1); }
+        }
+
+        /* 15% MIDDLE AREA */
+        .sec-15 { height: 15vh; background: #070c18; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid var(--card-border); position: relative; z-index: 20; }
+        .input-box { padding: 14px 20px; font-size: 1rem; font-weight: 700; border-radius: 14px; border: 2px solid #1e293b; background: #0f172a; color: #ffffff; outline: none; width: 60%; max-width: 260px; text-align: center; letter-spacing: 2px; }
+        .input-box:focus { border-color: var(--accent-green); box-shadow: 0 0 25px rgba(16, 185, 129, 0.35); }
+        .btn-unlock { padding: 14px 24px; font-size: 0.95rem; font-weight: 800; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: #ffffff; border: none; border-radius: 14px; cursor: pointer; transition: transform 0.2s ease; }
+        .btn-unlock:active { transform: scale(0.95); }
+
+        /* 50% BOTTOM AREA */
+        .sec-50 { height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 50%, #0f172a 0%, #020617 100%); position: relative; overflow: hidden; }
+
+        /* Dynamic Flying Cloud Key Element */
+        #flyingCloud {
+            position: fixed;
+            z-index: 999;
+            pointer-events: none;
+            opacity: 0;
+            background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+            color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 700;
+            font-size: 0.9rem;
+            box-shadow: 0 0 25px rgba(59, 130, 246, 0.8), 0 0 10px #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 2s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+
+        /* Computer Scene Graphics */
+        .desk-scene { width: 240px; height: 190px; position: relative; }
+        .comp-display { fill: #1e293b; stroke: #3b82f6; stroke-width: 3; transition: all 0.5s ease; }
+        .man-head { fill: #f59e0b; transition: fill 0.3s ease; }
+        .status-bubble { opacity: 0; transition: opacity 0.4s ease; }
+
+        .scene-success .comp-display { fill: rgba(16, 185, 129, 0.25); stroke: #10b981; filter: drop-shadow(0 0 20px #10b981); }
+        .scene-success .man-head { fill: #10b981; }
+        .scene-error .comp-display { fill: rgba(239, 68, 68, 0.25); stroke: #ef4444; filter: drop-shadow(0 0 20px #ef4444); }
+        .scene-error .man-head { fill: #ef4444; }
+
+        /* ================= NAVIGATION & NAVIGATION SHELL ================= */
+        .app-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); border-bottom: 1px solid var(--card-border); position: sticky; top: 0; z-index: 100; }
+        .nav-controls { display: flex; gap: 10px; }
+        .nav-btn { padding: 8px 16px; background: rgba(30, 41, 59, 0.9); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.85rem; }
+        .nav-btn-home { background: rgba(16, 185, 129, 0.2); color: #34d399; border-color: rgba(16, 185, 129, 0.4); }
+        .container { padding: 24px 20px; max-width: 1000px; margin: 0 auto; width: 100%; }
+
+        .grid-layout { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 20px; margin-top: 20px; }
+        .hub-btn { background: var(--card-bg); border: 1px solid var(--card-border); padding: 24px 20px; border-radius: 18px; color: #ffffff; text-align: left; cursor: pointer; transition: all 0.25s ease; display: flex; flex-direction: column; gap: 10px; }
+        .hub-btn:hover { transform: translateY(-4px); border-color: rgba(59, 130, 246, 0.6); box-shadow: 0 12px 30px rgba(0,0,0,0.4); }
+        .hub-title { font-size: 1.1rem; font-weight: 800; color: #f8fafc; }
+        .hub-sub { font-size: 0.82rem; color: var(--text-muted); line-height: 1.4; }
+
+        .topic-list { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+        .topic-btn { background: var(--card-bg); border: 1px solid var(--card-border); padding: 20px; border-radius: 16px; color: #f8fafc; font-size: 0.98rem; font-weight: 700; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center; transition: all 0.2s ease; }
+        .topic-btn:hover { border-color: var(--accent-green); background: rgba(15, 23, 42, 0.98); }
+        .arrow-badge { width: 32px; height: 32px; background: rgba(16, 185, 129, 0.15); color: var(--accent-green); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; }
+
+        .lesson-card { background: var(--card-bg); border-radius: 20px; padding: 28px; border: 1px solid var(--card-border); }
+        .section-label { font-size: 0.82rem; color: #60a5fa; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-top: 22px; margin-bottom: 10px; }
+        .explanation-text { color: #cbd5e1; font-size: 0.98rem; line-height: 1.6; }
+        .code-block { background: #020617; border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 14px; padding: 18px; font-family: 'JetBrains Mono', monospace; color: #34d399; margin: 12px 0; font-size: 0.92rem; line-height: 1.6; white-space: pre-wrap; }
+
+        .shortcut-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
+        .shortcut-table th, .shortcut-table td { padding: 12px 14px; text-align: left; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+        .shortcut-table th { background: rgba(30, 41, 59, 0.9); color: #60a5fa; font-weight: 800; text-transform: uppercase; font-size: 0.78rem; }
+        .key-combo { background: #1e293b; color: #f3f4f6; padding: 4px 8px; border-radius: 6px; border: 1px solid #475569; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 0.85rem; display: inline-block; }
+    </style>
+</head>
+<body>
+
+    <!-- Dynamic Flying Cloud Element -->
+    <div id="flyingCloud">â˜ï¸ <span id="cloudKeyText">KEY</span></div>
+
+    <!-- ================= PAGE 1: LOGIN PORTAL ================= -->
+    <div id="page1" class="page active">
+        <!-- 35% TOP SECTION -->
+        <div class="sec-35">
+            <div class="logo-brand">
+                <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+                <span>CareerBoot</span>
+            </div>
+            <p class="welcome-note">Welcome to the Complete Enterprise Excel & Dashboard Master Academy</p>
+            
+            <div class="walk-track-container">
+                <div class="walk-labels">
+                    <span class="interest">ðŸ’¡ Interest</span>
+                    <span class="success">ðŸš€ Success</span>
+                </div>
+                <div class="walk-line">
+                    <div class="walk-progress"></div>
+                </div>
+                <!-- Animated Walking SVG Character -->
+                <div class="walking-man-wrapper">
+                    <svg class="walking-man-svg" viewBox="0 0 100 100">
+                        <circle cx="50" cy="20" r="12" fill="#f59e0b" />
+                        <path d="M50 32 L50 65 M50 42 L30 55 M50 42 L70 55 M50 65 L35 90 M50 65 L65 90" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- 15% MIDDLE SECTION -->
+        <div class="sec-15">
+            <input type="password" id="secretKey" class="input-box" placeholder="Secret Key" autocomplete="off">
+            <button class="btn-unlock" onclick="executeAuthenticationSequence()">Unlock</button>
+        </div>
+
+        <!-- 50% BOTTOM SECTION -->
+        <div class="sec-50" id="sceneContainer">
+            <!-- Computer & Desk Graphics -->
+            <svg class="desk-scene" viewBox="0 0 200 160">
+                <!-- Desk -->
+                <rect x="20" y="120" width="160" height="10" rx="3" fill="#334155" />
+                <rect x="35" y="130" width="10" height="30" fill="#1e293b" />
+                <rect x="155" y="130" width="10" height="30" fill="#1e293b" />
+                
+                <!-- Computer Display -->
+                <rect id="compScreen" class="comp-display" x="110" y="50" width="68" height="52" rx="6" />
+                <rect x="139" y="102" width="10" height="18" fill="#475569" />
+                <rect x="125" y="118" width="38" height="4" fill="#475569" />
+
+                <!-- Man Sitting -->
+                <circle id="manHead" class="man-head" cx="60" cy="65" r="14" />
+                <path d="M40 120 C 40 90, 80 90, 80 120" fill="#3b82f6" />
+                <path d="M65 95 L 105 112" stroke="#f59e0b" stroke-width="5" stroke-linecap="round" />
+
+                <!-- Status Feedback Speech Bubble -->
+                <g id="statusBubble" class="status-bubble">
+                    <rect x="85" y="12" width="105" height="30" rx="8" fill="#1e293b" stroke="#60a5fa" stroke-width="1.5" />
+                    <text id="statusText" x="137" y="32" fill="#ffffff" text-anchor="middle" font-size="11" font-weight="bold">Verifying...</text>
+                </g>
+            </svg>
+        </div>
+    </div>
+
+    <!-- ================= PAGE 2: MAIN CATEGORIES HUB ================= -->
+    <div id="page2" class="page">
+        <header class="app-header">
+            <div>
+                <h3 style="font-weight: 800; font-size: 1.15rem;">Excel Master Academy</h3>
+                <p style="font-size: 0.78rem; color: var(--text-muted);">Syllabus Onion-Layer Categories</p>
+            </div>
+            <div class="nav-controls">
+                <button class="nav-btn nav-btn-home" onclick="goHome()">Home (Page 1)</button>
+            </div>
+        </header>
+        <div class="container">
+            <div class="grid-layout" id="mainCategoryGrid"></div>
+        </div>
+    </div>
+
+    <!-- ================= PAGE 3: SUB-CATEGORY TOPICS ================= -->
+    <div id="page3" class="page">
+        <header class="app-header">
+            <h3 id="page3Title" style="font-weight: 800; font-size: 1.15rem;">Category Topics</h3>
+            <div class="nav-controls">
+                <button class="nav-btn" onclick="navigateTo('page2')">Back</button>
+                <button class="nav-btn nav-btn-home" onclick="goHome()">Home</button>
+            </div>
+        </header>
+        <div class="container">
+            <div id="subTopicList" class="topic-list"></div>
+        </div>
+    </div>
+
+    <!-- ================= PAGE 4: DEEP LESSON VIEW ================= -->
+    <div id="page4" class="page">
+        <header class="app-header">
+            <h3 id="page4Title" style="font-weight: 800; font-size: 1.15rem;">Lesson Details</h3>
+            <div class="nav-controls">
+                <button class="nav-btn" onclick="navigateTo('page3')">Back</button>
+                <button class="nav-btn nav-btn-home" onclick="goHome()">Home</button>
+            </div>
+        </header>
+        <div class="container">
+            <div class="lesson-card">
+                <h2 id="lessonTitle" style="color: #f8fafc; font-size: 1.35rem; font-weight: 800;">Topic</h2>
+                
+                <div class="section-label">ðŸ“Œ Concept & Practical Application</div>
+                <div id="lessonConcept" class="explanation-text"></div>
+
+                <div id="lessonCodeSection">
+                    <div class="section-label">âš¡ Syntax / Step-by-Step Execution</div>
+                    <div id="lessonCode" class="code-block"></div>
+                </div>
+
+                <div id="lessonTableContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo(0, 0);
+        }
+
+        function goHome() {
+            navigateTo('page1');
+            resetLoginScene();
+        }
+
+        function resetLoginScene() {
+            document.getElementById('secretKey').value = '';
+            document.getElementById('sceneContainer').className = 'sec-50';
+            document.getElementById('statusBubble').style.opacity = '0';
+            var cloud = document.getElementById('flyingCloud');
+            cloud.style.opacity = '0';
+        }
+
+        /* 2-SECOND DYNAMIC CLOUD TRAJECTORY ANIMATION */
+        async function executeAuthenticationSequence() {
+            var inputEl = document.getElementById('secretKey');
+            var keyInput = inputEl.value.trim();
+            if (!keyInput) return;
+
+            var cloud = document.getElementById('flyingCloud');
+            var cloudText = document.getElementById('cloudKeyText');
+            var scene = document.getElementById('sceneContainer');
+            var statusBubble = document.getElementById('statusBubble');
+            var statusText = document.getElementById('statusText');
+            var compScreen = document.getElementById('compScreen');
+
+            // Get exact screen coordinates for smooth flying path
+            var inputRect = inputEl.getBoundingClientRect();
+            var screenRect = compScreen.getBoundingClientRect();
+
+            cloudText.innerText = keyInput;
+            
+            // Set Initial Start Position at Input Field
+            cloud.style.transition = 'none';
+            cloud.style.left = (inputRect.left + inputRect.width / 2 - 50) + 'px';
+            cloud.style.top = (inputRect.top - 10) + 'px';
+            cloud.style.opacity = '1';
+            cloud.style.transform = 'scale(1)';
+
+            // Force reflow
+            cloud.offsetHeight;
+
+            // Trigger 2-second Flight Trajectory to Computer Screen
+            cloud.style.transition = 'all 2s cubic-bezier(0.25, 1, 0.5, 1)';
+            cloud.style.left = (screenRect.left + screenRect.width / 2 - 30) + 'px';
+            cloud.style.top = (screenRect.top + 10) + 'px';
+            cloud.style.transform = 'scale(0.5)';
+
+            // Wait 2 Seconds for Flight Completion
+            await new Promise(r => setTimeout(r, 2000));
+
+            cloud.style.opacity = '0';
+            statusBubble.style.opacity = '1';
+            statusText.innerText = "Checking...";
+
+            try {
+                const res = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passcode: keyInput })
+                });
+                const data = await res.json();
+
+                if (data.success) {
+                    scene.className = 'sec-50 scene-success';
+                    statusText.innerText = "Access Granted! ðŸŽ‰";
+                    setTimeout(() => {
+                        renderMainPage();
+                        navigateTo('page2');
+                    }, 1000);
+                } else {
+                    scene.className = 'sec-50 scene-error';
+                    statusText.innerText = "Invalid Key! âŒ";
+                }
+            } catch (err) {
+                scene.className = 'sec-50 scene-error';
+                statusText.innerText = "Server Error!";
+            }
+        }
+
+        /* EXCEL SYLLABUS TREE STRUCTURE */
+        var excelMasterTree = {
+            formulas: {
+                title: "ðŸ“ All Formulas Engine",
+                desc: "Math, Logic, Text, Lookup, Dynamic Arrays & Financial Math",
+                subCategories: [
+                    {
+                        name: "Math & Statistical Formulas",
+                        concept: "Core numerical computing used in finance, accounting, and operational reports.",
+                        code: "=SUM(A1:A50)\\n=AVERAGE(B1:B20)\\n=COUNTIF(C1:C100, \">1000\")\\n=SUMIFS(D1:D100, A1:A100, \"North\", B1:B100, \"Completed\")"
+                    },
+                    {
+                        name: "Lookup & Matching Engines",
+                        concept: "Pulling matching records across multiple sheets and databases dynamically.",
+                        code: "// Standard VLOOKUP\\n=VLOOKUP(A2, Data!A:E, 3, FALSE)\\n\\n// Modern XLOOKUP (Supports Left-Lookups & Custom Error text)\\n=XLOOKUP(A2, Data!B:B, Data!A:A, \"Not Found\")\\n\\n// Flexible INDEX-MATCH\\n=INDEX(Data!C:C, MATCH(A2, Data!A:A, 0))"
+                    },
+                    {
+                        name: "Dynamic Array Formulas (Modern Excel 365)",
+                        concept: "Formulas that automatically spill multiple results into adjacent cells without manual dragging.",
+                        code: "// Filter Data Dynamically\\n=FILTER(A2:D100, C2:C100=\"Delivered\")\\n\\n// Sort Unique Records\\n=SORT(UNIQUE(B2:B500))"
+                    }
+                ]
+            },
+            shortcuts: {
+                title: "âš¡ All Shortcut Keys (Basic to Pro)",
+                desc: "Ribbon Hotkeys, Formatting, Navigation & Power Hacks",
+                subCategories: [
+                    {
+                        name: "Pro-Level Alt Hotkey Shortcuts",
+                        concept: "Execute complex ribbon operations completely bypassing the mouse.",
+                        table: [
+                            { key: "Alt + H + L", desc: "Open Conditional Formatting Menu" },
+                            { key: "Alt + H + O + I", desc: "Auto-Fit Column Width instantly" },
+                            { key: "Alt + A + T", desc: "Toggle Auto-Filter On / Off" },
+                            { key: "Alt + N + V + T", desc: "Insert Pivot Table" },
+                            { key: "Alt + E + S + V + Enter", desc: "Paste Values Only (Remove Formulas)" }
+                        ]
+                    },
+                    {
+                        name: "Fast Data Navigation Keys",
+                        concept: "Jump through continuous data rows in milliseconds.",
+                        table: [
+                            { key: "Ctrl + Shift + Down", desc: "Select down to the last continuous data cell" },
+                            { key: "Ctrl + Arrow Keys", desc: "Jump to the edge of the data region" },
+                            { key: "Ctrl + Backspace", desc: "Scroll view back to active cell" }
+                        ]
+                    }
+                ]
+            },
+            dashboards: {
+                title: "ðŸ“Š Complete Dashboard Architecture",
+                desc: "Pivot Tables, Dynamic Slicers, KPI Cards & Charts",
+                subCategories: [
+                    {
+                        name: "Pivot Tables & Dynamic Slicers",
+                        concept: "Transform unstructured raw data into dynamic executive summaries with interactive buttons.",
+                        code: "1. Press Alt + N + V + T to generate Pivot Table.\\n2. Drag metrics to Rows and Values.\\n3. Click PivotTable Analyze -> Insert Slicer.\\n4. Connect Slicers across all pivot tables via Report Connections."
+                    }
+                ]
+            },
+            power_query: {
+                title: "ðŸ”„ Power Query & Data Cleanup",
+                desc: "ETL Engine, Unpivoting, Merging & Automated Data Transformations",
+                subCategories: [
+                    {
+                        name: "Automated Data Cleaning",
+                        concept: "Import messy CSV/Excel files and clean them automatically with repeatable steps.",
+                        code: "1. Data Tab -> Get Data -> From File / Folder.\\n2. Remove Blank Rows & Trim Extra Spaces.\\n3. Split Column by Delimiter.\\n4. Unpivot Columns for Clean Database Structure."
+                    }
+                ]
+            },
+            vba_macros: {
+                title: "ðŸ¤– VBA & Automation Macros",
+                desc: "Automating Daily Tasks, Custom UserForms & Loop Scripts",
+                subCategories: [
+                    {
+                        name: "Basic Task Automation Macro",
+                        concept: "Write scripts to execute repetitive reporting workflows in 1 click.",
+                        code: "Sub ExportReportPDF()\\n    ActiveSheet.ExportAsFixedFormat Type:=xlTypePDF, _\\n    Filename:=\\\"C:\\\\Reports\\\\DailyReport.pdf\\\"\\n    MsgBox \\\"Report Saved Successfully!\\\", vbInformation\\nEnd Sub"
+                    }
+                ]
+            }
+        };
+
+        function renderMainPage() {
+            var grid = document.getElementById('mainCategoryGrid');
+            grid.innerHTML = '';
+
+            Object.keys(excelMasterTree).forEach(key => {
+                var item = excelMasterTree[key];
+                var btn = document.createElement('button');
+                btn.className = 'hub-btn';
+                btn.onclick = () => openSubTopics(item);
+                btn.innerHTML = \`
+                    <div class="hub-title">\${item.title}</div>
+                    <div class="hub-sub">\${item.desc}</div>
+                \`;
+                grid.appendChild(btn);
+            });
+        }
+
+        function openSubTopics(category) {
+            document.getElementById('page3Title').innerText = category.title;
+            var list = document.getElementById('subTopicList');
+            list.innerHTML = '';
+
+            category.subCategories.forEach(sub => {
+                var btn = document.createElement('button');
+                btn.className = 'topic-btn';
+                btn.onclick = () => openLesson(category.title, sub);
+                btn.innerHTML = \`<span>\${sub.name}</span><div class="arrow-badge">â†’</div>\`;
+                list.appendChild(btn);
+            });
+
+            navigateTo('page3');
+        }
+
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -106,6 +555,7 @@ app.get('/', (req, res) => {
             position: relative;
         }
 
+        /* Ambient Glow Backdrop */
         body::before {
             content: '';
             position: fixed;
@@ -143,6 +593,7 @@ app.get('/', (req, res) => {
             flex-direction: column;
         }
 
+        /* --- PAGE 1: AUTHENTICATION PORTAL --- */
         #page1 {
             height: 100vh;
             max-height: 100vh;
@@ -307,6 +758,7 @@ app.get('/', (req, res) => {
             gap: 8px;
         }
 
+        /* --- GLOBAL APP HEADER --- */
         .app-header {
             display: flex;
             justify-content: space-between;
@@ -698,32 +1150,32 @@ app.get('/', (req, res) => {
             <p style="color: #60a5fa; font-size: 0.85rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;">Select Modules</p>
             <div class="grid-layout" id="dashboardGrid">
                 <button class="card-btn" data-cat="basic_shortcuts">
-                    <div class="card-icon">⌨️</div>
+                    <div class="card-icon">âŒ¨ï¸</div>
                     <div class="card-title">1. Essential Basic Shortcuts</div>
                     <div class="card-sub">Navigation, File Control, Selection & Everyday Productivity Keys</div>
                 </button>
                 <button class="card-btn" data-cat="pro_shortcuts">
-                    <div class="card-icon">⚡</div>
+                    <div class="card-icon">âš¡</div>
                     <div class="card-title">2. Pro Shortcuts Library</div>
                     <div class="card-sub">Alt Keys, Formatting, Filtering, Paste Special & AutoSum</div>
                 </button>
                 <button class="card-btn" data-cat="basic_formulas">
-                    <div class="card-icon">📐</div>
+                    <div class="card-icon">ðŸ“</div>
                     <div class="card-title">3. Core Basic Formulas</div>
                     <div class="card-sub">SUM, AVERAGE, COUNT, COUNTA, MAX, MIN & Math Logic</div>
                 </button>
                 <button class="card-btn" data-cat="logical_text">
-                    <div class="card-icon">🔤</div>
+                    <div class="card-icon">ðŸ”¤</div>
                     <div class="card-title">4. Text, Date & Logic Formulas</div>
                     <div class="card-sub">IF, AND, OR, IFERROR, CONCAT, TEXTJOIN, TRIM, TODAY</div>
                 </button>
                 <button class="card-btn" data-cat="lookups">
-                    <div class="card-icon">🔍</div>
+                    <div class="card-icon">ðŸ”</div>
                     <div class="card-title">5. Lookup & Matching Masters</div>
                     <div class="card-sub">VLOOKUP, HLOOKUP, XLOOKUP, INDEX + MATCH Engine</div>
                 </button>
                 <button class="card-btn" data-cat="dashboards">
-                    <div class="card-icon">📊</div>
+                    <div class="card-icon">ðŸ“Š</div>
                     <div class="card-title">6. Complete Dashboard Architecture</div>
                     <div class="card-sub">Pivot Tables, Dynamic KPI Cards, Interactive Slicers & Charts</div>
                 </button>
@@ -761,20 +1213,20 @@ app.get('/', (req, res) => {
                     <h2 id="materialTitle" style="color: #f8fafc; font-size: 1.3rem; font-weight: 800;">Topic Details</h2>
                 </div>
 
-                <div class="section-label">📌 1. Bilkul Basic Se Samjhein (Concept)</div>
+                <div class="section-label">ðŸ“Œ 1. Bilkul Basic Se Samjhein (Concept)</div>
                 <div id="materialConcept" class="explanation-text"></div>
 
-                <div class="section-label">🏢 2. Company Me Kahan Kaam Aata Hai? (Real Job Scenario)</div>
+                <div class="section-label">ðŸ¢ 2. Company Me Kahan Kaam Aata Hai? (Real Job Scenario)</div>
                 <div id="materialScenario" class="scenario-box"></div>
 
                 <div id="materialCodeSection">
-                    <div class="section-label">⚡ 3. Exact Syntax & Practical Example</div>
+                    <div class="section-label">âš¡ 3. Exact Syntax & Practical Example</div>
                     <div id="materialCode" class="code-block"></div>
                 </div>
 
                 <div id="materialTableContainer"></div>
 
-                <div class="section-label">🎯 4. Interview & Production Tip</div>
+                <div class="section-label">ðŸŽ¯ 4. Interview & Production Tip</div>
                 <div id="materialTip" class="tip-badge"></div>
             </div>
         </div>
@@ -793,8 +1245,8 @@ app.get('/', (req, res) => {
             <div class="lesson-card" style="border-color: #f59e0b;">
                 <h3 style="color: #f59e0b; font-weight: 800;">System Passcode Control</h3>
                 <p style="margin-top: 8px; color: var(--text-muted); font-size: 0.9rem;">Portal Security Passcodes:</p>
-                <div class="code-block" style="border-color: #f59e0b; color: #fbbf24;">• STANDARD USER KEY : EXCEL2026
-• ADMIN CONTROL KEY : ADMIN2026</div>
+                <div class="code-block" style="border-color: #f59e0b; color: #fbbf24;">â€¢ STANDARD USER KEY : EXCEL2026
+â€¢ ADMIN CONTROL KEY : ADMIN2026</div>
             </div>
         </div>
     </div>
@@ -837,7 +1289,7 @@ app.get('/', (req, res) => {
             if (!keyVal) {
                 statusPill.style.color = '#ef4444';
                 statusPill.style.background = 'rgba(239, 68, 68, 0.12)';
-                statusPill.innerHTML = "⚠️ Please enter passcode!";
+                statusPill.innerHTML = "âš ï¸ Please enter passcode!";
                 return;
             }
 
@@ -873,12 +1325,12 @@ app.get('/', (req, res) => {
                     screenGlow.setAttribute('fill', '#10b981');
                     statusPill.style.color = '#34d399';
                     statusPill.style.background = 'rgba(16, 185, 129, 0.15)';
-                    statusPill.innerHTML = "✓ Passcode Authenticated! Granting Access...";
+                    statusPill.innerHTML = "âœ“ Passcode Authenticated! Granting Access...";
                 } else {
                     screenGlow.setAttribute('fill', '#ef4444');
                     statusPill.style.color = '#f87171';
                     statusPill.style.background = 'rgba(239, 68, 68, 0.15)';
-                    statusPill.innerHTML = "❌ Invalid Passcode! Access Denied";
+                    statusPill.innerHTML = "âŒ Invalid Passcode! Access Denied";
                     workstationSvg.classList.add('shake');
                 }
             }, 2500);
@@ -913,11 +1365,11 @@ app.get('/', (req, res) => {
             adminBtn.style.borderColor = '#f59e0b';
             adminBtn.style.background = 'linear-gradient(160deg, #271e0c 0%, #020617 100%)';
             adminBtn.onclick = function() { navigateTo('pageAdmin'); };
-            adminBtn.innerHTML = '<div class="card-icon">⚙️</div><div class="card-title" style="color:#f59e0b">Admin Control Center</div><div class="card-sub">Manage System Security Passcodes</div>';
+            adminBtn.innerHTML = '<div class="card-icon">âš™ï¸</div><div class="card-title" style="color:#f59e0b">Admin Control Center</div><div class="card-sub">Manage System Security Passcodes</div>';
             grid.appendChild(adminBtn);
         }
 
-        /* ACADEMY SYLLABUS */
+        /* 100% COMPLETE & UN-CUT ACADEMY SYLLABUS */
         var academyData = {
             basic_shortcuts: {
                 title: "1. Essential Basic Shortcuts",
@@ -936,7 +1388,7 @@ app.get('/', (req, res) => {
                             { key: "Ctrl + F", desc: "Find (Data dhoondhna)" },
                             { key: "Ctrl + H", desc: "Replace (Text ko change karna)" }
                         ],
-                        tip: "💡 Universal Rule: Har 5 minute me \`Ctrl + S\` dabane ki aadat banayein taaki system crash hone par data na khoye."
+                        tip: "ðŸ’¡ Universal Rule: Har 5 minute me `Ctrl + S` dabane ki aadat banayein taaki system crash hone par data na khoye."
                     },
                     {
                         name: "Selection & Fast Navigation Keys",
@@ -951,7 +1403,7 @@ app.get('/', (req, res) => {
                             { key: "Ctrl + End", desc: "Data ke last active cell par jump karna" },
                             { key: "Ctrl + PageDown / PageUp", desc: "Next / Previous Sheet tab par switch karna" }
                         ],
-                        tip: "💡 Interview Speed Tip: Interviewer ke samne mouse bypass karke \`Ctrl + Shift + Down\` se data select karne se candidate instantly highly proficient lagta hai."
+                        tip: "ðŸ’¡ Interview Speed Tip: Interviewer ke samne mouse bypass karke `Ctrl + Shift + Down` se data select karne se candidate instantly highly proficient lagta hai."
                     }
                 ]
             },
@@ -973,7 +1425,7 @@ app.get('/', (req, res) => {
                             { key: "Alt + H + O + I", desc: "Auto-Fit Column Width (Text fit ho jayega)" },
                             { key: "Alt + H + A + C", desc: "Text Center Align karna" }
                         ],
-                        tip: "💡 Pro Formatting Tip: \`Alt + H + O + I\` dabate hi saare columns auto-expand hokar tidy ho jaate hain."
+                        tip: "ðŸ’¡ Pro Formatting Tip: `Alt + H + O + I` dabate hi saare columns auto-expand hokar tidy ho jaate hain."
                     },
                     {
                         name: "Advanced Alt Hotkeys & AutoSum",
@@ -986,7 +1438,7 @@ app.get('/', (req, res) => {
                             { key: "Alt + = (Equals)", desc: "AutoSum (Upar waale saare numbers instantly SUM karna)" },
                             { key: "F4 Key", desc: "Last action repeat karna YA Formula me absolute cell lock ($) lagana" }
                         ],
-                        tip: "💡 Interview Question: 'Formula hata kar sirf value paste kaise karenge?' Answer: \`Ctrl + Alt + V\` daba kar Values choose karenge."
+                        tip: "ðŸ’¡ Interview Question: 'Formula hata kar sirf value paste kaise karenge?' Answer: `Ctrl + Alt + V` daba kar Values choose karenge."
                     }
                 ]
             },
@@ -995,24 +1447,24 @@ app.get('/', (req, res) => {
                 subCategories: [
                     {
                         name: "1. SUM, AVERAGE & MATH (Basic Calculations)",
-                        concept: "Excel me calculations hamesha \`=\` sign se start hoti hain. SUM jodne ke liye aur AVERAGE ausat nikalne ke liye use hota hai.",
+                        concept: "Excel me calculations hamesha `=` sign se start hoti hain. SUM jodne ke liye aur AVERAGE ausat nikalne ke liye use hota hai.",
                         scenario: "Accounting & Logistics: Daily Sales Total calculate karna aur Per-Day Average Dispatch Speed nikalna.",
-                        code: "// Sum Range A1 to A20\\n=SUM(A1:A20)\\n\\n// Calculate Average Sale\\n=AVERAGE(B1:B50)\\n\\n// Basic Division / Subtraction\\n=(A2 - B2) / C2",
-                        tip: "💡 Basic Rule: Kabhi bhi numbers ko manual \`=10+20\` mat likho, cell reference \`=A1+B1\` use karo taaki data change hone par result auto-update ho."
+                        code: "// Sum Range A1 to A20\n=SUM(A1:A20)\n\n// Calculate Average Sale\n=AVERAGE(B1:B50)\n\n// Basic Division / Subtraction\n=(A2 - B2) / C2",
+                        tip: "ðŸ’¡ Basic Rule: Kabhi bhi numbers ko manual `=10+20` mat likho, cell reference `=A1+B1` use karo taaki data change hone par result auto-update ho."
                     },
                     {
                         name: "2. COUNT, COUNTA & COUNTBLANK (Ginti Karna)",
                         concept: "COUNT sirf numbers ko ginta hai. COUNTA Text aur Numbers dono ko ginta hai. COUNTBLANK khali cells ko ginta hai.",
                         scenario: "BPO Call Tracker: Total calls handled (COUNTA), non-numeric error entries (COUNT), aur missing agent feedback (COUNTBLANK) ginnna.",
-                        code: "// Count Numeric Entries Only\\n=COUNT(A2:A500)\\n\\n// Count All Filled Cells (Text + Numbers)\\n=COUNTA(A2:A500)\\n\\n// Count Blank Cells (Missing Data)\\n=COUNTBLANK(A2:A500)",
-                        tip: "💡 Interview Tip: Interviewer puchhega 'COUNT aur COUNTA me kya farq hai?' COUNTA non-empty cells ginta hai jabki COUNT sirf numbers."
+                        code: "// Count Numeric Entries Only\n=COUNT(A2:A500)\n\n// Count All Filled Cells (Text + Numbers)\n=COUNTA(A2:A500)\n\n// Count Blank Cells (Missing Data)\n=COUNTBLANK(A2:A500)",
+                        tip: "ðŸ’¡ Interview Tip: Interviewer puchhega 'COUNT aur COUNTA me kya farq hai?' COUNTA non-empty cells ginta hai jabki COUNT sirf numbers."
                     },
                     {
                         name: "3. MAX, MIN & LARGE (Highest & Lowest Values)",
                         concept: "Data list me sabse bada number (MAX) ya sabse chhota number (MIN) dhoondhna.",
                         scenario: "Logistics Freight Cost: Maximum Freight Charge kitna gaya aur minimum shipping time kitna laga.",
-                        code: "// Maximum Value\\n=MAX(C2:C1000)\\n\\n// Minimum Value\\n=MIN(C2:C1000)\\n\\n// 2nd Highest Sales Amount\\n=LARGE(C2:C1000, 2)",
-                        tip: "💡 Pro Tip: \`LARGE(range, 2)\` se 2nd highest, aur \`LARGE(range, 3)\` se 3rd highest number nikala ja sakta hai."
+                        code: "// Maximum Value\n=MAX(C2:C1000)\n\n// Minimum Value\n=MIN(C2:C1000)\n\n// 2nd Highest Sales Amount\n=LARGE(C2:C1000, 2)",
+                        tip: "ðŸ’¡ Pro Tip: `LARGE(range, 2)` se 2nd highest, aur `LARGE(range, 3)` se 3rd highest number nikala ja sakta hai."
                     }
                 ]
             },
@@ -1021,24 +1473,24 @@ app.get('/', (req, res) => {
                 subCategories: [
                     {
                         name: "1. IF, AND, OR & IFERROR (Decision Logic)",
-                        concept: "Conditions check karna. Agar target achive hua to 'Bonus', varna 'No Bonus'. IFERROR se \`#N/A\` errors chhupaye jate hain.",
+                        concept: "Conditions check karna. Agar target achive hua to 'Bonus', varna 'No Bonus'. IFERROR se `#N/A` errors chhupaye jate hain.",
                         scenario: "Payroll & Accounts: Overtime Pay Calculate karna aur Reports me Clean Formatting maintain rakhna.",
-                        code: "// Single IF Condition\\n=IF(B2 >= 100, \"Target Achieved\", \"Pending\")\\n\\n// AND Condition (Dono Sahi Hone Chahiye)\\n=IF(AND(B2>=100, C2>=90%), \"Promoted\", \"Retain\")\\n\\n// Clean Errors\\n=IFERROR(VLOOKUP(A2, B:C, 2, FALSE), \"Record Not Found\")",
-                        tip: "💡 Quality Rule: Professional Analyst messy \`#N/A\` ya \`#DIV/0!\` errors dashboard me kabhi nahi chhodte, IFERROR zaroor use karte hain."
+                        code: "// Single IF Condition\n=IF(B2 >= 100, \"Target Achieved\", \"Pending\")\n\n// AND Condition (Dono Sahi Hone Chahiye)\n=IF(AND(B2>=100, C2>=90%), \"Promoted\", \"Retain\")\n\n// Clean Errors\n=IFERROR(VLOOKUP(A2, B:C, 2, FALSE), \"Record Not Found\")",
+                        tip: "ðŸ’¡ Quality Rule: Professional Analyst messy `#N/A` ya `#DIV/0!` errors dashboard me kabhi nahi chhodte, IFERROR zaroor use karte hain."
                     },
                     {
                         name: "2. CONCAT, TEXTJOIN, TRIM & Text Cleaning",
                         concept: "Kharaab formatting, extra spaces clean karna aur do-teen columns ka text ek sath jodhna.",
                         scenario: "BPO Data Cleaning: First Name aur Last Name ko combine karna, aur system dump se unwanted spaces hatana.",
-                        code: "// Combine Text with Space\\n=CONCATENATE(A2, \" \", B2)\\n\\n// Advanced Modern Join\\n=TEXTJOIN(\", \", TRUE, A2:D2)\\n\\n// Extra Spaces Clean Karna\\n=TRIM(A2)\\n\\n// Text Case Change\\n=UPPER(A2) | =LOWER(A2) | =PROPER(A2)",
-                        tip: "💡 Real Job Scenario: CRM Data me aksar hidden spaces hoti hain. VLOOKUP fail hone par pehle \`TRIM\` formula use karein."
+                        code: "// Combine Text with Space\n=CONCATENATE(A2, \" \", B2)\n\n// Advanced Modern Join (Delimiter à¤•à¥‡ à¤¸à¤¾à¤¥)\n=TEXTJOIN(\", \", TRUE, A2:D2)\n\n// Extra Spaces Clean Karna\n=TRIM(A2)\n\n// Text Case Change\n=UPPER(A2) | =LOWER(A2) | =PROPER(A2)",
+                        tip: "ðŸ’¡ Real Job Scenario: CRM Data me aksar hidden spaces hoti hain. VLOOKUP fail hone par pehle `TRIM` formula use karein."
                     },
                     {
                         name: "3. TODAY, NOW & DATEDIF (Date Analytics)",
                         concept: "System Date, Time, aur Aging (Do dates ke beech kitne din/mahine beet gaye) calculate karna.",
                         scenario: "Accounting Invoice Aging: Invoice Date se aaj tak kitne din overdue huye hain check karna.",
-                        code: "// Current Today Date\\n=TODAY()\\n\\n// Days Overdue (Today minus Invoice Date)\\n=TODAY() - A2\\n\\n// Calculate Age in Years\\n=DATEDIF(A2, TODAY(), \"Y\")",
-                        tip: "💡 Aging Tip: BPO & Logistics Accounts me Overdue Invoices highlight karne ke liye Date Difference formulas lagaye jate hain."
+                        code: "// Current Today Date\n=TODAY()\n\n// Days Overdue (Today minus Invoice Date)\n=TODAY() - A2\n\n// Calculate Age in Years\n=DATEDIF(A2, TODAY(), \"Y\")",
+                        tip: "ðŸ’¡ Aging Tip: BPO & Logistics Accounts me Overdue Invoices highlight karne ke liye Date Difference formulas lagaye jate hain."
                     }
                 ]
             },
@@ -1049,22 +1501,22 @@ app.get('/', (req, res) => {
                         name: "1. VLOOKUP & HLOOKUP (Vertical & Horizontal Matching)",
                         concept: "Do alag sheets se matching Key ID ke base par data pull karna. VLOOKUP vertical tables ke liye hai, HLOOKUP horizontal rows ke liye.",
                         scenario: "Logistics Track Sheet: Parcel ID ke basis par Delivery Status dusri master sheet se current sheet me fetch karna.",
-                        code: "// VLOOKUP Syntax: (Search Value, Table Range, Column Index, FALSE for Exact Match)\\n=VLOOKUP(A2, MasterData!A:E, 3, FALSE)\\n\\n// HLOOKUP Syntax\\n=HLOOKUP(A2, PricingTable!A1:Z5, 2, FALSE)",
-                        tip: "💡 Crucial VLOOKUP Rules:\\n1. Search Key ID table ke 1st column me honi chahiye.\\n2. Last parameter hamesha \`FALSE\` ya \`0\` rakhein."
+                        code: "// VLOOKUP Syntax: (Search Value, Table Range, Column Index, FALSE for Exact Match)\n=VLOOKUP(A2, MasterData!A:E, 3, FALSE)\n\n// HLOOKUP Syntax\n=HLOOKUP(A2, PricingTable!A1:Z5, 2, FALSE)",
+                        tip: "ðŸ’¡ Crucial VLOOKUP Rules:\n1. Search Key ID table ke 1st column me honi chahiye.\n2. Last parameter hamesha `FALSE` ya `0` rakhein."
                     },
                     {
                         name: "2. XLOOKUP (Modern Super Lookup Engine)",
                         concept: "VLOOKUP ki sabhi kamzoriyon ko khatam karne wala sabse advance formula. Ye Left, Right, Up, Down kisi bhi side lookup kar sakta hai.",
                         scenario: "Accounting & Payroll: Left-side lookups jahan VLOOKUP fail hota hai, XLOOKUP 1 second me kar deta hai.",
-                        code: "// XLOOKUP Syntax: (Search Item, Search Column, Return Column, Not Found Text)\\n=XLOOKUP(A2, Sheet2!B:B, Sheet2!A:A, \"Customer Not Found\")",
-                        tip: "💡 Interview Killer Skill: Interviewer ko bataiye ki 'Main VLOOKUP ke saath-saath modern XLOOKUP follow karta hu kyunki ye fast aur left-lookup supportive hai'."
+                        code: "// XLOOKUP Syntax: (Search Item, Search Column, Return Column, Not Found Text)\n=XLOOKUP(A2, Sheet2!B:B, Sheet2!A:A, \"Customer Not Found\")",
+                        tip: "ðŸ’¡ Interview Killer Skill: Interviewer ko bataiye ki 'Main VLOOKUP ke saath-saath modern XLOOKUP follow karta hu kyunki ye fast aur left-lookup supportive hai'."
                     },
                     {
                         name: "3. INDEX + MATCH (Dynamic Dynamic Duo)",
                         concept: "Flexibility ka Baap! Column numbers manual count karne ki zaroorat nahi padti, table dynamic rehti hai.",
                         scenario: "Executive Dashboards: Dynamic dropdown selection ke basis par entire row and column metrics pull karna.",
-                        code: "// INDEX(Return Column, MATCH(Lookup Value, Lookup Column, 0))\\n=INDEX(C2:C1000, MATCH(A2, A2:A1000, 0))",
-                        tip: "💡 Pro Tip: Large Enterprise files me INDEX-MATCH, VLOOKUP se zyada fast perform karta hai aur file lag nahi hoti."
+                        code: "// INDEX(Return Column, MATCH(Lookup Value, Lookup Column, 0))\n=INDEX(C2:C1000, MATCH(A2, A2:A1000, 0))",
+                        tip: "ðŸ’¡ Pro Tip: Large Enterprise files me INDEX-MATCH, VLOOKUP se zyada fast perform karta hai aur file lag nahi hoti."
                     }
                 ]
             },
@@ -1075,15 +1527,15 @@ app.get('/', (req, res) => {
                         name: "1. Raw Data Structuring & Pivot Table Foundation",
                         concept: "Unstructured raw data ko clean, organized summary table me convert karna bina kisi single formula ke.",
                         scenario: "E-Commerce / BPO Floor: Management ke liye 1 Lakh sales rows ko 1 minute me Region-Wise Summary me summarize karna.",
-                        code: "Step 1: Raw Data me kahin bhi click karke \`Ctrl + A\` dabaayein.\\nStep 2: Press \`Alt + N + V + T\` (Insert Pivot Table) -> Press Enter.\\nStep 3: Right Panel se 'Region' ko Rows me drag karein, aur 'Revenue' ko Values me drag karein.\\nStep 4: Values पर Right Click -> Show Values As -> % of Grand Total.",
-                        tip: "💡 Dashboard Rule: Pivot Table hamesha Clean Tabular Data par banti hai, merged cells me fail ho jaati hai."
+                        code: "Step 1: Raw Data me kahin bhi click karke `Ctrl + A` dabaayein.\nStep 2: Press `Alt + N + V + T` (Insert Pivot Table) -> Press Enter.\nStep 3: Right Panel se 'Region' ko Rows me drag karein, aur 'Revenue' ko Values me drag karein.\nStep 4: Values à¤ªà¤° Right Click -> Show Values As -> % of Grand Total.",
+                        tip: "ðŸ’¡ Dashboard Rule: Pivot Table hamesha Clean Tabular Data par banti hai, merged cells me fail ho jaati hai."
                     },
                     {
                         name: "2. Dynamic Slicers, KPI Cards & Visual Charts",
                         concept: "Executive Visual Dashboard banana jisme Top KPI Cards (Total Sales, Orders, CSAT) aur Live Filter Buttons (Slicers) ho.",
                         scenario: "Logistics Executive Meeting: Slicer par 'North Region' click karte hi pure dashboard ki visual charts live update ho jaati hain.",
-                        code: "Step 1: Pivot Table par Click -> PivotTable Analyze Tab -> Click 'Insert Slicer'.\\nStep 2: Tick 'Month', 'Region', 'Product Category' -> OK.\\nStep 3: Pivot Chart Insert karein (\`Alt + F1\`).\\nStep 4: Slicer Right Click -> Report Connections -> Tick ALL Pivot Tables.",
-                        tip: "💡 Pro Executive Design Tip: Dark Gridlines remove karein (\`Alt + W + V + G\`), clean cards banayein aur premium gradients use karein."
+                        code: "Step 1: Pivot Table par Click -> PivotTable Analyze Tab -> Click 'Insert Slicer'.\nStep 2: Tick 'Month', 'Region', 'Product Category' -> OK.\nStep 3: Pivot Chart Insert karein (`Alt + F1`).\nStep 4: Slicer Right Click -> Report Connections -> Tick ALL Pivot Tables.",
+                        tip: "ðŸ’¡ Pro Executive Design Tip: Dark Gridlines remove karein (`Alt + W + V + G`), clean cards banayein aur premium gradients use karein."
                     }
                 ]
             }
@@ -1102,7 +1554,7 @@ app.get('/', (req, res) => {
             data.subCategories.forEach(function(item) {
                 var btn = document.createElement('button');
                 btn.className = 'topic-item-btn';
-                btn.innerHTML = '<span>' + item.name + '</span><div class="arrow-icon">→</div>';
+                btn.innerHTML = '<span>' + item.name + '</span><div class="arrow-icon">â†’</div>';
                 btn.onclick = function() { openExplanationPage(item); };
                 listElement.appendChild(btn);
             });
@@ -1139,7 +1591,7 @@ app.get('/', (req, res) => {
                 tableContainer.innerHTML = '';
             }
 
-            document.getElementById('materialTip').innerHTML = '<span>💡</span><span>' + (item.tip || "") + '</span>';
+            document.getElementById('materialTip').innerHTML = '<span>ðŸ’¡</span><span>' + (item.tip || "") + '</span>';
 
             navigateTo('page4');
         }
@@ -1176,10 +1628,11 @@ app.get('/', (req, res) => {
         });
     </script>
 </body>
-</html>`);
+</html>
+  `);
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`🚀 CareerBoot Application running on port ${PORT}`);
+  console.log(`🎉 CareerBoot Application running on port ${PORT}`);
 });
