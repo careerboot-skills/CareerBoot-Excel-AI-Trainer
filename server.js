@@ -605,7 +605,7 @@ app.get('/', (req, res) => {
 
     <div id="floatingCloud" class="floating-cloud-payload">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <path d="M17.5 19px 5 19a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
+            <path d="M17.5 19H5a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"></path>
         </svg>
         <span id="cloudKeyText">KEY</span>
     </div>
@@ -928,7 +928,7 @@ app.get('/', (req, res) => {
                             { key: "Ctrl + F", desc: "Find (Data dhoondhna)" },
                             { key: "Ctrl + H", desc: "Replace (Text ko change karna)" }
                         ],
-                        tip: "💡 Universal Rule: Har 5 minute me `Ctrl + S` dabane ki aadat banayein taaki system crash hone par data na khoye."
+                        tip: "💡 Universal Rule: Har 5 minute me Ctrl + S dabane ki aadat banayein taaki system crash hone par data na khoye."
                     },
                     {
                         name: "Selection & Fast Navigation Keys",
@@ -943,7 +943,7 @@ app.get('/', (req, res) => {
                             { key: "Ctrl + End", desc: "Data ke last active cell par jump karna" },
                             { key: "Ctrl + PageDown / PageUp", desc: "Next / Previous Sheet tab par switch karna" }
                         ],
-                        tip: "💡 Interview Speed Tip: Interviewer ke samne mouse bypass karke `Ctrl + Shift + Down` se data select karne se candidate instantly highly proficient lagta hai."
+                        tip: "💡 Interview Speed Tip: Interviewer ke samne mouse bypass karke Ctrl + Shift + Down se data select karne se candidate instantly highly proficient lagta hai."
                     }
                 ]
             },
@@ -965,7 +965,7 @@ app.get('/', (req, res) => {
                             { key: "Alt + H + O + I", desc: "Auto-Fit Column Width (Text fit ho jayega)" },
                             { key: "Alt + H + A + C", desc: "Text Center Align karna" }
                         ],
-                        tip: "💡 Pro Formatting Tip: `Alt + H + O + I` dabate hi saare columns auto-expand hokar tidy ho jaate hain."
+                        tip: "💡 Pro Formatting Tip: Alt + H + O + I dabate hi saare columns auto-expand hokar tidy ho jaate hain."
                     },
                     {
                         name: "Advanced Alt Hotkeys & AutoSum",
@@ -978,7 +978,7 @@ app.get('/', (req, res) => {
                             { key: "Alt + = (Equals)", desc: "AutoSum (Upar waale saare numbers instantly SUM karna)" },
                             { key: "F4 Key", desc: "Last action repeat karna YA Formula me absolute cell lock ($) lagana" }
                         ],
-                        tip: "💡 Interview Question: 'Formula hata kar sirf value paste kaise karenge?' Answer: `Ctrl + Alt + V` daba kar Values choose karenge."
+                        tip: "💡 Interview Question: 'Formula hata kar sirf value paste kaise karenge?' Answer: Ctrl + Alt + V daba kar Values choose karenge."
                     }
                 ]
             },
@@ -987,24 +987,24 @@ app.get('/', (req, res) => {
                 subCategories: [
                     {
                         name: "1. SUM, AVERAGE & MATH (Basic Calculations)",
-                        concept: "Excel me calculations hamesha `=` sign se start hoti hain. SUM jodne ke liye aur AVERAGE ausat nikalne ke liye use hota hai.",
+                        concept: "Excel me calculations hamesha = sign se start hoti hain. SUM jodne ke liye aur AVERAGE ausat nikalne ke liye use hota hai.",
                         scenario: "Accounting & Logistics: Daily Sales Total calculate karna aur Per-Day Average Dispatch Speed nikalna.",
-                        code: "// Sum Range A1 to A20\\n=SUM(A1:A20)\\n\\n// Calculate Average Sale\\n=AVERAGE(B1:B50)\\n\\n// Basic Division / Subtraction\\n=(A2 - B2) / C2",
-                        tip: "💡 Basic Rule: Kabhi bhi numbers ko manual `=10+20` mat likho, cell reference `=A1+B1` use karo taaki data change hone par result auto-update ho."
+                        code: "// Sum Range A1 to A20\n=SUM(A1:A20)\n\n// Calculate Average Sale\n=AVERAGE(B1:B50)\n\n// Basic Division / Subtraction\n=(A2 - B2) / C2",
+                        tip: "💡 Basic Rule: Kabhi bhi numbers ko manual =10+20 mat likho, cell reference =A1+B1 use karo taaki data change hone par result auto-update ho."
                     },
                     {
                         name: "2. COUNT, COUNTA & COUNTBLANK (Ginti Karna)",
                         concept: "COUNT sirf numbers ko ginta hai. COUNTA Text aur Numbers dono ko ginta hai. COUNTBLANK khali cells ko ginta hai.",
                         scenario: "BPO Call Tracker: Total calls handled (COUNTA), non-numeric error entries (COUNT), aur missing agent feedback (COUNTBLANK) ginnna.",
-                        code: "// Count Numeric Entries Only\\n=COUNT(A2:A500)\\n\\n// Count All Filled Cells (Text + Numbers)\\n=COUNTA(A2:A500)\\n\\n// Count Blank Cells (Missing Data)\\n=COUNTBLANK(A2:A500)",
+                        code: "// Count Numeric Entries Only\n=COUNT(A2:A500)\n\n// Count All Filled Cells (Text + Numbers)\n=COUNTA(A2:A500)\n\n// Count Blank Cells (Missing Data)\n=COUNTBLANK(A2:A500)",
                         tip: "💡 Interview Tip: Interviewer puchhega 'COUNT aur COUNTA me kya farq hai?' COUNTA non-empty cells ginta hai jabki COUNT sirf numbers."
                     },
                     {
                         name: "3. MAX, MIN & LARGE (Highest & Lowest Values)",
                         concept: "Data list me sabse bada number (MAX) ya sabse chhota number (MIN) dhoondhna.",
                         scenario: "Logistics Freight Cost: Maximum Freight Charge kitna gaya aur minimum shipping time kitna laga.",
-                        code: "// Maximum Value\\n=MAX(C2:C1000)\\n\\n// Minimum Value\\n=MIN(C2:C1000)\\n\\n// 2nd Highest Sales Amount\\n=LARGE(C2:C1000, 2)",
-                        tip: "💡 Pro Tip: `LARGE(range, 2)` se 2nd highest, aur `LARGE(range, 3)` se 3rd highest number nikala ja sakta hai."
+                        code: "// Maximum Value\n=MAX(C2:C1000)\n\n// Minimum Value\n=MIN(C2:C1000)\n\n// 2nd Highest Sales Amount\n=LARGE(C2:C1000, 2)",
+                        tip: "💡 Pro Tip: LARGE(range, 2) se 2nd highest, aur LARGE(range, 3) se 3rd highest number nikala ja sakta hai."
                     }
                 ]
             },
@@ -1013,23 +1013,23 @@ app.get('/', (req, res) => {
                 subCategories: [
                     {
                         name: "1. IF, AND, OR & IFERROR (Decision Logic)",
-                        concept: "Conditions check karna. Agar target achive hua to 'Bonus', varna 'No Bonus'. IFERROR se `#N/A` errors chhupaye jate hain.",
+                        concept: "Conditions check karna. Agar target achive hua to 'Bonus', varna 'No Bonus'. IFERROR se #N/A errors chhupaye jate hain.",
                         scenario: "Payroll & Accounts: Overtime Pay Calculate karna aur Reports me Clean Formatting maintain rakhna.",
-                        code: "// Single IF Condition\\n=IF(B2 >= 100, \"Target Achieved\", \"Pending\")\\n\\n// AND Condition (Dono Sahi Hone Chahiye)\\n=IF(AND(B2>=100, C2>=90%), \"Promoted\", \"Retain\")\\n\\n// Clean Errors\\n=IFERROR(VLOOKUP(A2, B:C, 2, FALSE), \"Record Not Found\")",
-                        tip: "💡 Quality Rule: Professional Analyst messy `#N/A` ya `#DIV/0!` errors dashboard me kabhi nahi chhodte, IFERROR zaroor use karte hain."
+                        code: "// Single IF Condition\n=IF(B2 >= 100, \"Target Achieved\", \"Pending\")\n\n// AND Condition (Dono Sahi Hone Chahiye)\n=IF(AND(B2>=100, C2>=90%), \"Promoted\", \"Retain\")\n\n// Clean Errors\n=IFERROR(VLOOKUP(A2, B:C, 2, FALSE), \"Record Not Found\")",
+                        tip: "💡 Quality Rule: Professional Analyst messy #N/A ya #DIV/0! errors dashboard me kabhi nahi chhodte, IFERROR zaroor use karte hain."
                     },
                     {
                         name: "2. CONCAT, TEXTJOIN, TRIM & Text Cleaning",
                         concept: "Kharaab formatting, extra spaces clean karna aur do-teen columns ka text ek sath jodhna.",
                         scenario: "BPO Data Cleaning: First Name aur Last Name ko combine karna, aur system dump se unwanted spaces hatana.",
-                        code: "// Combine Text with Space\\n=CONCATENATE(A2, \" \", B2)\\n\\n// Advanced Modern Join (Delimiter के साथ)\\n=TEXTJOIN(\", \", TRUE, A2:D2)\\n\\n// Extra Spaces Clean Karna\\n=TRIM(A2)\\n\\n// Text Case Change\\n=UPPER(A2) | =LOWER(A2) | =PROPER(A2)",
-                        tip: "💡 Real Job Scenario: CRM Data me aksar hidden spaces hoti hain. VLOOKUP fail hone par pehle `TRIM` formula use karein."
+                        code: "// Combine Text with Space\n=CONCATENATE(A2, \" \", B2)\n\n// Advanced Modern Join (Delimiter Ke Saath)\n=TEXTJOIN(\", \", TRUE, A2:D2)\n\n// Extra Spaces Clean Karna\n=TRIM(A2)\n\n// Text Case Change\n=UPPER(A2) | =LOWER(A2) | =PROPER(A2)",
+                        tip: "💡 Real Job Scenario: CRM Data me aksar hidden spaces hoti hain. VLOOKUP fail hone par pehle TRIM formula use karein."
                     },
                     {
                         name: "3. TODAY, NOW & DATEDIF (Date Analytics)",
                         concept: "System Date, Time, aur Aging (Do dates ke beech kitne din/mahine beet gaye) calculate karna.",
                         scenario: "Accounting Invoice Aging: Invoice Date se aaj tak kitne din overdue huye hain check karna.",
-                        code: "// Current Today Date\\n=TODAY()\\n\\n// Days Overdue (Today minus Invoice Date)\\n=TODAY() - A2\\n\\n// Calculate Age in Years\\n=DATEDIF(A2, TODAY(), \"Y\")",
+                        code: "// Current Today Date\n=TODAY()\n\n// Days Overdue (Today minus Invoice Date)\n=TODAY() - A2\n\n// Calculate Age in Years\n=DATEDIF(A2, TODAY(), \"Y\")",
                         tip: "💡 Aging Tip: BPO & Logistics Accounts me Overdue Invoices highlight karne ke liye Date Difference formulas lagaye jate hain."
                     }
                 ]
@@ -1041,21 +1041,21 @@ app.get('/', (req, res) => {
                         name: "1. VLOOKUP & HLOOKUP (Vertical & Horizontal Matching)",
                         concept: "Do alag sheets se matching Key ID ke base par data pull karna. VLOOKUP vertical tables ke liye hai, HLOOKUP horizontal rows ke liye.",
                         scenario: "Logistics Track Sheet: Parcel ID ke basis par Delivery Status dusri master sheet se current sheet me fetch karna.",
-                        code: "// VLOOKUP Syntax: (Search Value, Table Range, Column Index, FALSE for Exact Match)\\n=VLOOKUP(A2, MasterData!A:E, 3, FALSE)\\n\\n// HLOOKUP Syntax\\n=HLOOKUP(A2, PricingTable!A1:Z5, 2, FALSE)",
-                        tip: "💡 Crucial VLOOKUP Rules:\\n1. Search Key ID table ke 1st column me honi chahiye.\\n2. Last parameter hamesha `FALSE` ya `0` rakhein."
+                        code: "// VLOOKUP Syntax: (Search Value, Table Range, Column Index, FALSE for Exact Match)\n=VLOOKUP(A2, MasterData!A:E, 3, FALSE)\n\n// HLOOKUP Syntax\n=HLOOKUP(A2, PricingTable!A1:Z5, 2, FALSE)",
+                        tip: "💡 Crucial VLOOKUP Rules:\n1. Search Key ID table ke 1st column me honi chahiye.\n2. Last parameter hamesha FALSE ya 0 rakhein."
                     },
                     {
                         name: "2. XLOOKUP (Modern Super Lookup Engine)",
                         concept: "VLOOKUP ki sabhi kamzoriyon ko khatam karne wala sabse advance formula. Ye Left, Right, Up, Down kisi bhi side lookup kar sakta hai.",
                         scenario: "Accounting & Payroll: Left-side lookups jahan VLOOKUP fail hota hai, XLOOKUP 1 second me kar deta hai.",
-                        code: "// XLOOKUP Syntax: (Search Item, Search Column, Return Column, Not Found Text)\\n=XLOOKUP(A2, Sheet2!B:B, Sheet2!A:A, \"Customer Not Found\")",
+                        code: "// XLOOKUP Syntax: (Search Item, Search Column, Return Column, Not Found Text)\n=XLOOKUP(A2, Sheet2!B:B, Sheet2!A:A, \"Customer Not Found\")",
                         tip: "💡 Interview Killer Skill: Interviewer ko bataiye ki 'Main VLOOKUP ke saath-saath modern XLOOKUP follow karta hu kyunki ye fast aur left-lookup supportive hai'."
                     },
                     {
                         name: "3. INDEX + MATCH (Dynamic Dynamic Duo)",
                         concept: "Flexibility ka Baap! Column numbers manual count karne ki zaroorat nahi padti, table dynamic rehti hai.",
                         scenario: "Executive Dashboards: Dynamic dropdown selection ke basis par entire row and column metrics pull karna.",
-                        code: "// INDEX(Return Column, MATCH(Lookup Value, Lookup Column, 0))\\n=INDEX(C2:C1000, MATCH(A2, A2:A1000, 0))",
+                        code: "// INDEX(Return Column, MATCH(Lookup Value, Lookup Column, 0))\n=INDEX(C2:C1000, MATCH(A2, A2:A1000, 0))",
                         tip: "💡 Pro Tip: Large Enterprise files me INDEX-MATCH, VLOOKUP se zyada fast perform karta hai aur file lag nahi hoti."
                     }
                 ]
@@ -1067,15 +1067,15 @@ app.get('/', (req, res) => {
                         name: "1. Raw Data Structuring & Pivot Table Foundation",
                         concept: "Unstructured raw data ko clean, organized summary table me convert karna bina kisi single formula ke.",
                         scenario: "E-Commerce / BPO Floor: Management ke liye 1 Lakh sales rows ko 1 minute me Region-Wise Summary me summarize karna.",
-                        code: "Step 1: Raw Data me kahin bhi click karke `Ctrl + A` dabaayein.\\nStep 2: Press `Alt + N + V + T` (Insert Pivot Table) -> Press Enter.\\nStep 3: Right Panel se 'Region' ko Rows me drag karein, aur 'Revenue' ko Values me drag karein.\\nStep 4: Values पर Right Click -> Show Values As -> % of Grand Total.",
+                        code: "Step 1: Raw Data me kahin bhi click karke Ctrl + A dabaayein.\nStep 2: Press Alt + N + V + T (Insert Pivot Table) -> Press Enter.\nStep 3: Right Panel se 'Region' ko Rows me drag karein, aur 'Revenue' ko Values me drag karein.\nStep 4: Values Par Right Click -> Show Values As -> % of Grand Total.",
                         tip: "💡 Dashboard Rule: Pivot Table hamesha Clean Tabular Data par banti hai, merged cells me fail ho jaati hai."
                     },
                     {
                         name: "2. Dynamic Slicers, KPI Cards & Visual Charts",
                         concept: "Executive Visual Dashboard banana jisme Top KPI Cards (Total Sales, Orders, CSAT) aur Live Filter Buttons (Slicers) ho.",
                         scenario: "Logistics Executive Meeting: Slicer par 'North Region' click karte hi pure dashboard ki visual charts live update ho jaati hain.",
-                        code: "Step 1: Pivot Table par Click -> PivotTable Analyze Tab -> Click 'Insert Slicer'.\\nStep 2: Tick 'Month', 'Region', 'Product Category' -> OK.\\nStep 3: Pivot Chart Insert karein (`Alt + F1`).\\nStep 4: Slicer Right Click -> Report Connections -> Tick ALL Pivot Tables.",
-                        tip: "💡 Pro Executive Design Tip: Dark Gridlines remove karein (`Alt + W + V + G`), clean cards banayein aur premium gradients use karein."
+                        code: "Step 1: Pivot Table par Click -> PivotTable Analyze Tab -> Click 'Insert Slicer'.\nStep 2: Tick 'Month', 'Region', 'Product Category' -> OK.\nStep 3: Pivot Chart Insert karein (Alt + F1).\nStep 4: Slicer Right Click -> Report Connections -> Tick ALL Pivot Tables.",
+                        tip: "💡 Pro Executive Design Tip: Dark Gridlines remove karein (Alt + W + V + G), clean cards banayein aur premium gradients use karein."
                     }
                 ]
             }
