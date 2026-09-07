@@ -911,7 +911,7 @@ app.get('/', (req, res) => {
                         concept: "Partial text (e.g. kisi naam ka adha hissa) ya multiple columns join karke lookup karna.",
                         scenario: "Customer Support: Customer Name me se partial 'Gupta' search karke Contact ID lana.",
                         code: "// Wildcard Lookup:\n=VLOOKUP(\"*\" & A2 & \"*\", MasterTable!A:D, 2, FALSE)\n\n// Multi-Condition XLOOKUP:\n=XLOOKUP(1, (RegionRange=\"North\") * (DeptRange=\"Sales\"), TargetRange)",
-                        tip: "💡 Pro Tip: Boolean Array multiplication `(Condition1)*(Condition2)` multi-column lock create karta hai."
+                        tip: "💡 Pro Tip: Boolean Array multiplication (Condition1)*(Condition2) multi-column lock create karta hai."
                     }
                 ]
             },
