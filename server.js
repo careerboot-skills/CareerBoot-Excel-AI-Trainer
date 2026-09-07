@@ -290,7 +290,7 @@ app.get('/', (req, res) => {
 
         .animating-cloud {
             display: flex !important;
-            animation: directTravelAndDock 4.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation: directTravelAndDock 2.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
         .status-pill {
@@ -822,20 +822,24 @@ app.get('/', (req, res) => {
 
         function triggerCloudAuthentication() {
             var inputElem = document.getElementById('secretKey');
-            var keyVal = inputElem.value.trim();
+            var keyVal = inputElem ? inputElem.value.trim() : "";
             var statusPill = document.getElementById('statusPill');
             var screenGlow = document.getElementById('screenGlow');
             var workstationSvg = document.getElementById('workstationSvg');
 
             if (!keyVal) {
-                statusPill.style.color = '#ef4444';
-                statusPill.style.background = 'rgba(239, 68, 68, 0.12)';
-                statusPill.innerHTML = "⚠️ Please enter passcode!";
+                if (statusPill) {
+                    statusPill.style.color = '#ef4444';
+                    statusPill.style.background = 'rgba(239, 68, 68, 0.12)';
+                    statusPill.innerHTML = "⚠️ Please enter passcode!";
+                }
                 return;
             }
 
-            statusPill.innerHTML = "";
-            statusPill.style.background = "transparent";
+            if (statusPill) {
+                statusPill.innerHTML = "";
+                statusPill.style.background = "transparent";
+            }
 
             var inputRect = inputElem.getBoundingClientRect();
             var screenRect = screenGlow.getBoundingClientRect();
@@ -863,36 +867,42 @@ app.get('/', (req, res) => {
 
             setTimeout(function() {
                 if (keyVal === USER_KEY || keyVal === ADMIN_KEY) {
-                    screenGlow.setAttribute('fill', '#10b981');
-                    statusPill.style.color = '#34d399';
-                    statusPill.style.background = 'rgba(16, 185, 129, 0.15)';
-                    statusPill.innerHTML = "✓ Passcode Authenticated! Granting Access...";
+                    if (screenGlow) screenGlow.setAttribute('fill', '#10b981');
+                    if (statusPill) {
+                        statusPill.style.color = '#34d399';
+                        statusPill.style.background = 'rgba(16, 185, 129, 0.15)';
+                        statusPill.innerHTML = "✓ Passcode Authenticated! Granting Access...";
+                    }
                 } else {
-                    screenGlow.setAttribute('fill', '#ef4444');
-                    statusPill.style.color = '#f87171';
-                    statusPill.style.background = 'rgba(239, 68, 68, 0.15)';
-                    statusPill.innerHTML = "❌ Invalid Passcode! Access Denied";
-                    workstationSvg.classList.add('shake');
+                    if (screenGlow) screenGlow.setAttribute('fill', '#ef4444');
+                    if (statusPill) {
+                        statusPill.style.color = '#f87171';
+                        statusPill.style.background = 'rgba(239, 68, 68, 0.15)';
+                        statusPill.innerHTML = "❌ Invalid Passcode! Access Denied";
+                    }
+                    if (workstationSvg) workstationSvg.classList.add('shake');
                 }
-            }, 2500);
+            }, 1200);
 
             setTimeout(function() {
                 floatingCloud.classList.remove('animating-cloud');
-                workstationSvg.classList.remove('shake');
+                if (workstationSvg) workstationSvg.classList.remove('shake');
 
                 if (keyVal === USER_KEY || keyVal === ADMIN_KEY) {
                     if (keyVal === ADMIN_KEY) {
                         injectAdminTile();
                     }
-                    screenGlow.setAttribute('fill', '#020617');
-                    statusPill.innerHTML = "";
-                    statusPill.style.background = "transparent";
+                    if (screenGlow) screenGlow.setAttribute('fill', '#020617');
+                    if (statusPill) {
+                        statusPill.innerHTML = "";
+                        statusPill.style.background = "transparent";
+                    }
                     inputElem.value = "";
                     navigateTo('page2');
                 } else {
-                    screenGlow.setAttribute('fill', '#020617');
+                    if (screenGlow) screenGlow.setAttribute('fill', '#020617');
                 }
-            }, 4000);
+            }, 2100);
         }
 
         function injectAdminTile() {
