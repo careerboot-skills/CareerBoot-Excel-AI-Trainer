@@ -40,6 +40,10 @@ app.post('/api/auth/verify', async (req, res) => {
       return res.json({ success: true, role: 'ADMIN', message: 'Master Admin Access Granted' });
     }
 
+    if (cleanKey === 'EXCEL2026') {
+      return res.json({ success: true, role: 'USER', message: 'Default User Access Granted' });
+    }
+
     const match = await Passcode.findOne({ code: cleanKey, isActive: true }).lean();
     if (match) {
       return res.json({ success: true, role: 'USER', message: 'User Access Granted' });
@@ -66,7 +70,7 @@ app.post('/api/admin/generate-key', async (req, res) => {
 });
 
 // ==========================================
-// 4. COMPLETE FRONTEND UI & ANIMATION ENGINE
+// 4. FRONTEND UI & ANIMATION ENGINE
 // ==========================================
 app.get('/', (req, res) => {
   res.send(`<!DOCTYPE html>
@@ -290,20 +294,21 @@ app.get('/', (req, res) => {
 
         .animating-cloud {
             display: flex !important;
-            animation: directTravelAndDock 2.0s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation: directTravelAndDock 1.4s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
 
         .status-pill {
             margin-top: 12px;
             font-size: 0.9rem;
             font-weight: 700;
-            height: 36px;
+            min-height: 36px;
             padding: 6px 20px;
             border-radius: 20px;
             letter-spacing: 0.5px;
             transition: all 0.3s ease;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
         }
 
@@ -624,15 +629,12 @@ app.get('/', (req, res) => {
             <div class="journey-wrapper">
                 <svg viewBox="0 0 500 60" width="100%" height="60">
                     <line x1="50" y1="40" x2="450" y2="40" stroke="#1e293b" stroke-width="4" stroke-dasharray="8,8" stroke-linecap="round"></line>
-                    
                     <circle cx="50" cy="40" r="14" fill="#3b82f6" fill-opacity="0.15"></circle>
                     <circle cx="50" cy="40" r="6" fill="#3b82f6"></circle>
                     <text x="50" y="18" fill="#60a5fa" font-size="11" text-anchor="middle" font-weight="800">Absolute Beginner</text>
-                    
                     <circle cx="450" cy="40" r="14" fill="#10b981" fill-opacity="0.15"></circle>
                     <circle cx="450" cy="40" r="6" fill="#10b981"></circle>
                     <text x="450" y="18" fill="#34d399" font-size="11" text-anchor="middle" font-weight="800">Dashboard & Pro Expert</text>
-
                     <g id="walker" transform="translate(50, 0)">
                         <circle cx="0" cy="18" r="7" fill="#fbcfe8"></circle>
                         <path d="M -5 26 C -5 23 5 23 5 26 L 4 40 L -4 40 Z" fill="#3b82f6"></path>
@@ -656,16 +658,13 @@ app.get('/', (req, res) => {
                         <stop offset="100%" stop-color="#1e293b"/>
                     </linearGradient>
                 </defs>
-
                 <rect x="20" y="130" width="240" height="10" rx="5" fill="url(#deskGrad)"></rect>
                 <rect x="45" y="140" width="10" height="30" rx="2" fill="#1e293b"></rect>
                 <rect x="225" y="140" width="10" height="30" rx="2" fill="#1e293b"></rect>
-
                 <rect x="80" y="45" width="120" height="70" rx="8" fill="#0f172a" stroke="#334155" stroke-width="3"></rect>
                 <rect id="screenGlow" x="85" y="50" width="110" height="60" rx="5" fill="#020617"></rect>
                 <rect x="135" y="115" width="10" height="15" fill="#334155"></rect>
                 <rect x="120" y="128" width="40" height="3" rx="1.5" fill="#475569"></rect>
-
                 <g id="sittingDeveloper">
                     <rect x="195" y="55" width="10" height="70" rx="5" fill="#1e293b"></rect>
                     <rect x="180" y="120" width="35" height="8" rx="4" fill="#1e293b"></rect>
@@ -676,7 +675,6 @@ app.get('/', (req, res) => {
                     <path d="M 200 115 L 185 135 L 185 160" stroke="#1e293b" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none"></path>
                 </g>
             </svg>
-
             <div id="statusPill" class="status-pill"></div>
         </div>
     </div>
@@ -794,8 +792,6 @@ app.get('/', (req, res) => {
     </div>
 
     <script>
-        var USER_KEY = "EXCEL2026";
-        var ADMIN_KEY = "ADMIN2026";
         var currentCatKey = "basic_shortcuts";
 
         function navigateTo(pageId) {
@@ -820,7 +816,7 @@ app.get('/', (req, res) => {
             }
         }, 30);
 
-        function triggerCloudAuthentication() {
+        async function triggerCloudAuthentication() {
             var inputElem = document.getElementById('secretKey');
             var keyVal = inputElem ? inputElem.value.trim() : "";
             var statusPill = document.getElementById('statusPill');
@@ -837,7 +833,8 @@ app.get('/', (req, res) => {
             }
 
             if (statusPill) {
-                statusPill.innerHTML = "";
+                statusPill.innerHTML = "Authenticating...";
+                statusPill.style.color = "#94a3b8";
                 statusPill.style.background = "transparent";
             }
 
@@ -865,44 +862,61 @@ app.get('/', (req, res) => {
             void floatingCloud.offsetWidth;
             floatingCloud.classList.add('animating-cloud');
 
-            setTimeout(function() {
-                if (keyVal === USER_KEY || keyVal === ADMIN_KEY) {
-                    if (screenGlow) screenGlow.setAttribute('fill', '#10b981');
-                    if (statusPill) {
-                        statusPill.style.color = '#34d399';
-                        statusPill.style.background = 'rgba(16, 185, 129, 0.15)';
-                        statusPill.innerHTML = "✓ Passcode Authenticated! Granting Access...";
-                    }
-                } else {
-                    if (screenGlow) screenGlow.setAttribute('fill', '#ef4444');
-                    if (statusPill) {
-                        statusPill.style.color = '#f87171';
-                        statusPill.style.background = 'rgba(239, 68, 68, 0.15)';
-                        statusPill.innerHTML = "❌ Invalid Passcode! Access Denied";
-                    }
-                    if (workstationSvg) workstationSvg.classList.add('shake');
-                }
-            }, 1200);
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ passcode: keyVal })
+                });
 
-            setTimeout(function() {
-                floatingCloud.classList.remove('animating-cloud');
-                if (workstationSvg) workstationSvg.classList.remove('shake');
+                const data = await response.json();
 
-                if (keyVal === USER_KEY || keyVal === ADMIN_KEY) {
-                    if (keyVal === ADMIN_KEY) {
-                        injectAdminTile();
+                setTimeout(function() {
+                    floatingCloud.classList.remove('animating-cloud');
+
+                    if (data.success) {
+                        if (screenGlow) screenGlow.setAttribute('fill', '#10b981');
+                        if (statusPill) {
+                            statusPill.style.color = '#34d399';
+                            statusPill.style.background = 'rgba(16, 185, 129, 0.15)';
+                            statusPill.innerHTML = "✓ " + data.message;
+                        }
+
+                        if (data.role === 'ADMIN') {
+                            injectAdminTile();
+                        }
+
+                        setTimeout(function() {
+                            if (screenGlow) screenGlow.setAttribute('fill', '#020617');
+                            if (statusPill) {
+                                statusPill.innerHTML = "";
+                                statusPill.style.background = "transparent";
+                            }
+                            inputElem.value = "";
+                            navigateTo('page2');
+                        }, 1000);
+                    } else {
+                        if (screenGlow) screenGlow.setAttribute('fill', '#ef4444');
+                        if (statusPill) {
+                            statusPill.style.color = '#f87171';
+                            statusPill.style.background = 'rgba(239, 68, 68, 0.15)';
+                            statusPill.innerHTML = "❌ " + data.message;
+                        }
+                        if (workstationSvg) workstationSvg.classList.add('shake');
+
+                        setTimeout(function() {
+                            if (workstationSvg) workstationSvg.classList.remove('shake');
+                            if (screenGlow) screenGlow.setAttribute('fill', '#020617');
+                        }, 1000);
                     }
-                    if (screenGlow) screenGlow.setAttribute('fill', '#020617');
-                    if (statusPill) {
-                        statusPill.innerHTML = "";
-                        statusPill.style.background = "transparent";
-                    }
-                    inputElem.value = "";
-                    navigateTo('page2');
-                } else {
-                    if (screenGlow) screenGlow.setAttribute('fill', '#020617');
+                }, 1400);
+
+            } catch (err) {
+                if (statusPill) {
+                    statusPill.style.color = '#ef4444';
+                    statusPill.innerHTML = "❌ Network/Server Error!";
                 }
-            }, 2100);
+            }
         }
 
         function injectAdminTile() {
