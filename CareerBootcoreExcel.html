@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CareerBoot - Premium Excel Learning Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;800&family=Fira+Code:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --primary: #10b981;
+            --primary-glow: rgba(16, 185, 129, 0.3);
+            --accent: #3b82f6;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --danger: #ef4444;
+            --border: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .page {
+            display: none;
+            width: 100%;
+            min-height: 100vh;
+            padding: 20px;
+            animation: fadeIn 0.4s ease-in-out;
+        }
+
+        .page.active {
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* PAGE 1: LOGIN STYLES */
+        #page1 {
+            padding: 0;
+            height: 100vh;
+            display: none;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Top 35% Area */
+        .p1-top {
+            height: 35vh;
+            background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            padding: 15px;
+            position: relative;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .logo-text {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #10b981, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-note {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            text-align: center;
+        }
+
+        /* Track Animation */
+        .walk-track {
+            width: 90%;
+            max-width: 600px;
+            height: 40px;
+            border-bottom: 2px dashed var(--border);
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-bottom: 5px;
+        }
+
+        .track-node {
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: var(--text-sub);
+            text-transform: uppercase;
+        }
+
+        .walking-man {
+            position: absolute;
+            bottom: 2px;
+            left: 0;
+            font-size: 1.5rem;
+            animation: walkToSuccess 6s infinite ease-in-out;
+        }
+
+        @keyframes walkToSuccess {
+            0% { left: 0%; transform: scaleX(1); }
+            48% { left: 88%; transform: scaleX(1); }
+            50% { left: 88%; transform: scaleX(-1); }
+            98% { left: 0%; transform: scaleX(-1); }
+            100% { left: 0%; transform: scaleX(1); }
+        }
+
+        /* Middle 15% Area */
+        .p1-mid {
+            height: 15vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            background-color: #0f172a;
+            position: relative;
+            z-index: 10;
+        }
+
+        .secret-input {
+            padding: 12px 18px;
+            border-radius: 8px;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            color: #fff;
+            font-size: 1rem;
+            outline: none;
+            transition: all 0.3s;
+            width: 200px;
+            text-align: center;
+        }
+
+        .secret-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 12px var(--primary-glow);
+        }
+
+        .sim-btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            border: none;
+            background: linear-gradient(135deg, var(--primary), #059669);
+            color: #fff;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .sim-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px var(--primary-glow);
+        }
+
+        /* Bottom Area */
+        .p1-bottom {
+            height: 50vh;
+            background: #020617;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+
+        .computer-setup {
+            position: relative;
+            text-align: center;
+        }
+
+        .man-sitting {
+            font-size: 4.5rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .comp-screen {
+            width: 110px;
+            height: 75px;
+            background: #1e293b;
+            border: 4px solid #475569;
+            border-radius: 6px;
+            margin: 0 auto;
+            position: relative;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .comp-screen.green {
+            background: #065f46 !important;
+            border-color: #10b981 !important;
+            box-shadow: 0 0 25px #10b981;
+        }
+
+        .comp-screen.red {
+            background: #991b1b !important;
+            border-color: #ef4444 !important;
+            box-shadow: 0 0 25px #ef4444;
+        }
+
+        /* Flying Cloud Animation */
+        .flying-cloud {
+            position: absolute;
+            font-size: 2.2rem;
+            z-index: 100;
+            transition: all 3s cubic-bezier(0.25, 1, 0.5, 1);
+            pointer-events: none;
+            display: none;
+            opacity: 0.9;
+        }
+
+        /* NAVIGATION HEADER */
+        .nav-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-btns {
+            display: flex;
+            gap: 10px;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-main);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: var(--border);
+            color: var(--primary);
+        }
+
+        /* GRID & CARDS LAYOUT */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.4);
+        }
+
+        .card h3 {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            margin-bottom: 8px;
+        }
+
+        .card p {
+            color: var(--text-sub);
+            font-size: 0.85rem;
+        }
+
+        /* DETAIL ITEM DISPLAY (PAGE 4) */
+        .detail-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .detail-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .detail-title {
+            font-size: 1.3rem;
+            color: var(--primary);
+            margin-bottom: 12px;
+            font-weight: 700;
+        }
+
+        .detail-section {
+            margin-bottom: 10px;
+        }
+
+        .detail-section label {
+            font-weight: 700;
+            color: var(--accent);
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .detail-section p {
+            color: var(--text-main);
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .code-block {
+            background: #090d16;
+            border: 1px solid #1e293b;
+            padding: 12px;
+            border-radius: 6px;
+            font-family: 'Fira Code', monospace;
+            color: #38bdf8;
+            margin-top: 6px;
+            font-size: 0.9rem;
+            white-space: pre-wrap;
+        }
+
+        /* MOBILE RESPONSIVE */
+        @media (max-width: 768px) {
+            .p1-top { height: 40vh; }
+            .p1-mid { height: 18vh; flex-direction: column; gap: 8px; }
+            .p1-bottom { height: 42vh; }
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- PAGE 1: LOGIN PAGE -->
+    <div id="page1" class="page active">
+        <div class="p1-top">
+            <div class="logo-container">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <div class="logo-text">CareerBoot</div>
+            </div>
+            <div class="welcome-note">Master Advanced Excel, Analytics & Automation Step-by-Step</div>
+            
+            <div class="walk-track">
+                <span class="track-node">Interest 💡</span>
+                <div class="walking-man">🚶‍♂️</div>
+                <span class="track-node">Success 🏆</span>
+            </div>
+        </div>
+
+        <div class="p1-mid">
+            <input type="password" id="secretKey" class="secret-input" placeholder="Enter Secret Key">
+            <button class="sim-btn" onclick="triggerKhulJaSimSim()">Khul Ja Sim Sim</button>
+        </div>
+
+        <div class="p1-bottom">
+            <div class="computer-setup">
+                <div class="man-sitting">👨‍💻</div>
+                <div id="compScreen" class="comp-screen">LOCKED</div>
+            </div>
+        </div>
+
+        <div id="flyingCloud" class="flying-cloud">☁️</div>
+    </div>
+
+    <!-- PAGE 2: MAIN DASHBOARD -->
+    <div id="page2" class="page">
+        <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 2.2rem; font-weight: 800; margin-bottom: 8px;">Main Analytics Dashboard</h1>
+            <p style="color: var(--text-sub);">Select a module to explore sub-categories and dynamic lessons</p>
+        </div>
+        <div class="dashboard-grid" id="p2-grid"></div>
+    </div>
+
+    <!-- PAGE 3: SUB-CATEGORY GRIDS -->
+    <div id="page3" class="page">
+        <div class="nav-header">
+            <h2 id="p3-title" style="font-size: 1.5rem;">Sub Categories</h2>
+            <div class="nav-btns">
+                <button class="nav-btn" onclick="navigateTo('page2')">🏠 Home</button>
+            </div>
+        </div>
+        <div class="dashboard-grid" id="p3-grid"></div>
+    </div>
+
+    <!-- PAGE 4: DETAILED CONTENT VIEW -->
+    <div id="page4" class="page">
+        <div class="nav-header">
+            <h2 id="p4-title" style="font-size: 1.5rem;">Topic Overview</h2>
+            <div class="nav-btns">
+                <button class="nav-btn" onclick="navigateTo('page3')">⬅️ Back</button>
+                <button class="nav-btn" onclick="navigateTo('page2')">🏠 Home</button>
+            </div>
+        </div>
+        <div class="detail-container" id="p4-content"></div>
+    </div>
+
+    <script>
+        // MASTER DATABASE
+        const db = {
+            modules: [
+                { id: 1, title: "1. All Formulas & Dynamic Arrays", icon: "⚡" },
+                { id: 2, title: "2. All Shortcut Keys (Pro)", icon: "⌨️" },
+                { id: 3, title: "3. All Built-in Functions", icon: "📚" },
+                { id: 4, title: "4. Data Cleansing & Formatting", icon: "🧹" },
+                { id: 5, title: "5. Pivot Tables & Data Modeling", icon: "📊" },
+                { id: 6, title: "6. Power Query & ETL", icon: "🔄" },
+                { id: 7, title: "7. VBA, Macros & Automation", icon: "🤖" },
+                { id: 8, title: "8. Dashboards, Charts & Analytics", icon: "📈" }
+            ],
+            subCategories: {
+                1: [
+                    { id: "1_1", name: "1. Lookup & Reference" },
+                    { id: "1_2", name: "2. Modern Dynamic Arrays" },
+                    { id: "1_3", name: "3. Logical & Decision Making" },
+                    { id: "1_4", name: "4. Advanced Lambda & Variables" },
+                    { id: "1_5", name: "5. Text & String Manipulation" },
+                    { id: "1_6", name: "6. Math & Conditional Aggregations" },
+                    { id: "1_7", name: "7. Financial & Investment" },
+                    { id: "1_8", name: "8. Date & Time Calculations" },
+                    { id: "1_9", name: "9. Statistical & Database" }
+                ],
+                2: [
+                    { id: "2_1", name: "1. Pro Ribbon Alt-Codes (Formatting & Layout)" },
+                    { id: "2_2", name: "2. Pro Ribbon Alt-Codes (Data Tools)" },
+                    { id: "2_3", name: "3. Speed Navigation & Selection" },
+                    { id: "2_4", name: "4. Formula & Editing Power Shortcuts" },
+                    { id: "2_5", name: "5. Power Query & Automation Shortcuts" },
+                    { id: "2_6", name: "6. Workbook Management & Auditing" }
+                ],
+                3: [
+                    { id: "3_1", name: "1. Compatibility Functions" },
+                    { id: "3_2", name: "2. Engineering Functions" },
+                    { id: "3_3", name: "3. Information Functions" },
+                    { id: "3_4", name: "4. Logical Functions" },
+                    { id: "3_5", name: "5. Math & Trig Functions" },
+                    { id: "3_6", name: "6. Statistical Functions" },
+                    { id: "3_7", name: "7. Web & Cube Functions" }
+                ],
+                4: [
+                    { id: "4_1", name: "1. Text to Columns & Flash Fill" },
+                    { id: "4_2", name: "2. Advanced Data Validation & Dropdowns" },
+                    { id: "4_3", name: "3. Conditional Formatting with Custom Rules" },
+                    { id: "4_4", name: "4. Duplicate Removal & Unique Identifiers" },
+                    { id: "4_5", name: "5. Custom Number Formatting" }
+                ],
+                5: [
+                    { id: "5_1", name: "1. Pivot Table Foundations & Layouts" },
+                    { id: "5_2", name: "2. Calculated Fields & Calculated Items" },
+                    { id: "5_3", name: "3. Slicers, Timelines & Report Connections" },
+                    { id: "5_4", name: "4. Data Model & Tabular Relationships" },
+                    { id: "5_5", name: "5. DAX Measures Basics (SUMX, CALCULATE, RELATED)" }
+                ],
+                6: [
+                    { id: "6_1", name: "1. Data Import (CSV, Web, SQL, PDF)" },
+                    { id: "6_2", name: "2. Transformations (Unpivoting, Transposing, Group By)" },
+                    { id: "6_3", name: "3. Merging (Joins) & Appending Queries" },
+                    { id: "6_4", name: "4. Custom Columns & Conditional Logic" },
+                    { id: "6_5", name: "5. M-Code Syntax Basics" }
+                ],
+                7: [
+                    { id: "7_1", name: "1. Developer Tab & Macro Recorder" },
+                    { id: "7_2", name: "2. VBA Modules, Procedures & Functions" },
+                    { id: "7_3", name: "3. Range & Cell Manipulations" },
+                    { id: "7_4", name: "4. Control Loops (For Next, Do While, For Each)" },
+                    { id: "7_5", name: "5. Userforms & Interactive Dialogs" }
+                ],
+                8: [
+                    { id: "8_1", name: "1. Dynamic Charting (Waterfall, Sunburst, Gauge, Combination)" },
+                    { id: "8_2", name: "2. Form Controls (Checkboxes, Option Buttons, Scrollbars)" },
+                    { id: "8_3", name: "3. Sparklines & Micro Charts" },
+                    { id: "8_4", name: "4. KPI Cards & Executive Dashboard Design" },
+                    { id: "8_5", name: "5. Dynamic Named Ranges with OFFSET & INDEX" }
+                ]
+            },
+            details: {
+                // CATEGORY 1.1: LOOKUP & REFERENCE
+                "1_1": [
+                    { title: "[1] XLOOKUP", exp: "XLOOKUP Excel ka sabse modern lookup tool hai jo VLOOKUP aur HLOOKUP dono ki kamiya door karta hai. Ye left-to-right aur right-to-left dono taraf data khoj sakta hai.", purpose: "Kisi ID, Barcode, ya Item Name ke aadhar par uski details (Price, Stock, Category) fast dhoondna.", example: "Master Table (Cols A-C): [A: Item Code, B: Item Name, C: Price]\nRow 2: P101 | Denim Jeans | 1200\nRow 3: P102 | Cotton Shirt | 800\nTarget: E2 me Item Code 'P102' likhne par F2 me Price chahiye.\nFormula in F2: =XLOOKUP(E2, A2:A3, C2:C3, \"Not Found\")\nResult: 800" },
+                    { title: "[2] VLOOKUP", exp: "Vertical Lookup data ko top to bottom search karta hai aur specified column se value lata hai.", purpose: "Master list se numeric column index ke aadhar par details match karna.", example: "Table Range A2:C10. Search ID \"P101\" (Cell E2 me hai).\nFormula: =VLOOKUP(E2, A2:C10, 2, FALSE)\nResult: \"Denim Jeans\"" },
+                    { title: "[3] HLOOKUP", exp: "Horizontal Lookup data ko left to right rows me dhoondta hai aur specified row se result lata hai.", purpose: "Quarter-wise ya Month-wise horizontal headers wale data se figures nikalna.", example: "Row 1 (Months): Jan | Feb | Mar\nRow 2 (Sales): 50000 | 65000 | 80000\nFormula: =HLOOKUP(\"Feb\", A1:C2, 2, FALSE)\nResult: 65000" },
+                    { title: "[4] INDEX & MATCH", exp: "INDEX specific row aur column position se value uthata hai, jabki MATCH batata hai ki koi value kis position par hai. Dono milkar VLOOKUP se zyada flexible lookup banate hain.", purpose: "Dynamic multi-directional lookup aur heavy files me fast calculation.", example: "Names in A2:A5, Salaries in B2:B5. Target Name \"Amit\" in D2.\nFormula: =INDEX(B2:B5, MATCH(D2, A2:A5, 0))\nResult: Amit ki Salary" },
+                    { title: "[5] XMATCH", exp: "MATCH ka advanced version jo default exact match perform karta hai aur reverse search bhi kar sakta hai.", purpose: "Array me kisi item ki exact relative position fast khojna.", example: "Items in A2:A5 (\"Shirt\", \"Jeans\", \"Jacket\"). Search \"Jeans\".\nFormula: =XMATCH(\"Jeans\", A2:A5)\nResult: 2" },
+                    { title: "[6] LOOKUP", exp: "Older compatibility function hai jo vector ya array me value dhoondta hai.", purpose: "Simple ranges me quick status/grade mapping.", example: "Marks Range A2:A5 (0, 35, 60, 80), Grades B2:B5 (\"F\", \"C\", \"B\", \"A\").\nFormula: =LOOKUP(75, A2:A5, B2:B5)\nResult: \"B\"" },
+                    { title: "[7] INDIRECT", exp: "Text string ko valid cell reference me convert karta hai.", purpose: "Dynamic sheet switching aur dependent drop-down lists banana.", example: "Cell A1 = \"B5\". Cell B5 = 5000.\nFormula: =INDIRECT(A1)\nResult: 5000" },
+                    { title: "[8] OFFSET", exp: "Starting cell se specified rows/columns door ke cell ya range ka reference deta hai.", purpose: "Dynamic ranges aur moving averages calculate karna.", example: "Start Cell A1. 2 rows neeche, 1 col right.\nFormula: =OFFSET(A1, 2, 1)\nResult: Value of B3" },
+                    { title: "[9] FORMULATEXT", exp: "Cell me lage hue formula ko text ke roop me screen par dikhata hai.", purpose: "Audit, documentation aur training sheets me formula reveal karna.", example: "Cell C2 = `=A2+B2`\nFormula in D2: =FORMULATEXT(C2)\nResult: \"=A2+B2\"" },
+                    { title: "[10] HYPERLINK", exp: "Cell me clickable shortcut link banata hai.", purpose: "Navigation dashboards aur document tracking systems.", example: "=HYPERLINK(\"https://google.com\", \"Open Google\")" },
+                    { title: "[11] GETPIVOTDATA", exp: "Pivot Table se specific aggregated data safely extract karta hai.", purpose: "Pivot table refresh hone ke baad bhi exact metrics ko dashboard cards par lana.", example: "=GETPIVOTDATA(\"Sales\", $A$3, \"Region\", \"North\")" },
+                    { title: "[12] ROW & ROWS", exp: "ROW cell ki row number batata hai; ROWS total rows ginta hai.", purpose: "Dynamic serial numbers aur matrix size calculation.", example: "=ROW(C5) -> 5 | =ROWS(A1:A10) -> 10" },
+                    { title: "[13] COLUMN & COLUMNS", exp: "COLUMN cell ka column number batata hai; COLUMNS total columns ginta hai.", purpose: "Dynamic formula dragging aur matrix dimension checks.", example: "=COLUMN(C1) -> 3 | =COLUMNS(A1:D5) -> 4" }
+                ],
+                // CATEGORY 1.2: MODERN DYNAMIC ARRAYS
+                "1_2": [
+                    { title: "[1] FILTER", exp: "Specified condition ke aadhar par source data ko automatically filter karke display karta hai.", purpose: "Live dynamic reports banana bina manual filter apply kiye.", example: "=FILTER(A2:B10, A2:A10=\"Delhi\", \"No Data\")" },
+                    { title: "[2] UNIQUE", exp: "Kisi list se duplicate values hata kar unique items ki list nikalta hai.", purpose: "Dropdown list ke liye master distinct values banana.", example: "=UNIQUE(A2:A8)" },
+                    { title: "[3] SORT", exp: "Array ko ascending ya descending order me arrange karta hai.", purpose: "Dynamic Top-Sales ya Ranked reporting.", example: "=SORT(B2:B10, 1, -1)" },
+                    { title: "[4] SORTBY", exp: "Ek array ko kisi doosre array ke values ke aadhar par sort karta hai.", purpose: "Employee names ko Score ke basis par arrange karna.", example: "=SORTBY(A2:A5, B2:B5, -1)" },
+                    { title: "[5] SEQUENCE", exp: "Specified rows/columns ke basis par sequential series generate karta hai.", purpose: "Automated serial numbers ya date series create karna.", example: "=SEQUENCE(5, 1, 100, 10) -> 100, 110, 120, 130, 140" },
+                    { title: "[6] RANDARRAY", exp: "Specified dimensions me random decimal ya integer numbers fill karta hai.", purpose: "Testing aur sample datasets generate karna.", example: "=RANDARRAY(3, 2, 1, 50, TRUE)" },
+                    { title: "[7] CHOOSEROWS & CHOOSECOLS", exp: "Array me se specific rows ya columns extract karta hai.", purpose: "Large table me se required columns ki customized view banana.", example: "=CHOOSECOLS(A2:D10, 1, 4)" },
+                    { title: "[8] TAKE & DROP", exp: "TAKE array ke start/end se rows/cols rakhta hai; DROP unhe remove karta hai.", purpose: "Top N records nikalna ya Header/Footer rows skip karna.", example: "=TAKE(A2:B10, 3) | =DROP(A2:B10, 2)" },
+                    { title: "[9] EXPAND", exp: "Array ko specified dimensions tak bada karta hai.", purpose: "Un-even datasets ko combine karne ke liye standard size me lana.", example: "=EXPAND(A1:B2, 4, 2, \"N/A\")" },
+                    { title: "[10] TOCOL & TOROW", exp: "2D matrix ko single vertical column ya horizontal row me convert karta hai.", purpose: "Multi-column tags ko vertical list me consolidate karna.", example: "=TOCOL(A1:C3)" },
+                    { title: "[11] WRAPROWS & WRAPCOLS", exp: "Single row/column list ko 2D grid me wrap karta hai.", purpose: "Flat lists ko tabular grid layouts me badalna.", example: "=WRAPROWS(A1:A10, 2)" }
+                ],
+                // CATEGORY 1.3: LOGICAL & DECISION MAKING
+                "1_3": [
+                    { title: "[1] IF", exp: "Condition check karta hai; True hone par pehla result aur False hone par doosra result deta hai.", purpose: "Basic decision making (Pass/Fail, Eligible/Not Eligible).", example: "Marks Cell A2 = 45.\nFormula: =IF(A2>=33, \"Pass\", \"Fail\") -> Result: \"Pass\"" },
+                    { title: "[2] IFS", exp: "Multiple conditions ko bina nested IF ke sequentially check karta hai.", purpose: "Multi-tier grading ya slab-wise commission rates.", example: "Score Cell A2 = 85.\nFormula: =IFS(A2>=90, \"A+\", A2>=80, \"A\", A2>=70, \"B\") -> Result: \"A\"" },
+                    { title: "[3] AND, OR, XOR, NOT", exp: "AND: Saari conditions true hon. OR: Ek bhi condition true ho. XOR: Odd number of conditions true hon. NOT: Result reverse karta hai.", purpose: "Complex validation rules construct karna.", example: "Age A2=25, Exp B2=3. Formula: =AND(A2>=18, B2>=2) -> Result: TRUE" },
+                    { title: "[4] SWITCH", exp: "Single expression ki value ko multiple cases se match karke result deta hai.", purpose: "Code numbers ko text labels me mapping karna.", example: "Day Code Cell A2 = 2.\nFormula: =SWITCH(A2, 1, \"Mon\", 2, \"Tue\", 3, \"Wed\", \"Invalid\") -> Result: \"Tue\"" },
+                    { title: "[5] IFERROR & IFNA", exp: "Formula me error (#N/A, #VALUE!, #DIV/0!) aane par custom clean message display karta hai.", purpose: "Clean reports banana bina error tags ke.", example: "Formula: =IFERROR(10/0, \"Calculation Error\") -> Result: \"Calculation Error\"" },
+                    { title: "[6] ISNUMBER, ISTEXT, ISBLANK, ISERROR, ISEVEN, ISODD", exp: "Cell ki property check karke TRUE ya FALSE return karte hain.", purpose: "Data auditing, input validation aur conditional formatting logic.", example: "Cell A2 = \"Hello\". Formula: =ISTEXT(A2) -> Result: TRUE" }
+                ],
+                // CATEGORY 1.4: ADVANCED LAMBDA & VARIABLES
+                "1_4": [
+                    { title: "[1] LET", exp: "Formula ke andar custom variables aur intermediate calculations ko naam assign karta hai.", purpose: "Calculation speed badhana aur complex formulas ko readable banana.", example: "Formula: =LET(Price, 100, Tax, 18, Price + (Price * Tax / 100))\nResult: 118" },
+                    { title: "[2] LAMBDA", exp: "Bina VBA/Macros ke apna custom reusable Excel function banana.", purpose: "Company-specific complex calculations ko simple one-line function banana.", example: "Custom GST Function: =LAMBDA(amount, amount * 0.18)\nName Manager me save karke `=GST(500)` use kar sakte hain." },
+                    { title: "[3] MAP, REDUCE, SCAN", exp: "MAP: Array ke har element par LAMBDA apply karta hai. REDUCE: Single value me accumulate karta hai. SCAN: Running total compute karta hai.", purpose: "Complex looping logic formulas.", example: "Running total of 1, 2, 3: =SCAN(0, A1:A3, LAMBDA(a, b, a+b)) -> Result: 1, 3, 6" },
+                    { title: "[4] MAKEARRAY, BYROW, BYCOL", exp: "MAKEARRAY: Synthetic array banata hai. BYROW / BYCOL: Grid ke har Row ya Column par individually operation run karta hai.", purpose: "Matrix generation aur row-level dynamic aggregations.", example: "Data A1:C3 ke har Row ka sum: =BYROW(A1:C3, LAMBDA(r, SUM(r)))" }
+                ],
+                // CATEGORY 1.5: TEXT & STRING MANIPULATION
+                "1_5": [
+                    { title: "[1] TEXTSPLIT, TEXTBEFORE, TEXTAFTER", exp: "TEXTSPLIT: Delimiter par text todta hai. TEXTBEFORE: Delimiter se pehle ka text. TEXTAFTER: Delimiter ke baad ka text.", purpose: "Full Names se First/Last Name alag karna ya Email se Username/Domain extract karna.", example: "Email A2 = \"rahul.sharma@gmail.com\"\n=TEXTBEFORE(A2, \"@\") -> \"rahul.sharma\"\n=TEXTAFTER(A2, \"@\") -> \"gmail.com\"" },
+                    { title: "[2] TEXTJOIN & CONCAT", exp: "TEXTJOIN custom delimiter aur ignore-blank option ke sath text merge karta hai. CONCAT simple list join karta hai.", purpose: "Multiple columns ke address/names ko single cell me jodne ke liye.", example: "A2=\"Delhi\", B2=\"India\".\nFormula: =TEXTJOIN(\", \", TRUE, A2, B2) -> Result: \"Delhi, India\"" },
+                    { title: "[3] LEFT, RIGHT, MID, LEN", exp: "Text me se characters extract karna (LEFT=start, RIGHT=end, MID=beech se). LEN total length ginta hai.", purpose: "Serial Codes, Account Numbers, ya State Codes separate karna.", example: "Code A2 = \"DL-110001\".\n=LEFT(A2, 2) -> \"DL\" | =LEN(A2) -> 9" },
+                    { title: "[4] SEARCH & FIND", exp: "Text string me character/word ki position batate hain. FIND case-sensitive hai, SEARCH case-insensitive.", purpose: "Dynamic text trimming logic ke liye character position dhoondna.", example: "Text A2 = \"Invoice # 450\". Formula: =SEARCH(\"#\", A2) -> Result: 9" },
+                    { title: "[5] SUBSTITUTE & REPLACE", exp: "SUBSTITUTE specific word ko replace karta hai; REPLACE character position ke basis par replace karta hai.", purpose: "Formatting errors sahi karna (spaces/hyphens replace karna).", example: "Phone A2 = \"9876-543-210\".\nFormula: =SUBSTITUTE(A2, \"-\", \"\") -> Result: \"9876543210\"" },
+                    { title: "[6] TRIM, CLEAN, PROPER, UPPER, LOWER", exp: "TRIM: Extra spaces hatata hai. CLEAN: Non-printable characters hatata hai. PROPER: First letter Capital. UPPER/LOWER: All Caps/Small.", purpose: "Raw imported dirty data ko clean aur standardize karna.", example: "Text A2 = \"  rahul VERMA \".\nFormula: =PROPER(TRIM(A2)) -> Result: \"Rahul Verma\"" },
+                    { title: "[7] TEXT, VALUE, REPT, CHAR, CODE", exp: "TEXT: Custom format me convert karta hai. VALUE: Text-numbers ko numeric banata hai. REPT: Text repeat karta hai.", purpose: "Custom formatted text views aur mini in-cell bar charts.", example: "Date A2 = 08/09/2026. Formula: =TEXT(A2, \"mmmm-yyyy\") -> \"September-2026\"\nFormula 2: =REPT(\"|\", 5) -> \"|||||\"" }
+                ],
+                // CATEGORY 1.6: MATH & CONDITIONAL AGGREGATIONS
+                "1_6": [
+                    { title: "[1] SUM, SUMIF, SUMIFS", exp: "SUM simple jodta hai. SUMIF 1 condition par. SUMIFS Multiple conditions par jodta hai.", purpose: "Region-wise, Date-wise, ya Category-wise total sales nikalna.", example: "Region (Col A), Sales (Col B).\nFormula: =SUMIFS(B2:B10, A2:A10, \"North\") -> Result: North Region total sales." },
+                    { title: "[2] COUNT, COUNTA, COUNTBLANK, COUNTIF, COUNTIFS", exp: "Numbers, Non-blanks, Blanks, 1-Condition count, aur Multi-Condition counts karne ke functions.", purpose: "Attendance tracking, item frequency, aur filtered counts.", example: "Status (Col A), Dept (Col B).\nFormula: =COUNTIFS(A2:A10, \"Present\", B2:B10, \"HR\") -> Result: Present HR Staff." },
+                    { title: "[3] AVERAGE, AVERAGEIF, AVERAGEIFS", exp: "Un-conditional ya conditional datasets ka average (ausat) nikalna.", purpose: "Average order value ya category-wise average performance.", example: "Formula: =AVERAGEIF(A2:A10, \"Delhi\", B2:B10) -> Result: Delhi city average sale." },
+                    { title: "[4] SUMPRODUCT", exp: "Multiple arrays ke corresponding elements ko multiply karke total sum nikalta hai.", purpose: "Bina extra helper column ke (Qty * Rate) ka total bill nikalna.", example: "Qty A2:A4 (2, 3, 5), Rates B2:B4 (100, 200, 50).\nFormula: =SUMPRODUCT(A2:A4, B2:B4) -> Calculation: (2*100) + (3*200) + (5*50) = 1050" },
+                    { title: "[5] ROUND, ROUNDUP, ROUNDDOWN, INT, TRUNC", exp: "Decimals ko round off karna (ROUND = standard, ROUNDUP = higher, ROUNDDOWN = lower, INT/TRUNC = decimals hatana).", purpose: "Financial billing aur tax calculation clear rounded numbers me rakhna.", example: "Val = 45.678. Formula: =ROUND(Val, 2) -> Result: 45.68" },
+                    { title: "[6] SUBTOTAL & AGGREGATE", exp: "Filtered lists par calculations karte hain aur hidden/filtered-out rows ko ignore kar dete hain.", purpose: "Dynamic filtered dashboards me accurate totals dikhana.", example: "Formula: =SUBTOTAL(9, B2:B100) -> Filtered visible B column ka sum dega." }
+                ],
+                // CATEGORY 1.7: FINANCIAL & INVESTMENT
+                "1_7": [
+                    { title: "[1] XIRR & IRR", exp: "Investment returns (Internal Rate of Return) calculate karte hain. XIRR non-periodic dates ke cashflows ke liye accurate hai.", purpose: "Mutual funds, SIPs, aur Business Investments ka CAGR/IRR nikalna.", example: "Dates A2:A5, Cashflows B2:B5 (-100000, 20000, 40000, 70000).\nFormula: =XIRR(B2:B5, A2:A5) -> Result: Exact annual return %" },
+                    { title: "[2] PMT, PPMT, IPMT", exp: "PMT: Total monthly EMI. PPMT: EMI me Principal portion. IPMT: EMI me Interest portion.", purpose: "Bank loans aur Equipment Leasing schedules design karna.", example: "Loan 50 Lakhs, Rate 8.5% p.a., Tenure 240 Months.\nFormula: =PMT(8.5%/12, 240, -5000000) -> Monthly EMI amount." },
+                    { title: "[3] NPV & XNPV", exp: "Future cash inflows ki Net Present Value calculate karta hai based on a discount rate.", purpose: "Business project feasibility aur capital budgeting evaluations.", example: "Rate 10%, Cashflows B2:B5. Formula: =NPV(10%, B2:B5)" },
+                    { title: "[4] SLN, DB, DDB", exp: "Asset Depreciation (SLN = Straight Line, DB/DDB = Declining Balance) calculate karte hain.", purpose: "Company machinery/laptop assets ki yearly book value write-off calculate karna.", example: "Cost 100,000, Salvage 10,000, Life 5 Years.\nFormula: =SLN(100000, 10000, 5) -> 18000 per year depreciation." }
+                ],
+                // CATEGORY 1.8: DATE & TIME CALCULATIONS
+                "1_8": [
+                    { title: "[1] TODAY & NOW", exp: "TODAY current system date deta hai; NOW date aur current time dono deta hai.", purpose: "Dynamic aging calculations aur live execution timestamps.", example: "Formula: =TODAY() -> Result: 08-09-2026" },
+                    { title: "[2] DATEDIF", exp: "Do dates ke beech ka exact difference (Years, Months, Days) nikalta hai.", purpose: "Age calculation, Employee Tenure, ya Project Duration evaluation.", example: "DOB in A2 = 15-08-1995. Current Date = TODAY().\nFormula: =DATEDIF(A2, TODAY(), \"Y\") -> Result: 31 Years" },
+                    { title: "[3] EDATE & EOMONTH", exp: "EDATE N-months aage/peeche ki date deta hai. EOMONTH us month ki last date (End of Month) deta hai.", purpose: "Invoice Due Dates, Subscription Expiry, aur Monthly Financial Closing dates.", example: "Invoice Date A2 = 10-01-2026.\nFormula 1: =EDATE(A2, 3) -> 10-04-2026\nFormula 2: =EOMONTH(A2, 0) -> 31-01-2026" },
+                    { title: "[4] WORKDAY & NETWORKDAYS (INC. .INTL)", exp: "NETWORKDAYS: Weekends aur Holidays minus karke working days ginta hai. WORKDAY: Target completion date batata hai. .INTL custom weekends handle karta hai.", purpose: "Project SLA tracking aur corporate payroll processing.", example: "Start A2 = 01-09-2026, End B2 = 30-09-2026.\nFormula: =NETWORKDAYS.INTL(A2, B2, 11) (Where 11 = Sunday only weekend)" }
+                ],
+                // CATEGORY 1.9: STATISTICAL & DATABASE
+                "1_9": [
+                    { title: "[1] MAX, MIN, MAXIFS, MINIFS", exp: "Range me se highest/lowest value nikalna (MAXIFS/MINIFS condition ke sath karte hain).", purpose: "Highest Sale, Minimum Temperature, ya Top Branch Performance identify karna.", example: "Formula: =MAXIFS(B2:B10, A2:A10, \"North\") -> Result: North Region max sale." },
+                    { title: "[2] LARGE & SMALL", exp: "Dataset me se K-th position ki highest ya lowest value nikalta hai (2nd Highest, 3rd Lowest).", purpose: "Top 3 Performers ya Runner-up values highlight karna.", example: "Scores in A2:A10. Formula (2nd Highest): =LARGE(A2:A10, 2)" },
+                    { title: "[3] MEDIAN, MODE, STDEV.S", exp: "Statistical measures (MEDIAN = Middle Value, MODE = Most Frequent, STDEV = Standard Deviation).", purpose: "Retail basket analysis aur quality control risk analysis.", example: "Order sizes A2:A10. Formula: =MEDIAN(A2:A10)" },
+                    { title: "[4] DSUM, DCOUNT, DAVERAGE", exp: "Database criteria range ke basis par calculations karne wale structured tools.", purpose: "Complex multi-column criteria lists par quick database summary.", example: "Formula: =DSUM(A1:C100, \"Sales\", E1:F2)" }
+                ],
+                // CATEGORY 2.1: SHORTCUTS - FORMATTING & LAYOUT
+                "2_1": [
+                    { title: "Alt + H + L", exp: "Home Ribbon se Conditional Formatting Menu open karta hai.", purpose: "Key metrics ko highlight karne ke liye rules fast open karna.", example: "Shortcut Sequence: Press Alt, then H, then L" },
+                    { title: "Alt + H + O + I", exp: "Selected Columns ki width ko unke longest content ke hisab se Auto-fit karta hai.", purpose: "Text ke cutne (### error) ko seconds me fix karna.", example: "Shortcut Sequence: Alt -> H -> O -> I" },
+                    { title: "Alt + H + O + A", exp: "Selected Rows ki height ko Auto-fit karta hai.", purpose: "Multi-line wrapped text rows ki alignment clean karna.", example: "Shortcut Sequence: Alt -> H -> O -> A" },
+                    { title: "Alt + H + B", exp: "Cell Borders popup menu open karta hai.", purpose: "Tables me All Borders, Thick Bottom Borders fast apply karna.", example: "Shortcut Sequence: Alt -> H -> B" },
+                    { title: "Alt + H + M + C", exp: "Selected cells ko Merge karke text ko Center align karta hai.", purpose: "Dashboard Headers aur Main Report Titles create karna.", example: "Shortcut Sequence: Alt -> H -> M -> C" },
+                    { title: "Alt + H + F + M", exp: "Full Format Cells dialog window (Number, Alignment, Font, Border, Fill) open karta hai.", purpose: "Precision custom formatting apply karne ke liye.", example: "Shortcut Sequence: Alt -> H -> F -> M" }
+                ],
+                // CATEGORY 2.2: SHORTCUTS - DATA TOOLS
+                "2_2": [
+                    { title: "Alt + A + M", exp: "Data Tab se Remove Duplicates tool trigger karta hai.", purpose: "Clean unique master lists generate karna.", example: "Shortcut Sequence: Alt -> A -> M" },
+                    { title: "Alt + A + V + V", exp: "Data Validation window open karta hai.", purpose: "Dropdown lists, numeric limits, aur restricted entry rules lagana.", example: "Shortcut Sequence: Alt -> A -> V -> V" },
+                    { title: "Alt + A + T", exp: "Header Row par AutoFilter arrows Turn ON/OFF (Toggle) karta hai.", purpose: "Instant data filtering start/stop karna.", example: "Shortcut Sequence: Alt -> A -> T" },
+                    { title: "Alt + A + C", exp: "Active sheet ke saare applied Filters ko ek sath Clear kar deta hai.", purpose: "Filtered data view se instant normal view me lautna.", example: "Shortcut Sequence: Alt -> A -> C" },
+                    { title: "Alt + N + V", exp: "Insert Pivot Table dialog box open karta hai.", purpose: "Raw data se summary reports compile karna start karna.", example: "Shortcut Sequence: Alt -> N -> V" },
+                    { title: "Alt + N + T", exp: "Selected range ko official Excel Dynamic Table format (Ctrl+T) me convert karta hai.", purpose: "Auto-expanding ranges aur clean striped styling apply karna.", example: "Shortcut Sequence: Alt -> N -> T" },
+                    { title: "Alt + W + F + F", exp: "Selected Row/Column par Freeze Panes apply/remove karta hai.", purpose: "Badi sheets me scroll karte waqt Headers ko freeze rakhna.", example: "Shortcut Sequence: Alt -> W -> F -> F" }
+                ],
+                // CATEGORY 2.3: SPEED NAVIGATION & SELECTION
+                "2_3": [
+                    { title: "Ctrl + Shift + L", exp: "Filter Toggle shortcut (Ribbon Alt+A+T ka fast direct keyboard version).", purpose: "Instant Data AutoFilter Turn ON/OFF.", example: "Press Ctrl + Shift + L together" },
+                    { title: "Ctrl + Alt + V", exp: "Paste Special Dialog Window open karta hai.", purpose: "Sirf Values, Formulas, Formats, ya Column Widths paste karne ke liye.", example: "Press Ctrl + Alt + V together" },
+                    { title: "Ctrl + Shift + Arrow Keys", exp: "Data block ke last occupied cell tak instant range selection karta hai.", purpose: "Lakho rows ko bina mouse drag kiye 1 second me select karna.", example: "Press Ctrl + Shift + Down/Right Arrow" },
+                    { title: "Ctrl + Space / Shift + Space", exp: "Ctrl + Space: Entire Column select karta hai. Shift + Space: Entire Row select karti hai.", purpose: "Entire row/column operations fast perform karna.", example: "Ctrl + Space (Column) | Shift + Space (Row)" },
+                    { title: "Ctrl + Backspace", exp: "Badi range select karne ke baad screen ko active focus cell par wapas jump kara deta hai.", purpose: "Navigation ke waqt context losing avoid karna.", example: "Press Ctrl + Backspace" },
+                    { title: "Ctrl + PageUp / Ctrl + PageDown", exp: "Workbook ke alag-alag Worksheets/Tabs ke beech left/right switch karta hai.", purpose: "Mouse touch kiye bina multi-sheet audit karna.", example: "Ctrl + PageDown (Next Sheet) | Ctrl + PageUp (Prev Sheet)" }
+                ],
+                // CATEGORY 2.4: FORMULA & EDITING POWER SHORTCUTS
+                "2_4": [
+                    { title: "Alt + =", exp: "AutoSum trigger karta hai. Smartly surrounding range detect karke SUM formula apply kar deta hai.", purpose: "Financial tables ke bottom me instant total nikalna.", example: "Press Alt + = at the end of a column" },
+                    { title: "F4", exp: "Edit Mode: Reference ko Absolute ($A$1), Mixed (A$1, $A1), Relative (A1) me switch karta hai. Normal Mode: Last action Repeat karta hai.", purpose: "Cell references locking fast change karna.", example: "Press F4 key while cursor is on cell reference" },
+                    { title: "Ctrl + ~ (Tilde)", exp: "Whole Sheet me Formula View ko Toggle karta hai (Values ki jagah backend formulas dikhai dete hain).", purpose: "Entire sheet ki calculation auditing aur troubleshooting.", example: "Press Ctrl + ~" },
+                    { title: "Ctrl + E", exp: "Flash Fill trigger karta hai. User dwara diye gaye 1-2 examples ka pattern pehchan kar baaki rows fill kar deta hai.", purpose: "Text extraction, split, aur formatting bina kisi formula ke.", example: "Type example in Col B, press Ctrl + E" },
+                    { title: "Ctrl + D / Ctrl + R", exp: "Ctrl + D: Upar wale cell ka content/formula Fill Down karta hai. Ctrl + R: Left wale cell ka Fill Right karta hai.", purpose: "Formulas fast copy-paste karna down/right.", example: "Ctrl + D (Fill Down) | Ctrl + R (Fill Right)" },
+                    { title: "F9", exp: "Formula bar me selected portion/expression ko calculate karke intermediate value dikhata hai.", purpose: "Complex nested formulas me bugs fix karna.", example: "Select formula part in formula bar, press F9" }
+                ],
+                // CATEGORY 2.5: POWER QUERY & AUTOMATION SHORTCUTS
+                "2_5": [
+                    { title: "Alt + F12", exp: "Excel me direct Power Query Editor Window open karta hai.", purpose: "Data ETL (Extract, Transform, Load) pipelines manage karna.", example: "Press Alt + F12" },
+                    { title: "Alt + F8", exp: "Macro Dialog Box open karta hai jahan se existing Macros ko Run, Edit ya Delete kar sakte hain.", purpose: "Recorded/Custom macros trigger aur execute karna.", example: "Press Alt + F8" },
+                    { title: "Alt + F11", exp: "VBA Editor Window (Visual Basic for Applications) open/switch karta hai.", purpose: "Automation scripts aur custom VBA modules write karna.", example: "Press Alt + F11" },
+                    { title: "Alt + F1", exp: "Selected data range se instant default Embedded Chart active worksheet par create kar deta hai.", purpose: "Instant 1-click charting for presentation.", example: "Select Data Range, Press Alt + F1" }
+                ],
+                // CATEGORY 2.6: WORKBOOK MANAGEMENT & AUDITING
+                "2_6": [
+                    { title: "Ctrl + Shift + U", exp: "Formula Bar window height ko Expand ya Collapse (Multi-line view) karta hai.", purpose: "Lambe multi-line dynamic formulas ya LET functions ko comfortable read karna.", example: "Press Ctrl + Shift + U" },
+                    { title: "Ctrl + [  and  Ctrl + ]", exp: "Ctrl + [: Active formula ke Direct Precedents (Source Cells) par jump karta hai. Ctrl + ]: Active cell ke Dependents cells par jump karta hai.", purpose: "Large financial models audit karna.", example: "Ctrl + [ (Precedents) | Ctrl + ] (Dependents)" },
+                    { title: "F5 + Alt + S", exp: "'Go To Special' window open karta hai.", purpose: "Sirf Blank cells, Formula cells, Constants, ya Visible cells select karna.", example: "Press F5, then click Special (Alt + S)" }
+                ],
+                // CATEGORY 3.1 TO 3.7: BUILT-IN FUNCTIONS
+                "3_1": [{ title: "COMPATIBILITY FUNCTIONS", exp: "Old Excel versions (2007 ya usse pehle) ke legacy functions jo nayi files me backward compatibility ke liye available hain (STDEV, VAR, RANK).", purpose: "Purani legacy automated templates ko bina break kiye open rakhna.", example: "=STDEV(A2:A50)" }],
+                "3_2": [{ title: "ENGINEERING FUNCTIONS", exp: "Complex engineering calculations, number base conversions (BIN2DEC, HEX2DEC), aur Bessel/Complex Numbers handle karne ke functions.", purpose: "Scientific, electrical, aur signal-processing measurement units mapping.", example: "=BIN2DEC(\"1101\") -> Result: 13" }],
+                "3_3": [{ title: "INFORMATION FUNCTIONS", exp: "System, Cell, ya Error properties verify karne wale functions (ISFORMULA, CELL, INFO, SHEET).", purpose: "Dynamic sheet auditing aur error-handling conditional execution.", example: "=ISFORMULA(A2) -> Returns TRUE if formula exists" }],
+                "3_4": [{ title: "LOGICAL FUNCTIONS", exp: "Boolean logic evaluate karne wale tools (IF, AND, OR, SWITCH, LET, LAMBDA).", purpose: "System workflows me decision branching automate karna.", example: "=IF(A2>100, \"High\", \"Low\")" }],
+                "3_5": [{ title: "MATH & TRIG FUNCTIONS", exp: "Mathematical, Trigonometric, aur Aggregation tools (SUM, ABS, SIN, COS, SQRT, AGGREGATE, MOD).", purpose: "Financial modeling, scaling, aur geometric calculations.", example: "=SQRT(144) -> Result: 12" }],
+                "3_6": [{ title: "STATISTICAL FUNCTIONS", exp: "Probability distributions, trends, aur data modeling functions (AVERAGE, STDEV, FORECAST, PERCENTILE, CORREL).", purpose: "Business forecasting, market trend analysis, aur risk management.", example: "=FORECAST.LINEAR(x, known_y's, known_x's)" }],
+                "3_7": [{ title: "WEB & CUBE FUNCTIONS", exp: "WEB: Web APIs se direct data import karne ke tools (WEBSERVICE, FILTERXML). CUBE: Power Pivot Data Models se metrics query karne ke tools (CUBEMEMBER, CUBEVLUE).", purpose: "Real-time stock prices, live weather APIs, aur Enterprise BI Data Warehouses se connect hona.", example: "=WEBSERVICE(\"https://api.example.com/data\")" }],
+                // CATEGORY 4.1 TO 4.5: DATA CLEANSING
+                "4_1": [{ title: "Text to Columns & Flash Fill", exp: "Text to Columns: Delimiter (comma, space, tab) ke basis par text split karta hai. Flash Fill (Ctrl+E): Pattern pehchan kar auto-fill karta hai.", purpose: "Third-party CRM/ERP system se export raw strings ko clean tabular columns me convert karna.", example: "Raw String A2: \"Rahul_Sharma_Delhi_9876543210\"\nDelimiter \"_\": Col B=\"Rahul\", Col C=\"Sharma\", Col D=\"Delhi\", Col E=\"9876543210\"" }],
+                "4_2": [{ title: "Advanced Data Validation & Dropdowns", exp: "Cell me restricted entry criteria set karta hai (List dropdowns, date limits, text length bounds, custom formulas).", purpose: "Data entry level par hi typos aur wrong inputs ko rokna (Data Sanitation).", example: "Data Validation -> Settings -> Allow: List -> Source: \"North, South, East, West\"\nResult: User in 4 options ke ilawa kuch enter nahi kar sakta." }],
+                "4_3": [{ title: "Conditional Formatting with Custom Rules", exp: "Cell value ya custom logical formula ke basis par automatic Color, Data Bars, ya Icon Sets apply karta hai.", purpose: "Outliers, negative profits, overdue payment dates ko visually stand-out karna.", example: "Rule: Highlights All Sales < ₹10,000 in Light Red Fill.\nFormula Rule: `= $C2 < 10000` applied to range $A$2:$D$50." }],
+                "4_4": [{ title: "Duplicate Removal & Unique Identifiers", exp: "Duplicate records detection aur cleanup tool jo specific key columns ke combination check karke extra repeated rows delete karta hai.", purpose: "Customer directory, email marketing lists, aur GST databases sanitize karna.", example: "Customer database me same Mobile Number wali multiple entries me se 1 main entry rakhna aur baaki purge karna." }],
+                "4_5": [{ title: "Custom Number Formatting", exp: "Cell me stored numerical value ko change kiye bina display format change karna using Syntax: `Positive; Negative; Zero; Text`.", purpose: "Currency symbols (₹, $), Thousands (K/M) formatting, trailing zeros rules set karna.", example: "Format Code: `₹#,##0.00;[Red](₹#,##0.00);\"-\"`\n5000 -> ₹5,000.00 | -5000 -> [Red](₹5,000.00) | 0 -> -" }],
+                // CATEGORY 5.1 TO 5.5: PIVOT TABLES
+                "5_1": [{ title: "Pivot Table Foundations & Layouts", exp: "Large flat datasets ko drag-and-drop fields (Filters, Columns, Rows, Values) ke zariye aggregate, summarize aur analyze karne ka tool.", purpose: "Millions of sales records se within seconds Category-wise aur Month-wise summary matrices banana.", example: "Raw Data: 50,000 transaction rows.\nPivot Layout: Rows = Region, Columns = Payment Mode, Values = Sum of Amount." }],
+                "5_2": [{ title: "Calculated Fields & Calculated Items", exp: "Original source raw data table me new columns add kiye bina direct Pivot Table Engine ke andar custom calculations create karna.", purpose: "On-the-fly GST Taxes, Commission Margins, ya Variance metrics add karna.", example: "Pivot Field: 'Sales'. Custom Calculated Field 'Tax' = `Sales * 0.18`.\nResult: Original data change kiye bina Tax column compute ho jayega." }],
+                "5_3": [{ title: "Slicers, Timelines & Report Connections", exp: "Visual interactive buttons (Slicers) aur date sliders (Timelines) jo ek sath multiple Pivot Tables aur Charts ko filter karte hain.", purpose: "Interactive Executive Management Dashboards develop karna.", example: "Slicer: \"Year 2026\" button par click karne par dashboard ke saare 5 Pivot Charts ek saath update honge." }],
+                "5_4": [{ title: "Data Model & Tabular Relationships", exp: "Multiple relational tables ko unke Common Primary Key columns (Customer ID) ke zariye connect karke Power Pivot Data Model create karna.", purpose: "Enterprise multi-table star schema reporting without flat VLOOKUP redundancy.", example: "Connect 'Sales Table' [Customer ID] with 'Customer Master Table' [Customer ID]." }],
+                "5_5": [{ title: "DAX Measures Basics (SUMX, CALCULATE, RELATED)", exp: "DAX dynamic analytical formulas jo Power Pivot Data Models me context-aware calculations karte hain.\nCALCULATE: Evaluation context change karta hai.\nSUMX: Row-by-row iteration compute karke sum karta hai.\nRELATED: Related lookup table se columns pull karta hai.", purpose: "High-level business intelligence, YTD/MTD calculations, aur dynamic KPIs compute karna.", example: "DAX Measure: `High Sales = CALCULATE(SUM(Sales[Amount]), Sales[Amount] > 50000)`" }],
+                // CATEGORY 6.1 TO 6.5: POWER QUERY & ETL
+                "6_1": [{ title: "Data Import (CSV, Web, SQL, PDF)", exp: "Alag-alag external sources (Text files, Web pages, Databases, PDFs) se live data connection query banakar Excel me ingest karna.", purpose: "Manual copy-pasting khatam karna aur single-click refreshable pipelines ready karna.", example: "Data Tab -> Get Data -> From PDF -> Select Bank Statement PDF -> Auto-extract transactional table." }],
+                "6_2": [{ title: "Transformations (Unpivoting, Transposing, Group By)", exp: "Dirty imported tables ko clean tabular format me restructure karna. Unpivoting crosstab reports ko clean vertical database lists me badalta hai. Group By summary grouping perform karta hai.", purpose: "Irregularly structured cross-tab client reports ko standard database layout me convert karna.", example: "Months wide columns (Jan, Feb, Mar) me unrolled metrics ko Unpivot Columns apply karke two columns (\"Month\" & \"Amount\") me convert karna." }],
+                "6_3": [{ title: "Merging (Joins) & Appending Queries", exp: "Merging: Do tables ko common key column ke basis par horizontal join karna (SQL Joins). Appending: Multiple sheets/CSVs ko vertical combine (stack) karna.", purpose: "12 months ke 12 alag CSV files ko combine karke single master query table banana.", example: "Append Queries: Select Folder containing 12 Monthly Sales CSVs -> Auto-combine into 1 Master Table." }],
+                "6_4": [{ title: "Custom Columns & Conditional Logic", exp: "Power Query Editor GUI me point-and-click Interface se custom formula columns aur if-then-else logical rules append karna.", purpose: "Excel environment me data load hone se pehle hi backend data preparation & categorization handle karna.", example: "Add Conditional Column: If `Quantity > 100` then `\"Bulk Order\"` else `\"Regular Order\"`." }],
+                "6_5": [{ title: "M-Code Syntax Basics", exp: "M-Code Power Query engine ke peeche chalne wali functional expression programming language hai.", purpose: "Advanced custom transformation steps aur automated ETL pipelines create karna.", example: "M-Code snippet: `Table.SelectRows(Source, each ([Sales] > 10000))`" }],
+                // CATEGORY 7.1 TO 7.5: VBA & AUTOMATION
+                "7_1": [{ title: "Developer Tab & Macro Recorder", exp: "Developer Tab Excel me advanced tools unlock karta hai. Macro Recorder user actions ko backend VBA code me translate karta hai.", purpose: "Daily repetitive formatting aur report generation tasks ko 1-click button automation me badalna.", example: "Record Macro -> Format Table, Apply Borders, Insert Total Row -> Stop Recording -> Assign to Button." }],
+                "7_2": [{ title: "VBA Modules, Procedures & Functions", exp: "Sub Procedures (`Sub...End Sub`): Task perform karte hain par return value nahi dete. User Defined Functions (`Function...End Function`): Custom calculation value return karte hain.", purpose: "Business workflow logic aur company custom functions automate karna.", example: "Sub Routine:\nSub ClearData()\n    Range(\"A2:D100\").ClearContents\nEnd Sub" }],
+                "7_3": [{ title: "Range & Cell Manipulations", exp: "VBA Code ke zariye cells, rows, columns aur worksheets ko programmatically select, read, write aur format karna.", purpose: "Automatic report generation, PDF exports, aur auto-email attachments dispatch.", example: "VBA Code: `Worksheets(\"Sales\").Range(\"A1\").Value = \"Monthly Report 2026\"`" }],
+                "7_4": [{ title: "Control Loops (For Next, Do While, For Each)", exp: "Repeatative programming structures jo thousands of cells ya multiple sheets par continuously iterate karke logic apply karte hain.", purpose: "Individual files batch processing aur automated audit scanning.", example: "VBA Loop:\nFor i = 2 To 100\n    If Cells(i, 1).Value = \"\" Then Cells(i, 1).Value = \"Missing\"\nNext i" }],
+                "7_5": [{ title: "Userforms & Interactive Dialogs", exp: "Excel ke upar custom Graphical User Interface (GUI) Forms create karna jisme Textboxes, Buttons, Dropdowns hote hain.", purpose: "Secured, error-free customized desktop application layer build karna for data entry operators.", example: "Form containing 'Employee Name', 'Department', 'Salary' fields -> Click \"Submit\" -> Entry appends to Master Database." }],
+                // CATEGORY 8.1 TO 8.5: DASHBOARDS & CHARTS
+                "8_1": [{ title: "Dynamic Charting (Waterfall, Sunburst, Gauge, Combination)", exp: "Waterfall: Financial variance (Profit/Loss bridge). Sunburst: Hierarchical multi-level category distribution. Gauge: Target achievement meter. Combination: Dual-axis Bar + Line charts.", purpose: "Executive board room management presentations me visual storytelling deliver karna.", example: "Waterfall Chart displaying Gross Revenue -> Less Costs -> Less Taxes -> Net Income." }],
+                "8_2": [{ title: "Form Controls (Checkboxes, Option Buttons, Scrollbars)", exp: "Interactive UI elements jo cells ke TRUE/FALSE ya numeric values se link hokar dynamic charts/formulas ko control karte hain.", purpose: "Interactive scenario modeling (Best Case / Worst Case financial projections toggle).", example: "Checkbox linked to Cell $A$1. If Checked ($A$1=TRUE), Chart includes Tax Overlay; if Unchecked, removes Tax Overlay." }],
+                "8_3": [{ title: "Sparklines & Micro Charts", exp: "Single cell ke andar hone wale tiny mini line/column graphs jo micro-trends dikhate hain.", purpose: "Compact summary tables me row-level trend monitoring.", example: "Last 12 months sales trend displaying inside Cell G2 beside the total numbers using Sparkline." }],
+                "8_4": [{ title: "KPI Cards & Executive Dashboard Design", exp: "High-level summarized visual cards displaying primary metrics (Total Revenue, Target Achieved %, NPS Score) using clean UI typography, borders, aur subtle colors.", purpose: "C-Suite Executives ko 5-second snapshot visual summary provide karna.", example: "Layout Card: Big Bold Font \"₹ 1.25 Cr\" with green up-arrow badge \"+12% vs Last Month\"." }],
+                "8_5": [{ title: "Dynamic Named Ranges with OFFSET & INDEX", exp: "Formula-driven named ranges jo new rows add hone par automatically expand ho jati hain.", purpose: "Charts aur Dropdowns ko dynamic source ranges allocate karna bina ranges re-selection ke.", example: "Name Manager Formula: `=OFFSET(Sheet1!$A$1, 0, 0, COUNTA(Sheet1!$A:$A), 1)`\nResult: Chart Source auto-grows as new daily data rows are appended." }]
+            }
+        };
+
+        // NAVIGATION ENGINE
+        function navigateTo(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+            window.scrollTo(0,0);
+        }
+
+        // PAGE 1: ANIMATION LOGIC
+        function triggerKhulJaSimSim() {
+            const keyInput = document.getElementById('secretKey').value;
+            const btn = document.querySelector('.sim-btn');
+            const compScreen = document.getElementById('compScreen');
+            const cloud = document.getElementById('flyingCloud');
+
+            if (!keyInput) {
+                alert("Please enter a secret key first!");
+                return;
+            }
+
+            btn.disabled = true;
+
+            const btnRect = btn.getBoundingClientRect();
+            const compRect = compScreen.getBoundingClientRect();
+
+            cloud.style.display = 'block';
+            cloud.style.left = `${btnRect.left + btnRect.width / 2}px`;
+            cloud.style.top = `${btnRect.top}px`;
+            cloud.style.transform = 'translate(-50%, -50%) scale(0.5)';
+
+            setTimeout(() => {
+                cloud.style.left = `${compRect.left + compRect.width / 2}px`;
+                cloud.style.top = `${compRect.top + compRect.height / 2}px`;
+                cloud.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            }, 50);
+
+            setTimeout(() => {
+                cloud.style.display = 'none';
+
+                if (keyInput === "simsim" || keyInput === "1234" || keyInput.length > 0) {
+                    compScreen.className = "comp-screen green";
+                    compScreen.innerText = "GRANTED";
+
+                    setTimeout(() => {
+                        compScreen.className = "comp-screen";
+                        compScreen.innerText = "LOCKED";
+                        btn.disabled = false;
+                        document.getElementById('secretKey').value = '';
+                        renderPage2();
+                        navigateTo('page2');
+                    }, 1000);
+                } else {
+                    compScreen.className = "comp-screen red";
+                    compScreen.innerText = "DENIED";
+                    setTimeout(() => {
+                        compScreen.className = "comp-screen";
+                        compScreen.innerText = "LOCKED";
+                        btn.disabled = false;
+                    }, 1000);
+                }
+            }, 3050);
+        }
+
+        // PAGE 2 RENDERER
+        function renderPage2() {
+            const grid = document.getElementById('p2-grid');
+            grid.innerHTML = '';
+            db.modules.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <div style="font-size: 2rem; margin-bottom: 12px;">${m.icon}</div>
+                    <h3>${m.title}</h3>
+                    <p>Click to view sub-categories and dynamic lessons.</p>
+                `;
+                card.onclick = () => renderPage3(m.id, m.title);
+                grid.appendChild(card);
+            });
+        }
+
+        // PAGE 3 RENDERER
+        function renderPage3(moduleId, moduleTitle) {
+            document.getElementById('p3-title').innerText = moduleTitle;
+            const grid = document.getElementById('p3-grid');
+            grid.innerHTML = '';
+
+            const subs = db.subCategories[moduleId] || [];
+            if(subs.length === 0) {
+                grid.innerHTML = `<div style="color: var(--text-sub);">Subcategories coming soon...</div>`;
+            } else {
+                subs.forEach(s => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <h3>${s.name}</h3>
+                        <p>Explore formulas, explanations & scenarios.</p>
+                    `;
+                    card.onclick = () => renderPage4(s.id, s.name);
+                    grid.appendChild(card);
+                });
+            }
+            navigateTo('page3');
+        }
+
+        // PAGE 4 RENDERER
+        function renderPage4(subId, subName) {
+            document.getElementById('p4-title').innerText = subName;
+            const container = document.getElementById('p4-content');
+            container.innerHTML = '';
+
+            const items = db.details[subId] || [];
+
+            if (items.length === 0) {
+                container.innerHTML = `
+                    <div class="detail-card">
+                        <div class="detail-title">${subName}</div>
+                        <div class="detail-section">
+                            <label>Overview</label>
+                            <p>Detailed modules and examples for this category are fully structured and indexed.</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'detail-card';
+                    card.innerHTML = `
+                        <div class="detail-title">${item.title}</div>
+                        <div class="detail-section">
+                            <label>Explanation</label>
+                            <p>${item.exp}</p>
+                        </div>
+                        <div class="detail-section">
+                            <label>Purpose</label>
+                            <p>${item.purpose}</p>
+                        </div>
+                        ${item.example ? `
+                        <div class="detail-section">
+                            <label>Scenario & Example</label>
+                            <div class="code-block">${item.example}</div>
+                        </div>` : ''}
+                    `;
+                    container.appendChild(card);
+                });
+            }
+            navigateTo('page4');
+        }
+    </script>
+</body>
+</html>
