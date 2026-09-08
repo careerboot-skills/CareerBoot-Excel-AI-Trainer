@@ -132,32 +132,32 @@ document.addEventListener("DOMContentLoaded", () => {
           topics: [
             {
               title: "[1] XLOOKUP",
-              exp: "XLOOKUP Excel ka sabse modern lookup tool hai jo VLOOKUP aur HLOOKUP dono ki kamiya door karta hai. Ye left-to-right aur right-to-left dono taraf data khoj sakta hai.",
-              purpose: "Kisi ID, Barcode, ya Item Name ke aadhar par uski details (Price, Stock, Category) fast dhoondna.",
-              scenario: "Master Table (Cols A-C): [A: Item Code, B: Item Name, C: Price]\nRow 2: P101 | Denim Jeans | 1200\nRow 3: P102 | Cotton Shirt | 800\nTarget: E2 me Item Code 'P102' likhne par F2 me Price chahiye.",
-              code: "=XLOOKUP(E2, A2:A3, C2:C3, \"Not Found\")",
-              result: "Result: 800"
+              exp: "XLOOKUP Excel ka sabse modern lookup tool hai jo VLOOKUP aur HLOOKUP dono ki jagah use kiya ja sakta hai. Ye left-to-right aur right-to-left dono taraf data find kar sakta hai.",
+              purpose: "Kisi Employee ki EmpID ya Emp Name ke behalf par uski details (Salary, Target, Achievement) fast find karna.",
+              scenario: "Master Table (Cols A-C): [A: EmpID, B: Emp Name, C: Salary]\nRow 2: E101 | Anshuman | 20000\nRow 3: E102 | Suraj | 18000\nTarget: E2 me EmpID 'E102' likhne par F2 me Salary chahiye.",
+              code: "=XLOOKUP(E2, A2:A300, C2:C300, \"Not Found\")",
+              result: "Result: 18000"
             },
             {
               title: "[2] VLOOKUP",
-              exp: "Vertical Lookup data ko top to bottom search karta hai aur specified column se value lata hai.",
-              purpose: "Master list se numeric column index ke aadhar par details match karna.",
-              scenario: "Table Range A2:C10. Search ID 'P101' (Cell E2 me hai).",
-              code: "=VLOOKUP(E2, A2:C10, 2, FALSE)",
-              result: "Result: \"Denim Jeans\" (Column 2 se name uthaya)."
+              exp: "Vertical Lookup data ko top to bottom search karta hai aur specified(jaha se hume chahiye) column se value lata hai.",
+              purpose: "Master list se numeric column index ke behalf par details match karna.",
+              scenario: "Table Range A2:C10. Search ID 'E101' (Cell E2 me hai).",
+              code: "=VLOOKUP(E2, A2:C10, 2, 0)",
+              result: "Result: \"Anshuman\" (Column 2(B) se name uthaya)."
             },
             {
               title: "[3] HLOOKUP",
               exp: "Horizontal Lookup data ko left to right rows me dhoondta hai aur specified row se result lata hai.",
               purpose: "Quarter-wise ya Month-wise horizontal headers wale data se figures nikalna.",
-              scenario: "Row 1 (Months): Jan | Feb | Mar\nRow 2 (Sales): 50000 | 65000 | 80000",
-              code: "=HLOOKUP(\"Feb\", A1:C2, 2, FALSE)",
-              result: "Result: 65000"
+              scenario: "Row 1 (Months): Jan | Feb | Mar\nRow 2 (Target): 150000 | 165000 | 180000",
+              code: "=HLOOKUP(\"Feb\", A1:C2, 2, 0)",
+              result: "Result: 165000"
             },
             {
               title: "[4] INDEX & MATCH",
               exp: "INDEX specific row aur column position se value uthata hai, jabki MATCH batata hai ki koi value kis position par hai. Dono milkar VLOOKUP se zyada flexible lookup banate hain.",
-              purpose: "Dynamic multi-directional lookup aur heavy files me fast calculation.",
+              purpose: "Dynamic multi-directional lookup aur heavy files me fast calculation ke liye use hota hai.",
               scenario: "Names in A2:A5, Salaries in B2:B5. Target Name 'Amit' in D2.",
               code: "=INDEX(B2:B5, MATCH(D2, A2:A5, 0))",
               result: "Result: Amit ki Salary."
@@ -165,7 +165,7 @@ document.addEventListener("DOMContentLoaded", () => {
             {
               title: "[5] XMATCH",
               exp: "MATCH ka advanced version jo default exact match perform karta hai aur reverse search bhi kar sakta hai.",
-              purpose: "Array me kisi item ki exact relative position fast khojna.",
+              purpose: "Array me kisi item ki exact relative position ko fast find karna.",
               scenario: "Items in A2:A5 (\"Shirt\", \"Jeans\", \"Jacket\"). Search \"Jeans\".",
               code: "=XMATCH(\"Jeans\", A2:A5)",
               result: "Result: 2"
