@@ -1,0 +1,1090 @@
+Create a fully primium and animated website for Excel learning where the first page will be a login page, the 35% area of the screen will have a SVG CareerBoot logo with a welcome note and uske niche there will be an animation of a man walking from intrest(left and the start point) to success(right and the end point), aur fir 15% area will be for putting the secret key with a 'khul ja sim sim' button, uske baad rest of the screen will have a man sitting infront of a computer.
+Jaise hi koi secret key daal kar khul ja sim sim button par click karega the secret key will convert in the form of cloud☁️ and travel for 3s to reach out the man sitting infront of the computer and will be placed exact on that computer screen for 1s, after that 4s animation if the key is correct the screen will indicate green and the next page comes if the key is incorrect the screen will indicate red.
+2nd page will have a MAIN DASHBOARD   with below options:
+[ 1. All Formulas & Dynamic Arrays ]
+[ 2. All Shortcut Keys (Pro) ]
+[ 3. All Built-in Functions ]
+[ 4. Data Cleansing & Formatting ]
+[ 5. Pivot Tables & Data Modeling ]
+[ 6. Power Query & ETL ]
+[ 7. VBA, Macros & Automation ]
+[ 8. Dashboards, Charts & Analytics]
+
+If User Clicks 1. All Formulas & Dynamic Arrays on Page 2:
+Page 3 par 9 Sub-Category Grids dikhenge:
+
+1. Lookup & Reference: XLOOKUP, VLOOKUP, HLOOKUP, INDEX, MATCH, XMATCH, LOOKUP, INDIRECT, OFFSET, FORMULATEXT, HYPERLINK, GETPIVOTDATA, ROW, ROWS, COLUMN, COLUMNS
+
+2. Modern Dynamic Arrays: FILTER, UNIQUE, SORT, SORTBY, SEQUENCE, RANDARRAY, CHOOSEROWS, CHOOSECOLS, TAKE, DROP, EXPAND, TOCOL, TOROW, WRAPROWS, WRAPCOLS
+
+3. Logical & Decision Making: IF, IFS, AND, OR, XOR, NOT, SWITCH, IFERROR, IFNA, ISNUMBER, ISTEXT, ISBLANK, ISERROR, ISEVEN, ISODD
+
+4. Advanced Lambda & Variables: LET, LAMBDA, MAP, REDUCE, SCAN, MAKEARRAY, BYROW, BYCOL, ISOMITTED
+
+5. Text & String Manipulation: TEXTSPLIT, TEXTBEFORE, TEXTAFTER, TEXTJOIN, CONCAT, LEFT, RIGHT, MID, LEN, SEARCH, FIND, SUBSTITUTE, REPLACE, TRIM, CLEAN, PROPER, UPPER, LOWER, TEXT, VALUE, REPT, CHAR, CODE
+
+6. Math & Conditional Aggregations: SUM, SUMIF, SUMIFS, COUNT, COUNTA, COUNTBLANK, COUNTIF, COUNTIFS, AVERAGE, AVERAGEIF, AVERAGEIFS, SUMPRODUCT, MMULT, TRANSPOSE, ROUND, ROUNDUP, ROUNDDOWN, INT, TRUNC, ABS, MOD, AGGREGATE, SUBTOTAL, CEILING, FLOOR
+
+7. Financial & Investment: XIRR, IRR, MIRR, XNPV, NPV, PMT, PPMT, IPMT, RATE, NPER, PV, FV, EFFECT, NOMINAL, SLN, DB, DDB
+
+8. Date & Time Calculations: TODAY, NOW, DATE, DATEDIF, EDATE, EOMONTH, YEAR, MONTH, DAY, WEEKDAY, WEEKNUM, ISOWEEKNUM, WORKDAY, WORKDAY.INTL, NETWORKDAYS, NETWORKDAYS.INTL, TIME, HOUR, MINUTE, SECOND
+
+9. Statistical & Database: MAX, MIN, MAXIFS, MINIFS, LARGE, SMALL, RANK, MEDIAN, MODE, STDEV.S, VAR.S, DSUM, DCOUNT, DAVERAGE
+
+If User Clicks 2. All Shortcut Keys (Pro) on Page 2:
+Page 3 par 6 Pro-Level Shortcut Categories khulengi:
+1. Pro Ribbon Alt-Codes (Formatting & Layout):
+Alt + H + L => Conditional Formatting
+Alt + H + O + I => Auto-fit Column Width
+Alt + H + O + A => Auto-fit Row Height
+Alt + H + B => Cell Borders Menu
+Alt + H + M + C => Merge & Center
+Alt + H + F + M => Format Cells Dialog Box
+
+2. Pro Ribbon Alt-Codes (Data Tools):
+Alt + A + M => Remove Duplicates
+Alt + A + V + V => Data Validation
+Alt + A + T => Toggle Filter
+Alt + A + C => Clear All Filters
+Alt + N + V => Insert Pivot Table
+Alt + N + T => Insert Table
+Alt + W + F + F => Freeze Panes
+
+3. Speed Navigation & Selection:
+Ctrl + Shift + L => Toggle Filter
+Ctrl + Alt + V => Paste Special
+Ctrl + Shift + Arrow Keys => Select to Last Cell
+Ctrl + Space / Shift + Space => Entire Column / Row Selection
+Ctrl + Backspace => Jump back to Active Cell
+Ctrl + PageUp / Ctrl + PageDown => Switch Sheets
+
+4. Formula & Editing Power Shortcuts:
+Alt + = => AutoSum
+F4 => Toggle Absolute Reference ($A$1) / Repeat Last Action
+Ctrl + ~ => Toggle Show Formulas
+Ctrl + E => Flash Fill
+Ctrl + D / Ctrl + R => Fill Down / Fill Right
+F9 = Evaluate Formula Selection
+
+5. Power Query & Automation Shortcuts:
+Alt + F12 => Open Power Query Editor
+Alt + F8 => Macro Menu
+Alt + F11 => Open VBA Editor
+Alt + F1 => Instant Embedded Chart
+
+6. Workbook Management & Auditing:
+Ctrl + Shift + U => Expand Formula Bar
+Ctrl + [ / Ctrl + ] => Trace Precedents / Dependents
+F5 + Alt + S => Go To Special
+
+If User Clicks 3. All Built-in Functions on Page 2:
+Page 3 par Complete Function Breakdown (500+ Functions Catalog Indexing) dikhega, categorized by:
+
+1. Compatibility Functions
+2. Engineering Functions
+3. Information Functions
+4. Logical Functions
+5. Math & Trig Functions
+6. Statistical Functions
+7. Web & Cube Functions
+
+If User Clicks 4. Data Cleansing & Formatting on Page 2:
+Page 3 Sub-categories:
+
+1. Text to Columns & Flash Fill
+2. Advanced Data Validation & Dropdowns
+3. Conditional Formatting with Custom Rules
+4. Duplicate Removal & Unique Identifiers
+5. Custom Number Formatting (0.00, ₹#,##0, ;;; Hide)
+
+If User Clicks 5. Pivot Tables & Data Modeling on Page 2:
+Page 3 Sub-categories:
+
+1. Pivot Table Foundations & Layouts
+2. Calculated Fields & Calculated Items
+3. Slicers, Timelines & Report Connections
+4. Data Model & Tabular Relationships
+5. DAX Measures Basics (SUMX, CALCULATE, RELATED)
+
+If User Clicks 6. Power Query & ETL on Page 2:
+Page 3 Sub-categories:
+
+1. Data Import (CSV, Web, SQL, PDF)
+2. Transformations (Unpivoting, Transposing, Group By)
+3. Merging (Joins) & Appending Queries
+4. Custom Columns & Conditional Logic
+5. M-Code Syntax Basics
+
+If User Clicks 7. VBA, Macros & Automation on Page 2:
+Page 3 Sub-categories:
+
+1. Developer Tab & Macro Recorder
+2. VBA Modules, Procedures & Functions (Sub vs Function)
+3. Range & Cell Manipulations
+4. Control Loops (For Next, Do While, For Each)
+5. User forms & Interactive Dialogs
+
+If User Clicks 8. Dashboards, Charts & Analytics on Page 2:
+Page 3 Sub-categories:
+
+1. Dynamic Charting (Waterfall, Sunburst, Gauge, Combination)
+2. Form Controls (Checkboxes, Option Buttons, Scrollbars)
+3. Sparklines & Micro Charts
+4. KPI Cards & Executive Dashboard Design
+5. Dynamic Named Ranges with OFFSET & INDEX
+
+
+
+
+Page 3 ke LOOKUP & REFERENCE par click karte hi page 4 par dikhenge:
+
+[1] XLOOKUP
+- Explanation: XLOOKUP Excel ka sabse modern lookup tool hai jo VLOOKUP aur HLOOKUP dono ki kamiya door karta hai. Ye left-to-right aur right-to-left dono taraf data khoj sakta hai.
+- Purpose: Kisi ID, Barcode, ya Item Name ke aadhar par uski details (Price, Stock, Category) fast dhoondna.
+- Scenario & Example:
+  Master Table (Cols A-C): [A: Item Code, B: Item Name, C: Price]
+  Row 2: P101 | Denim Jeans | 1200
+  Row 3: P102 | Cotton Shirt | 800
+  Target: E2 me Item Code 'P102' likhne par F2 me Price chahiye.
+  Formula in F2: =XLOOKUP(E2, A2:A3, C2:C3, "Not Found")
+  Result: 800
+
+[2] VLOOKUP
+- Explanation: Vertical Lookup data ko top to bottom search karta hai aur specified column se value lata hai.
+- Purpose: Master list se numeric column index ke aadhar par details match karna.
+- Scenario & Example:
+  Table Range A2:C10. Search ID "P101" (Cell E2 me hai).
+  Formula: =VLOOKUP(E2, A2:C10, 2, FALSE)
+  Result: "Denim Jeans" (Column 2 se name uthaya).
+
+[3] HLOOKUP
+- Explanation: Horizontal Lookup data ko left to right rows me dhoondta hai aur specified row se result lata hai.
+- Purpose: Quarter-wise ya Month-wise horizontal headers wale data se figures nikalna.
+- Scenario & Example:
+  Row 1 (Months): Jan | Feb | Mar
+  Row 2 (Sales):  50000 | 65000 | 80000
+  Formula: =HLOOKUP("Feb", A1:C2, 2, FALSE)
+  Result: 65000
+
+[4] INDEX & MATCH
+- Explanation: INDEX specific row aur column position se value uthata hai, jabki MATCH batata hai ki koi value kis position par hai. Dono milkar VLOOKUP se zyada flexible lookup banate hain.
+- Purpose: Dynamic multi-directional lookup aur heavy files me fast calculation.
+- Scenario & Example:
+  Names in A2:A5, Salaries in B2:B5. Target Name "Amit" in D2.
+  Formula: =INDEX(B2:B5, MATCH(D2, A2:A5, 0))
+  Result: Amit ki Salary.
+
+[5] XMATCH
+- Explanation: MATCH ka advanced version jo default exact match perform karta hai aur reverse search bhi kar sakta hai.
+- Purpose: Array me kisi item ki exact relative position fast khojna.
+- Scenario & Example:
+  Items in A2:A5 ("Shirt", "Jeans", "Jacket"). Search "Jeans".
+  Formula: =XMATCH("Jeans", A2:A5)
+  Result: 2
+
+[6] LOOKUP
+- Explanation: Ye older compatibility function hai jo vector ya array me approximate/exact value dhoondta hai (data sorted hona chahiye).
+- Purpose: Simple ranges me quick status/grade mapping.
+- Scenario & Example:
+  Marks Range A2:A5 (0, 35, 60, 80), Grades B2:B5 ("F", "C", "B", "A").
+  Formula: =LOOKUP(75, A2:A5, B2:B5)
+  Result: "B"
+
+[7] INDIRECT
+- Explanation: Ye text string ko valid cell reference me convert karta hai.
+- Purpose: Dynamic sheet switching aur dependent drop-down lists banana.
+- Scenario & Example:
+  Cell A1 me text likha hai "B5". Cell B5 me value hai 5000.
+  Formula: =INDIRECT(A1)
+  Result: 5000
+
+[8] OFFSET
+- Explanation: Ye kisi starting cell se specified rows aur columns door ke cell ya range ka reference deta hai.
+- Purpose: Dynamic ranges aur moving averages calculate karna.
+- Scenario & Example:
+  Start Cell A1. 2 rows neeche aur 1 column right ka data chahiye.
+  Formula: =OFFSET(A1, 2, 1)
+  Result: Cell B3 ki value.
+
+[9] FORMULATEXT
+- Explanation: Ye kisi cell me lage hue formula ko text ke roop me screen par dikhata hai.
+- Purpose: Audit, documentation aur training sheets me formula reveal karna.
+- Scenario & Example:
+  Cell C2 me formula `=A2+B2` laga hai.
+  Formula in D2: =FORMULATEXT(C2)
+  Result: "=A2+B2"
+
+[10] HYPERLINK
+- Explanation: Ye cell me clickable shortcut link banata hai jo kisi file, web page ya sheet location par le jata hai.
+- Purpose: Navigation dashboards aur document tracking systems.
+- Scenario & Example:
+  Formula: =HYPERLINK("https://google.com", "Open Google")
+  Result: "Open Google" text par click karte hi link open hoga.
+
+[11] GETPIVOTDATA
+- Explanation: Ye Pivot Table se specific aggregated data safely extract karta hai.
+- Purpose: Pivot table refresh hone ke baad bhi exact metrics ko dashboard cards par lana.
+- Scenario & Example:
+  Formula: =GETPIVOTDATA("Sales", $A$3, "Region", "North")
+  Result: North Region ki Total Sales.
+
+[12] ROW & ROWS
+- Explanation: ROW cell ki row number batata hai. ROWS poori range me kul kitni rows hain wo ginta hai.
+- Purpose: Dynamic serial numbers aur matrix size calculation.
+- Scenario & Example:
+  Formula 1: =ROW(C5) -> Result: 5
+  Formula 2: =ROWS(A1:A10) -> Result: 10
+
+[13] COLUMN & COLUMNS
+- Explanation: COLUMN cell ka column number batata hai. COLUMNS poori range ke total columns ginta hai.
+- Purpose: Dynamic formula dragging aur matrix dimension checks.
+- Scenario & Example:
+  Formula 1: =COLUMN(C1) -> Result: 3
+  Formula 2: =COLUMNS(A1:D5) -> Result: 4
+
+
+
+Page 3 ke MODERN DYNAMIC ARRAYS par click karte hi page 4 par dikhenge:
+
+[1] FILTER
+- Explanation: Specified condition ke aadhar par source data se matching rows ko automatically filter karke alag jagah display karta hai.
+- Purpose: Live dynamic reports banana bina manual filter apply kiye.
+- Scenario & Example:
+  Data A2:B10 [A: City, B: Sales]. Filter only "Delhi" sales.
+  Formula: =FILTER(A2:B10, A2:A10="Delhi", "No Data")
+  Result: Delhi ki saari rows automatically spill ho jayengi.
+
+[2] UNIQUE
+- Explanation: Kisi list se duplicate values hata kar sirf unique items ki list nikalta hai.
+- Purpose: Dropdown list ke liye master distinct values banana.
+- Scenario & Example:
+  List A2:A8 ("Delhi", "Mumbai", "Delhi", "Jaipur", "Mumbai").
+  Formula: =UNIQUE(A2:A8)
+  Result: Delhi, Mumbai, Jaipur
+
+[3] SORT
+- Explanation: Single column ya multi-column array ko ascending ya descending order me automatically arrange karta hai.
+- Purpose: Dynamic Top-Sales ya Ranked reporting.
+- Scenario & Example:
+  Sales Data Range B2:B10 ko descending order me lagana.
+  Formula: =SORT(B2:B10, 1, -1)
+  Result: Highest se Lowest sales values arranged.
+
+[4] SORTBY
+- Explanation: Ek array ko kisi doosre array/column ke values ke aadhar par sort karta hai.
+- Purpose: Employee names ko unke Salary ya Score ke basis par arrange karna.
+- Scenario & Example:
+  Names A2:A5, Scores B2:B5. Names ko Score ke basis par sort karna.
+  Formula: =SORTBY(A2:A5, B2:B5, -1)
+  Result: Highest scorer ka naam sabse upar.
+
+[5] SEQUENCE
+- Explanation: Specified rows, columns, start, aur step values ke basis par numbers ki sequential series generate karta hai.
+- Purpose: Automated 1 to 100 serial numbers ya date series create karna.
+- Scenario & Example:
+  Formula: =SEQUENCE(5, 1, 100, 10)
+  Result: 100, 110, 120, 130, 140 vertically display hoga.
+
+[6] RANDARRAY
+- Explanation: Specified rows aur columns me random decimal ya integer numbers fill karta hai.
+- Purpose: Testing, simulation, aur sample datasets generate karna.
+- Scenario & Example:
+  Formula: =RANDARRAY(3, 2, 1, 50, TRUE)
+  Result: 3x2 grid me 1 se 50 ke beech ke whole numbers.
+
+[7] CHOOSEROWS & CHOOSECOLS
+- Explanation: CHOOSEROWS array me se specific rows extract karta hai, CHOOSECOLS specific columns uthata hai.
+- Purpose: Large table me se kewal required columns/rows ki customized view banana.
+- Scenario & Example:
+  Table A2:D10 me se Column 1 (Name) aur Column 4 (Salary) uthana.
+  Formula: =CHOOSECOLS(A2:D10, 1, 4)
+  Result: Kewal Name aur Salary ka filtered table.
+
+[8] TAKE & DROP
+- Explanation: TAKE array ke start/end se specified rows/cols rakhne ke liye hai; DROP unhe remove/skip karne ke liye hai.
+- Purpose: Top N records nikalna ya Header/Footer rows skip karna.
+- Scenario & Example:
+  Top 3 Sales rows uthana: =TAKE(A2:B10, 3)
+  First 2 rows chhod kar baaki data lena: =DROP(A2:B10, 2)
+
+[9] EXPAND
+- Explanation: Kisi chhotey array ko specified dimensions tak bada karta hai aur khali cells ko custom value se bharta hai.
+- Purpose: Un-even datasets ko combine karne ke liye standard size me lana.
+- Scenario & Example:
+  Array A1:B2 (2x2) ko 4x2 banana aur new cells me "N/A" bharna.
+  Formula: =EXPAND(A1:B2, 4, 2, "N/A")
+
+[10] TOCOL & TOROW
+- Explanation: TOCOL poore 2D matrix ko single vertical column me aur TOROW single horizontal row me convert karta hai.
+- Purpose: Multi-column tags/addresses ko vertical list me consolidate karna.
+- Scenario & Example:
+  3x3 Grid (A1:C3) ko ek vertical list banana.
+  Formula: =TOCOL(A1:C3)
+
+[11] WRAPROWS & WRAPCOLS
+- Explanation: Single row/column list ko specified length par break karke 2D grid me wrap karta hai.
+- Purpose: Flat lists ko tabular grid layouts me formatting dena.
+- Scenario & Example:
+  10 items ki vertical list ko 2 columns ke grid me convert karna.
+  Formula: =WRAPROWS(A1:A10, 2)
+
+
+
+Page 3 ke LOGICAL & DECISION MAKING par click karte hi Page 4 par dikhenge:
+
+[1] IF
+- Explanation: Condition check karta hai; True hone par pehla result aur False hone par doosra result deta hai.
+- Purpose: Basic decision making (Pass/Fail, Eligible/Not Eligible).
+- Scenario & Example:
+  Marks Cell A2 = 45.
+  Formula: =IF(A2>=33, "Pass", "Fail") -> Result: "Pass"
+
+[2] IFS
+- Explanation: Multiple conditions ko bina nested IF ke sequentially check karta hai.
+- Purpose: Multi-tier grading ya slab-wise commission rates.
+- Scenario & Example:
+  Score Cell A2 = 85.
+  Formula: =IFS(A2>=90, "A+", A2>=80, "A", A2>=70, "B") -> Result: "A"
+
+[3] AND, OR, XOR, NOT
+- Explanation:
+  - AND: Jab SAARI conditions true ho.
+  - OR: Jab KOI BHI EK condition true ho.
+  - XOR: Jab conditions me se ODD number of conditions true hon.
+  - NOT: Result ko reverse kar deta hai (True ko False, False ko True).
+- Purpose: Complex validation rules construct karna.
+- Scenario & Example:
+  Age A2=25, Exp B2=3. Formula: =AND(A2>=18, B2>=2) -> Result: TRUE
+
+[4] SWITCH
+- Explanation: Kisi single expression ki value ko multiple cases se match karke corresponding result deta hai.
+- Purpose: Code numbers ko text labels me mapping karna.
+- Scenario & Example:
+  Day Code Cell A2 = 2.
+  Formula: =SWITCH(A2, 1, "Mon", 2, "Tue", 3, "Wed", "Invalid") -> Result: "Tue"
+
+[5] IFERROR & IFNA
+- Explanation: Formula me error (#N/A, #VALUE!, #DIV/0!) aane par custom clean message display karta hai.
+- Purpose: Professional clean reports banana bina ugly error tags ke.
+- Scenario & Example:
+  Formula: =IFERROR(10/0, "Calculation Error") -> Result: "Calculation Error"
+
+[6] ISNUMBER, ISTEXT, ISBLANK, ISERROR, ISEVEN, ISODD
+- Explanation: Cell ki property check karke TRUE ya FALSE return karte hain.
+- Purpose: Data auditing, input validation aur conditional formatting logic.
+- Scenario & Example:
+  Cell A2 = "Hello". Formula: =ISTEXT(A2) -> Result: TRUE
+
+
+
+CATEGORY 1.4: ADVANCED LAMBDA & VARIABLES
+
+[1] LET
+- Explanation: Formula ke andar custom variables aur intermediate calculations ko naam assign karta hai.
+- Purpose: Calculation speed badhana aur complex formulas ko readable banana.
+- Scenario & Example:
+  Formula: =LET(Price, 100, Tax, 18, Price + (Price * Tax / 100))
+  Result: 118
+
+[2] LAMBDA
+- Explanation: Bina VBA/Macros ke apna custom reusable Excel function banana.
+- Purpose: Company-specific complex calculations ko simple one-line function banana.
+- Scenario & Example:
+  Custom GST Function: =LAMBDA(amount, amount * 0.18)
+  Name Manager me save karke `=GST(500)` use kar sakte hain.
+
+[3] MAP, REDUCE, SCAN
+- Explanation:
+  - MAP: Array ke har element par LAMBDA apply karke new array banata hai.
+  - REDUCE: Array ko single value me accumulate/combine karta hai.
+  - SCAN: Array par running calculation (e.g. running total) karta hai.
+- Purpose: Complex looping logic formulas.
+- Scenario & Example:
+  Running total of 1, 2, 3: =SCAN(0, A1:A3, LAMBDA(a, b, a+b)) -> Result: 1, 3, 6
+
+[4] MAKEARRAY, BYROW, BYCOL
+- Explanation:
+  - MAKEARRAY: Custom dimensions aur formula ke basis par synthetic array banata hai.
+  - BYROW / BYCOL: Grid ke har Row ya Column par individully operation run karta hai.
+- Purpose: Matrix generation aur row-level dynamic aggregations.
+- Scenario & Example:
+  Data A1:C3 ke har Row ka sum: =BYROW(A1:C3, LAMBDA(r, SUM(r)))
+
+
+
+Page 3 ke TEXT & STRING MANIPULATION par click karte hi Page 4 par dikhenge:
+
+[1] TEXTSPLIT, TEXTBEFORE, TEXTAFTER
+- Explanation:
+  - TEXTSPLIT: Delimiter ke basis par text ko multiple columns/rows me todta hai.
+  - TEXTBEFORE: Delimiter se PEHLE ka text extract karta hai.
+  - TEXTAFTER: Delimiter ke BAAD ka text extract karta hai.
+- Purpose: Full Names se First/Last Name alag karna ya Email se Username/Domain extract karna.
+- Scenario & Example:
+  Email in A2 = "rahul.sharma@gmail.com"
+  Formula 1: =TEXTBEFORE(A2, "@") -> Result: "rahul.sharma"
+  Formula 2: =TEXTAFTER(A2, "@") -> Result: "gmail.com"
+
+[2] TEXTJOIN & CONCAT
+- Explanation: TEXTJOIN custom delimiter aur ignore-blank option ke sath text merge karta hai. CONCAT simple list join karta hai.
+- Purpose: Multiple columns ke address/names ko ek single cell me jodne ke liye.
+- Scenario & Example:
+  A2="Delhi", B2="India".
+  Formula: =TEXTJOIN(", ", TRUE, A2, B2) -> Result: "Delhi, India"
+
+[3] LEFT, RIGHT, MID, LEN
+- Explanation: Text me se specified characters extract karna (LEFT=start se, RIGHT=end se, MID=beech se). LEN text ki kul length ginta hai.
+- Purpose: Serial Codes, Account Numbers, ya State Codes separate karna.
+- Scenario & Example:
+  Code A2 = "DL-110001".
+  Formula 1: =LEFT(A2, 2) -> Result: "DL"
+  Formula 2: =LEN(A2) -> Result: 9
+
+[4] SEARCH & FIND
+- Explanation: Text string me kisi character/word ki position batate hain. FIND case-sensitive hai, SEARCH case-insensitive.
+- Purpose: Dynamic text trimming logic ke liye character position dhoondna.
+- Scenario & Example:
+  Text A2 = "Invoice # 450". Formula: =SEARCH("#", A2) -> Result: 9
+
+[5] SUBSTITUTE & REPLACE
+- Explanation: SUBSTITUTE specific word ko replace karta hai; REPLACE specific character position ke basis par replace karta hai.
+- Purpose: Formatting errors sahi karna (jaise spaces/hyphens replace karna).
+- Scenario & Example:
+  Phone A2 = "9876-543-210".
+  Formula: =SUBSTITUTE(A2, "-", "") -> Result: "9876543210"
+
+[6] TRIM, CLEAN, PROPER, UPPER, LOWER
+- Explanation:
+  - TRIM: Extra spaces hatata hai.
+  - CLEAN: Non-printable system characters hatata hai.
+  - PROPER: First letter Capital karta hai.
+  - UPPER / LOWER: All Caps ya All Small case me badalta hai.
+- Purpose: Raw imported dirty data ko clean aur standardize karna.
+- Scenario & Example:
+  Text A2 = "  rahul VERMA ".
+  Formula: =PROPER(TRIM(A2)) -> Result: "Rahul Verma"
+
+[7] TEXT, VALUE, REPT, CHAR, CODE
+- Explanation:
+  - TEXT: Numbers ko specific custom format me convert karta hai.
+  - VALUE: Text-based numbers ko numeric format me badalta hai.
+  - REPT: Text ko specified times repeat karta hai (in-cell bar charts ke liye).
+- Scenario & Example:
+  Date A2 = 08/09/2026. Formula: =TEXT(A2, "mmmm-yyyy") -> Result: "September-2026"
+  Formula 2: =REPT("|", 5) -> Result: "|||||"
+
+
+
+Page 3 ke MATH & CONDITIONAL AGGREGATIONS par click karte hi Page 4 par dikhenge:
+
+[1] SUM, SUMIF, SUMIFS
+- Explanation: SUM simple jodta hai. SUMIF 1 condition ke basis par jodta hai. SUMIFS Multiple conditions ke basis par jodta hai.
+- Purpose: Region-wise, Date-wise, ya Category-wise total sales nikalna.
+- Scenario & Example:
+  Region (Col A), Sales (Col B).
+  Formula: =SUMIFS(B2:B10, A2:A10, "North") -> Result: North Region ka total sales.
+
+[2] COUNT, COUNTA, COUNTBLANK, COUNTIF, COUNTIFS
+- Explanation: Numbers, Non-blanks, Blanks, 1-Condition count, aur Multi-Condition counts karne ke functions.
+- Purpose: Attendance tracking, item frequency, aur filtered counts.
+- Scenario & Example:
+  Status (Col A), Dept (Col B).
+  Formula: =COUNTIFS(A2:A10, "Present", B2:B10, "HR") -> Result: Present HR Staff count.
+
+[3] AVERAGE, AVERAGEIF, AVERAGEIFS
+- Explanation: Un-conditional ya conditional datasets ka average (ausat) nikalna.
+- Purpose: Average order value ya category-wise average performance calculate karna.
+- Scenario & Example:
+  Formula: =AVERAGEIF(A2:A10, "Delhi", B2:B10) -> Result: Delhi city ki average sale.
+
+[4] SUMPRODUCT
+- Explanation: Multiple arrays ke corresponding elements ko pehle multiply karta hai, fir unka total sum nikalta hai.
+- Purpose: Bina extra helper column ke (Qty * Rate) ka total bill nikalna.
+- Scenario & Example:
+  Qty in A2:A4 (2, 3, 5), Rates in B2:B4 (100, 200, 50).
+  Formula: =SUMPRODUCT(A2:A4, B2:B4)
+  Calculation: (2*100) + (3*200) + (5*50) = 200 + 600 + 250 = 1050
+
+[5] ROUND, ROUNDUP, ROUNDDOWN, INT, TRUNC
+- Explanation: Decimals ko round off karna (ROUND = standard, ROUNDUP = higher side, ROUNDDOWN = lower side, INT/TRUNC = decimals hatana).
+- Purpose: Financial billing aur tax calculation clear rounded numbers me rakhna.
+- Scenario & Example:
+  Val = 45.678. Formula: =ROUND(Val, 2) -> Result: 45.68
+
+[6] SUBTOTAL & AGGREGATE
+- Explanation: Filtered lists par calculations karte hain aur hidden/filtered-out rows ko ignores kar dete hain.
+- Purpose: Dynamic filtered dashboards me accurate totals dikhana.
+- Scenario & Example:
+  Formula: =SUBTOTAL(9, B2:B100) -> Filtered status ke hisab se visible B column ka sum dega.
+
+
+
+Page 3 ke FINANCIAL & INVESTMENT par click karte hi Page 4 par dikhenge:
+
+[1] XIRR & IRR
+- Explanation: Investment returns (Internal Rate of Return) calculate karte hain. XIRR non-periodic dates ke cashflows ke liye accurate hai.
+- Purpose: Mutual funds, SIPs, aur Business Investments ka annual return rate (CAGR/IRR) nikalna.
+- Scenario & Example:
+  Dates in A2:A5, Cashflows in B2:B5 (-100000 investment, followed by positive inflows).
+  Formula: =XIRR(B2:B5, A2:A5) -> Result: Exact annual return percentage (e.g., 14.5%).
+
+[2] PMT, PPMT, IPMT
+- Explanation:
+  - PMT: Total monthly EMI calculate karta hai.
+  - PPMT: EMI me se Principal (Mool-dhan) amount alag karta hai.
+  - IPMT: EMI me se Interest (Byaj) portion alag karta hai.
+- Purpose: Bank loans aur Equipment Leasing schedules design karna.
+- Scenario & Example:
+  Loan 5,000,000 (50 Lakhs), Rate 8.5% p.a. (8.5%/12), Tenure 240 Months.
+  Formula: =PMT(8.5%/12, 240, -5000000) -> Result: Exact Monthly EMI amount.
+
+[3] NPV & XNPV
+- Explanation: Future cash inflows ki Net Present Value calculate karta hai based on a discount rate.
+- Purpose: Business project feasibility aur capital budgeting evaluations.
+- Scenario & Example:
+  Rate 10%, Cashflows B2:B5. Formula: =NPV(10%, B2:B5)
+
+[4] SLN, DB, DDB
+- Explanation: Asset Depreciation (SLN = Straight Line, DB/DDB = Declining Balance Method) calculate karte hain.
+- Purpose: Company machinery/laptop assets ki yearly book value write-off calculate karna.
+- Scenario & Example:
+  Cost 100,000, Salvage 10,000, Life 5 Years.
+  Formula: =SLN(100000, 10000, 5) -> Result: 18000 per year depreciation.
+
+
+
+Page 3 ke DATE & TIME CALCULATIONS par click karte hi Page 4 par dikhenge:
+
+[1] TODAY & NOW
+- Explanation: TODAY aaj ki current system date deta hai; NOW date aur current time dono deta hai.
+- Purpose: Dynamic aging calculations aur live execution timestamps.
+- Scenario & Example:
+  Formula: =TODAY() -> Result: 08-09-2026
+
+[2] DATEDIF
+- Explanation: Do dates ke beech ka exact difference (Years, Months, ya Days me) nikalta hai.
+- Purpose: Age calculation, Employee Tenure, ya Project Duration evaluation.
+- Scenario & Example:
+  DOB in A2 = 15-08-1995. Current Date = TODAY().
+  Formula: =DATEDIF(A2, TODAY(), "Y") -> Result: 31 Years
+
+[3] EDATE & EOMONTH
+- Explanation: EDATE N-months aage/peeche ki exact date deta hai. EOMONTH us mahine ki aakhiri date (End of Month) deta hai.
+- Purpose: Invoice Due Dates, Subscription Expiry, aur Monthly Financial Closing dates.
+- Scenario & Example:
+  Invoice Date A2 = 10-01-2026.
+  Formula 1 (3 Months Due): =EDATE(A2, 3) -> Result: 10-04-2026
+  Formula 2 (Month End): =EOMONTH(A2, 0) -> Result: 31-01-2026
+
+[4] WORKDAY & NETWORKDAYS (INCLUDING .INTL)
+- Explanation:
+  - NETWORKDAYS: Weekends aur official Holidays ko minus karke working days ginta hai.
+  - WORKDAY: Given start date me N working days jod kar target completion date batata hai.
+  - .INTL versions custom weekend days (e.g. kewal Sunday off) handle karte hain.
+- Purpose: Project SLA tracking aur corporate payroll processing.
+- Scenario & Example:
+  Start A2 = 01-09-2026, End B2 = 30-09-2026.
+  Formula: =NETWORKDAYS.INTL(A2, B2, 11) (Where 11 = Sunday only weekend)
+  Result: Total working days in September excluding Sundays.
+
+
+
+Page 3 ke STATISTICAL & DATABASE par click karte hi Page 4 par dikhenge:
+
+[1] TOPIC: MAX, MIN, MAXIFS, MINIFS
+- Explanation: Range me se highest/lowest value nikalna (MAXIFS/MINIFS condition ke sath karte hain).
+- Purpose: Highest Sale, Minimum Temperature, ya Top Branch Performance identify karna.
+- Scenario & Example:
+  Formula: =MAXIFS(B2:B10, A2:A10, "North") -> Result: North Region ki maximum sale.
+
+[2] TOPIC: LARGE & SMALL
+- Explanation: Dataset me se K-th position ki highest ya lowest value nikalta hai (e.g., 2nd Highest, 3rd Lowest).
+- Purpose: Top 3 Performers ya Runner-up values highlight karna.
+- Scenario & Example:
+  Scores in A2:A10.
+  Formula (2nd Highest): =LARGE(A2:A10, 2)
+
+[3] TOPIC: MEDIAN, MODE, STDEV.S
+- Explanation: Statistical measures (MEDIAN = Middle Value, MODE = Most Frequent Value, STDEV = Standard Deviation/Variation).
+- Purpose: Retail basket analysis aur quality control risk analysis.
+- Scenario & Example:
+  Order sizes A2:A10. Formula: =MEDIAN(A2:A10) -> Central order value.
+
+[4] TOPIC: DSUM, DCOUNT, DAVERAGE
+- Explanation: Database criteria range ke basis par calculations karne wale structured tools.
+- Purpose: Complex multi-column criteria lists par quick database summary.
+- Scenario & Example:
+  Formula: =DSUM(A1:C100, "Sales", E1:F2) -> Criteria Range E1:F2 ke basis par sum.
+
+
+
+
+Page 3 ke PRO RIBBON ALT-CODES (FORMATTING & LAYOUT)par click karte hi Page 4 par dikhenge:
+[1] SHORTCUT: Alt + H + L
+- Explanation: Home Ribbon se Conditional Formatting Menu open karta hai.
+- Purpose: Key metrics ko highlight karne ke liye highlight rules fast open karna.
+
+[2] SHORTCUT: Alt + H + O + I
+- Explanation: Selected Columns ki width ko unke longest content ke hisab se Auto-fit karta hai.
+- Purpose: Text ke cutne (e.g. ### error) ko seconds me fix karna.
+
+[3] SHORTCUT: Alt + H + O + A
+- Explanation: Selected Rows ki height ko Auto-fit karta hai.
+- Purpose: Multi-line wrapped text rows ki alignment instantly clean karna.
+
+[4] SHORTCUT: Alt + H + B
+- Explanation: Cell Borders popup menu open karta hai.
+- Purpose: Tables me All Borders, Thick Bottom Borders fast apply karna.
+
+[5] SHORTCUT: Alt + H + M + C
+- Explanation: Selected cells ko Merge karke text ko Center align karta hai.
+- Purpose: Dashboard Headers aur Main Report Titles create karna.
+
+[6] SHORTCUT: Alt + H + F + M
+- Explanation: Full Format Cells dialog window (Number, Alignment, Font, Border, Fill) open karta hai.
+- Purpose: Precision custom formatting apply karne ke liye.
+
+
+
+Page 3 ke PRO RIBBON ALT-CODES (DATA TOOLS) par click karte hi Page 4 par dikhenge:
+
+[1] SHORTCUT: Alt + A + M
+- Explanation: Data Tab se Remove Duplicates tool trigger karta hai.
+- Purpose: Clean unique master lists generate karna.
+
+[2] SHORTCUT: Alt + A + V + V
+- Explanation: Data Validation window open karta hai.
+- Purpose: Dropdown lists, numeric limits, aur restricted entry rules lagana.
+
+[3] SHORTCUT: Alt + A + T
+- Explanation: Header Row par AutoFilter arrows Turn ON/OFF (Toggle) karta hai.
+- Purpose: Instant data filtering start/stop karna.
+
+[4] SHORTCUT: Alt + A + C
+- Explanation: Active sheet ke saare applied Filters ko ek sath Clear kar deta hai.
+- Purpose: Filtered data view se instant normal view me lautna.
+
+[5] SHORTCUT: Alt + N + V
+- Explanation: Insert Pivot Table dialog box open karta hai.
+- Purpose: Raw data se summary reports compile karna start karna.
+
+[6] SHORTCUT: Alt + N + T
+- Explanation: Selected range ko official Excel Dynamic Table format (Ctrl+T) me convert karta hai.
+- Purpose: Auto-expanding ranges aur clean striped styling apply karna.
+
+[7] SHORTCUT: Alt + W + F + F
+- Explanation: Selected Row/Column par Freeze Panes apply/remove karta hai.
+- Purpose: Badi sheets me scroll karte waqt Headers ko freeze rakhna.
+
+
+
+Page 3 ke SPEED NAVIGATION & SELECTION par click karte hi Page 4 par dikhenge:
+
+[1] SHORTCUT: Ctrl + Shift + L
+- Explanation: Filter Toggle shortcut (Ribbon Alt+A+T ka fast direct keyboard version).
+
+[2] SHORTCUT: Ctrl + Alt + V
+- Explanation: Paste Special Dialog Window open karta hai.
+- Purpose: Sirf Values, Formulas, Formats, ya Column Widths paste karne ke liye.
+
+[3] SHORTCUT: Ctrl + Shift + Arrow Keys
+- Explanation: Data block ke last occupied cell tak instant range selection karta hai.
+- Purpose: Lakho rows ko bina mouse drag kiye 1 second me select karna.
+
+[4] SHORTCUT: Ctrl + Space / Shift + Space
+- Explanation:
+  - Ctrl + Space: Poora Column select karta hai.
+  - Shift + Space: Poori Row select karti hai.
+- Purpose: Entire row/column operations fast perform karna.
+
+[5] SHORTCUT: Ctrl + Backspace
+- Explanation: Badi range select karne ke baad screen ko active focus cell par wapas jump kara deta hai.
+- Purpose: Navigation ke waqt context losing avoid karna.
+
+[6] SHORTCUT: Ctrl + PageUp / Ctrl + PageDown
+- Explanation: Workbook ke alag-alag Worksheets/Tabs ke beech left/right switch karta hai.
+- Purpose: Mouse touch kiye bina multi-sheet audit karna.
+
+
+
+Page 3 ke FORMULA & EDITING POWER SHORTCUTS par click karte hi Page 4 par dikhenge:
+
+[1] SHORTCUT: Alt + =
+- Explanation: AutoSum trigger karta hai. Smartly surrounding range detect karke SUM formula apply kar deta hai.
+- Purpose: Financial tables ke bottom me instant total nikalna.
+
+[2] SHORTCUT: F4
+- Explanation:
+  - Formula Edit Mode me: Cell Reference ko Absolute ($A$1), Mixed (A$1, $A1), aur Relative (A1) me switch karta hai.
+  - Normal Mode me: Last formatting/editing action ko Repeat karta hai.
+
+[3] SHORTCUT: Ctrl + ~ (Tilde)
+- Explanation: Whole Sheet me Formula View ko Toggle karta hai (Values ki jagah actual backend formulas dikhai dete hain).
+- Purpose: Entire sheet ki calculation auditing aur troubleshooting.
+
+[4] SHORTCUT: Ctrl + E
+- Explanation: Flash Fill trigger karta hai. User dwara diye gaye 1-2 examples ka pattern pehchan kar baaki rows automatically fill kar deta hai.
+- Purpose: Text extraction, split, aur formatting bina kisi formula ke.
+
+[5] SHORTCUT: Ctrl + D / Ctrl + R
+- Explanation:
+  - Ctrl + D: Upar wale cell ka content/formula Neeche fill karta hai (Fill Down).
+  - Ctrl + R: Left wale cell ka content Right me fill karta hai (Fill Right).
+
+[6] SHORTCUT: F9
+- Explanation: Formula bar me selected portion/expression ko calculate karke uski exact intermediate value dikhata hai.
+- Purpose: Complex nested formulas me bugs fix karna.
+
+
+
+Page 3 ke POWER QUERY & AUTOMATION SHORTCUTS par click karte hi Page 4 par dikhenge:
+
+[1] SHORTCUT: Alt + F12
+- Explanation: Excel me direct Power Query Editor Window open karta hai.
+- Purpose: Data ETL (Extract, Transform, Load) pipelines manage karna.
+
+[2] SHORTCUT: Alt + F8
+- Explanation: Macro Dialog Box open karta hai jahan se existing Macros ko Run, Edit ya Delete kar sakte hain.
+
+[3] SHORTCUT: Alt + F11
+- Explanation: VBA Editor Window (Visual Basic for Applications) open/switch karta hai.
+- Purpose: Automation scripts aur custom VBA modules write karna.
+
+[4] SHORTCUT: Alt + F1
+- Explanation: Selected data range se instant default Embedded Chart active worksheet par create kar deta hai.
+
+
+
+Page 3 ke WORKBOOK MANAGEMENT & AUDITING par click karte hi Page 4 par dikhenge:
+
+[1] SHORTCUT: Ctrl + Shift + U
+- Explanation: Formula Bar window height ko Expand ya Collapse (Multi-line view) karta hai.
+- Purpose: Lambe multi-line dynamic formulas ya LET functions ko comfortable read karna.
+
+[2] SHORTCUT: Ctrl + [  and  Ctrl + ]
+- Explanation:
+  - Ctrl + [: Active formula dwara use kiye gaye Direct Precedents (Source Cells) par jump karta hai.
+  - Ctrl + ]: Active cell par depend karne wale Dependents cells par jump karta hai.
+- Purpose: Large financial models audit karna.
+
+[3] SHORTCUT: F5 + Alt + S
+- Explanation: 'Go To Special' window open karta hai.
+- Purpose: Sirf Blank cells, Formula cells, Constants, ya Visible cells select karna.
+
+
+
+3. Page 3 ke ALL BUILT-IN FUNCTIONS par click karte hi Page 4 par dikhenge:
+
+
+[1] COMPATIBILITY FUNCTIONS
+- Explanation: Old Excel versions (2007 ya usse pehle) ke legacy functions jo nayi files me backward compatibility ke liye available hain (e.g. STDEV, VAR, RANK).
+- Purpose: Purani legacy automated templates ko bina break kiye open rakhna.
+
+[2] ENGINEERING FUNCTIONS
+- Explanation: Complex engineering calculations, number base conversions (BIN2DEC, HEX2DEC), aur Bessel/Complex Numbers handle karne ke functions.
+- Purpose: Scientific, electrical, aur signal-processing measurement units mapping.
+
+[3] INFORMATION FUNCTIONS
+- Explanation: System, Cell, ya Error properties verify karne wale functions (ISFORMULA, CELL, INFO, SHEET).
+- Purpose: Dynamic sheet auditing aur error-handling conditional execution.
+
+[4] LOGICAL FUNCTIONS
+- Explanation: Boolean logic evaluates karne wale tools (IF, AND, OR, SWITCH, LET, LAMBDA).
+- Purpose: System workflows me decision branching automate karna.
+
+[5] MATH & TRIG FUNCTIONS
+- Explanation: Mathematical, Trigonometric, aur Aggregation tools (SUM, ABS, SIN, COS, SQRT, AGGREGATE, MOD).
+- Purpose: Financial modeling, scaling, aur geometric calculations.
+
+[6] STATISTICAL FUNCTIONS
+- Explanation: Probability distributions, trends, aur data modeling functions (AVERAGE, STDEV, FORECAST, PERCENTILE, CORREL).
+- Purpose: Business forecasting, market trend analysis, aur risk management.
+
+[7] WEB & CUBE FUNCTIONS
+- Explanation:
+  - WEB: Web APIs se direct data import karne ke tools (WEBSERVICE, FILTERXML, ENCODEURL).
+  - CUBE: SSAS Data Cubes / Power Pivot Data Models se MDX metrics query karne ke tools (CUBEMEMBER, CUBEVLUE).
+- Purpose: Real-time stock prices, live weather APIs, aur Enterprise BI Data Warehouses se connect hona.
+
+
+
+Page 3 ke TEXT TO COLUMNS & FLASH FILL par click karte hi Page 4 par dikhenge:
+
+[1] EXPLANATION
+- Text to Columns: Single column me comma, space, ya tab se jude text ko multiple columns me split karta hai.
+- Flash Fill (Ctrl+E): User dwara 1-2 row me manual typing ke pattern ko pehchan kar baaki saare thousands of rows instantly auto-fill kar deta hai.
+[2] PURPOSE
+- Third-party CRM/ERP system se export hue mess raw strings ko clean tabular columns me convert karna.
+[3] SCENARIO & EXAMPLE
+- Raw String Cell A2: "Rahul_Sharma_Delhi_9876543210"
+- Using Delimiter "_": Column B="Rahul", Column C="Sharma", Column D="Delhi", Column E="9876543210".
+
+
+Page 3 ke ADVANCED DATA VALIDATION & DROPDOWNS par click karte hi Page 4 par dikhenge:
+
+[1] EXPLANATION
+- Cell me restricted entry criteria set karta hai (e.g. List dropdowns, date limits, text length bounds, ya custom logical formulas).
+[2] PURPOSE
+- Data entry level par hi typos aur wrong inputs ko rokna (Data Sanitation).
+[3] SCENARIO & EXAMPLE
+- Store Manager operational sheet me Cell B2:B100 par dropdown lagana:
+- Data Validation -> Settings -> Allow: List -> Source: "North, South, East, West".
+- Result: User kewal in 4 options me se select kar sakta hai, wrong spelling type nahi kar sakta.
+
+
+Page 3 ke CONDITIONAL FORMATTING WITH CUSTOM RULES par click karte hi Page 4 par dikhenge:
+
+[1] EXPLANATION
+- Cell ke data/value ya custom logical formula ke basis par automatic Color, Data Bars, ya Icon Sets apply karta hai.
+[2] PURPOSE
+- Outliers, negative profits, overdue payment dates, aur top performers ko visually stand-out karna.
+[3] SCENARIO & EXAMPLE
+- Rule: Highlights All Sales < ₹10,000 in Light Red Fill.
+- Formula Rule: `= $C2 < 10000` applied to entire row range $A$2:$D$50.
+- Result: Low sale wali poori row red color se highlight ho jayegi.
+
+
+Page 3 ke DUPLICATE REMOVAL & UNIQUE IDENTIFIERS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Duplicate records detection aur cleanup tool jo specific key columns ke combination check karke extra repeated rows delete karta hai.
+[2] PURPOSE
+- Customer directory, email marketing lists, aur GST databases sanitize karna.
+[3] SCENARIO & EXAMPLE
+- Customer database me same Mobile Number par bani multiple entries me se 1 main entry rakhna aur baaki purge karna.
+
+
+Page 3 ke CUSTOM NUMBER FORMATTING par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Cell me actual stored numerical value ko change kiye bina uski screen display formatting change karna using Syntax: `Positive; Negative; Zero; Text`.
+[2] PURPOSE
+- Currency symbols (₹, $), Thousands (K/M) formatting, trailing zeros, ya hidden text rules set karna.
+[3] SCENARIO & EXAMPLE
+- Format Code: `₹#,##0.00;[Red](₹#,##0.00);"-"`
+- Positive Value (5000) displays as: ₹5,000.00
+- Negative Value (-5000) displays as: [Red](₹5,000.00)
+- Zero Value (0) displays as: -
+
+
+Page 3 ke PIVOT TABLE FOUNDATIONS & LAYOUTS par click karte hi Page 4 par dikhenge:
+
+[1] EXPLANATION
+- Large flat datasets ko drag-and-drop fields (Filters, Columns, Rows, Values) ke zariye aggregate, summarize aur analyze karne ka tool.
+[2] PURPOSE
+- Millions of sales records se within seconds Category-wise aur Month-wise summary matrices banana.
+[3] SCENARIO & EXAMPLE
+- Raw Data: 50,000 transaction rows.
+- Pivot Layout: Rows = Region, Columns = Payment Mode, Values = Sum of Amount.
+- Result: 5-row clean matrix report showing payment mode totals for each region.
+
+
+Page 3 ke CALCULATED FIELDS & CALCULATED ITEMS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Original source raw data table me new columns add kiye bina direct Pivot Table Engine ke andar custom calculations create karna.
+[2] PURPOSE
+- On-the-fly GST Taxes, Commission Margins, ya Variance metrics add karna.
+[3] SCENARIO & EXAMPLE
+- Pivot Field: 'Sales'. Custom Calculated Field 'Tax' = `Sales * 0.18`.
+- Result: Pivot table me original data change kiye bina Tax column compute ho jayega.
+
+
+Page 3 ke SLICERS, TIMELINES & REPORT CONNECTIONS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Visual interactive buttons (Slicers) aur date sliders (Timelines) jo ek sath multiple Pivot Tables aur Charts ko filter karte hain.
+[2] PURPOSE
+- Interactive Executive Management Dashboards develop karna.
+[3] SCENARIO & EXAMPLE
+- Slicer: "Year 2026" button par click karne par dashboard ke saare 5 Pivot Charts ek saath update honge.
+
+
+Page 3 ke DATA MODEL & TABULAR RELATIONSHIPS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Multiple relational tables ko unke Common Primary Key columns (e.g. Customer ID) ke zariye connect karke Power Pivot Data Model create karna (VLOOKUP ki zaroorat khatam).
+[2] PURPOSE
+- Enterprise multi-table star schema reporting without flat VLOOKUP redundancy.
+[3] SCENARIO & EXAMPLE
+- Connect 'Sales Table' [Customer ID] with 'Customer Master Table' [Customer ID]. Pivot directly uses fields from both tables.
+
+
+Page 3 ke DAX MEASURES BASICS (SUMX, CALCULATE, RELATED)par click karte hi Page 4 par dikhenge:
+
+[1] EXPLANATION
+- DAX (Data Analysis Expressions) dynamic analytical formulas jo Power Pivot Data Models me context-aware calculations karte hain.
+- CALCULATE: Evaluation context change karta hai.
+- SUMX: Row-by-row iteration compute karke sum karta hai.
+- RELATED: Related lookup table se columns pull karta hai.
+[2] PURPOSE
+- High-level business intelligence, YTD/MTD calculations, aur dynamic KPIs compute karna.
+[3] SCENARIO & EXAMPLE
+- DAX Measure: `High Sales = CALCULATE(SUM(Sales[Amount]), Sales[Amount] > 50000)`
+
+
+Page 3 ke DATA IMPORT (CSV, WEB, SQL, PDF) par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Alag-alag external sources (Text files, Web pages, Databases, PDFs) se live data connection query banakar Excel me ingest karna.
+[2] PURPOSE
+- Manual copy-pasting khatam karna aur single-click refreshable pipelines ready karna.
+[3] SCENARIO & EXAMPLE
+- Data Tab -> Get Data -> From PDF -> Select Bank Statement PDF -> Auto-extract transactional table.
+
+
+Page 3 ke TRANSFORMATIONS (UNPIVOTING, TRANSPOSING, GROUP BY) par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Dirty imported tables ko clean tabular format me restructure karna. Unpivoting crosstab reports ko clean vertical database lists me badalta hai. Group By summary grouping perform karta hai.
+[2] PURPOSE
+- Irregularly structured cross-tab client reports ko standard database layout me convert karna.
+[3] SCENARIO & EXAMPLE
+- Months wide columns (Jan, Feb, Mar) me unrolled metrics ko Unpivot Columns feature apply karke two columns ("Month" & "Amount") me convert karna.
+
+
+Page 3 ke MERGING (JOINS) & APPENDING QUERIES par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Merging: Do tables ko common key column ke basis par horizontal join karna (SQL Joins ki tarah).
+- Appending: Multiple sheets ya CSV files ka data vertical combine (stack) karna (Union All की tarah).
+[2] PURPOSE
+- 12 months ke 12 alag CSV files ko combine karke single master query table banana.
+[3] SCENARIO & EXAMPLE
+- Append Queries: Select Folder containing 12 Monthly Sales CSVs -> Auto-combine into 1 Master Table.
+
+
+Page 3 ke CUSTOM COLUMNS & CONDITIONAL LOGIC par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Power Query Editor GUI me point-and-click Interface se custom formula columns aur if-then-else logical rules append karna.
+[2] PURPOSE
+- Excel environment me data load hone se pehle hi backend data preparation & categorization handle karna.
+[3] SCENARIO & EXAMPLE
+- Add Conditional Column: If `Quantity > 100` then `"Bulk Order"` else `"Regular Order"`.
+
+
+Page 3 ke M-CODE SYNTAX BASICS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- M-Code Power Query engine ke peeche chalne wali functional expression programming language hai.
+[2] PURPOSE
+- Advanced custom transformation steps aur automated ETL pipelines create karna.
+[3] SCENARIO & EXAMPLE
+- M-Code snippet: `Table.SelectRows(Source, each ([Sales] > 10000))`
+
+
+
+Page 3 ke DEVELOPER TAB & MACRO RECORDER par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Developer Tab Excel me advanced developer tools unlock karta hai. Macro Recorder user dwara kiye gaye mouse/keyboard actions ko backend VBA code me translate karta hai.
+[2] PURPOSE
+- Daily repetitive formatting aur report generation tasks ko 1-click button automation me badalna.
+[3] SCENARIO & EXAMPLE
+- Record Macro -> Format Table, Apply Borders, Insert Total Row -> Stop Recording -> Assign to Button.
+
+
+Page 3 ke VBA MODULES, PROCEDURES & FUNCTIONS (SUB VS FUNCTION) par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Sub Procedures (`Sub...End Sub`): Task perform karte hain par return value nahi dete.
+- User Defined Functions (`Function...End Function`): Custom calculation value return karte hain jo Direct Worksheet Formulas ki tarah use kiye ja sakte hain.
+[2] PURPOSE
+- Business workflow logic aur company custom functions automate karna.
+[3] SCENARIO & EXAMPLE
+- Sub Routine: `Sub ClearData() Range("A2:D100").ClearContents End Sub`
+
+
+Page 3 ke RANGE & CELL MANIPULATIONS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- VBA Code ke zariye cells, rows, columns aur worksheets ko programmatically select, read, write aur format karna.
+[2] PURPOSE
+- Automatic report generation, PDF exports, aur auto-email attachments dispatch.
+[3] SCENARIO & EXAMPLE
+- VBA Code: `Worksheets("Sales").Range("A1").Value = "Monthly Report 2026"`
+
+
+Page 3 ke CONTROL LOOPS (FOR NEXT, DO WHILE, FOR EACH) par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Repeatative programming structures jo thousands of cells ya multiple sheets par continuously iterate karke logic apply karte hain.
+[2] PURPOSE
+- Individual files batch processing aur automated audit scanning.
+[3] SCENARIO & EXAMPLE
+- Loop Example:
+  `For i = 2 To 100`
+      `If Cells(i, 1).Value = "" Then Cells(i, 1).Value = "Missing"`
+  `Next i`
+
+
+Page 3 ke USERFORMS & INTERACTIVE DIALOGS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Excel ke upar custom Graphical User Interface (GUI) Forms create karna jisme Textboxes, Buttons, Dropdowns hote hain.
+[2] PURPOSE
+- Secured, error-free customized desktop application layer build karna for data entry operators.
+[3] SCENARIO & EXAMPLE
+- Form containing 'Employee Name', 'Department', 'Salary' fields -> Click "Submit" button -> Entry automatically appends to Master Database Sheet.
+
+
+
+
+Page 3 ke DYNAMIC CHARTING (WATERFALL, SUNBURST, GAUGE, COMBINATION)par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Advanced visual charts:
+  - Waterfall: Cumulative financial variance (Profit/Loss bridge).
+  - Sunburst: Hierarchical multi-level category distribution.
+  - Gauge: Meter target achievement tracking.
+  - Combination: Dual-axis Bar + Line charts.
+[2] PURPOSE
+- Executive board room management presentations me visual storytelling deliver karna.
+[3] SCENARIO & EXAMPLE
+- Waterfall Chart displaying Gross Revenue -> Less Costs -> Less Taxes -> Net Income.
+
+
+Page 3 ke FORM CONTROLS (CHECKBOXES, OPTION BUTTONS, SCROLLBARS) par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Interactive UI elements jo cells ke TRUE/FALSE ya numeric values se link hokar dynamic charts/formulas ko control karte hain.
+[2] PURPOSE
+- Interactive scenario modeling (e.g. Best Case / Worst Case financial projections toggle).
+[3] SCENARIO & EXAMPLE
+- Checkbox linked to Cell $A$1. If Checked ($A$1=TRUE), Chart includes Tax Overlay; if Unchecked, removes Tax Overlay.
+
+
+Page 3 ke SPARKLINES & MICRO CHARTS par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Single cell ke andar hone wale tiny mini line/column graphs jo micro-trends dikhate hain.
+[2] PURPOSE
+- Compact summary tables me row-level trend monitoring.
+[3] SCENARIO & EXAMPLE
+- Last 12 months sales trend displaying inside Cell G2 beside the total numbers using Sparkline.
+
+
+Page 3 ke KPI CARDS & EXECUTIVE DASHBOARD DESIGN par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- High-level summarized visual cards displaying primary metrics (e.g., Total Revenue, Target Achieved %, NPS Score) using clean UI typography, borders, aur subtle colors.
+[2] PURPOSE
+- C-Suite Executives ko 5-second snapshot visual summary provide karna.
+[3] SCENARIO & EXAMPLE
+- Layout Card: Big Bold Font "₹ 1.25 Cr" with green up-arrow badge "+12% vs Last Month".
+
+
+Page 3 ke DYNAMIC NAMED RANGES WITH OFFSET & INDEX par click karte hi Page 4 par dikhega:
+
+[1] EXPLANATION
+- Formula-driven named ranges jo new rows add hone par automatically expand ho jajati hain.
+[2] PURPOSE
+- Charts aur Dropdowns ko dynamic source ranges allocate karna bina ranges expand re-selection ke.
+[3] SCENARIO & EXAMPLE
+- Name Manager Formula: `=OFFSET(Sheet1!$A$1, 0, 0, COUNTA(Sheet1!$A:$A), 1)`
+- Result: Chart Source auto-grows as new daily data rows are appended.
+
+
+
+[Note: The walking man animation and secret key ka claude ban kar niche sitting infront of computer wale person ke screen tak jane wala animation perfectly hona chahiye, website ka UI primium and mobile friendly hona chahiye and Page 3-4 par back and home button hona chahiye, back button ek page back kar dega and home button page 2 par le jayega.]
