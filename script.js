@@ -8,8 +8,15 @@ document.addEventListener("DOMContentLoaded", () => {
   let selectedCategoryKey = null;
   let selectedSubcatIndex = null;
 
-  // Secret Key Configurations (Valid Keys: "simsim", "khuljasimsim", "excel", "1234")
-  const VALID_KEYS = ["simsim", "khuljasimsim", "excel", "1234"];
+  // Secret Key Configurations
+  const VALID_KEYS = [
+    "careerboot",
+    "excel@2026",
+    "kngt@786",
+    "lda_colony",
+    "lucknow-2026",
+    "gogoxi-2026"
+  ];
 
   /* --------------------------------------------------------------------------
      PAGE 1: Cloud & Computer Screen Animation Engine
@@ -58,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setTimeout(() => {
       cloud.style.opacity = "0.2";
       
-      const isKeyCorrect = VALID_KEYS.includes(enteredKey) || enteredKey.length >= 3;
+      const isKeyCorrect = VALID_KEYS.includes(enteredKey);
 
       if (isKeyCorrect) {
         pcScreen.className = "computer-screen screen-green";
